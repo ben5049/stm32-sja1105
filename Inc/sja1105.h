@@ -11,6 +11,7 @@
 
 /* Includes*/
 #include "stm32h5xx_hal.h" /* Needed for SPI */
+#include "stm32h573xx.h" /* Needed for GPIO_TypeDef */
 #include "stdint.h"
 
 
@@ -66,7 +67,6 @@ typedef struct {
 SJA1105_StatusTypeDef SJA1105_Init(SJA1105_HandleTypeDef *dev, SJA1105_VariantTypeDef variant, const SJA1105_CallbacksTypeDef* callbacks, SPI_HandleTypeDef *spi_handle, GPIO_TypeDef *cs_port, uint16_t cs_pin, GPIO_TypeDef *rst_port, uint16_t rst_pin, uint32_t write_timeout);
 
 /* User Functions */
-// SJA1105_StatusTypeDef SJA1105_xxxxxxxx(SJA1105_HandleTypeDef *dev);
 
 /* Low-Level Functions */
 SJA1105_StatusTypeDef SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size);
