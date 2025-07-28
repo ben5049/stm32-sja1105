@@ -9,6 +9,10 @@
 #ifndef SJA1105_INC_SJA1105_H_
 #define SJA1105_INC_SJA1105_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Includes*/
 #include "stm32h5xx_hal.h" /* Needed for SPI */
 #include "stm32h573xx.h" /* Needed for GPIO_TypeDef */
@@ -16,9 +20,9 @@
 
 
 /* Defines */
-#define WRITE_ACCESS_FRAME 0x80000000  /* 1 in the most significant bit signifies a write */
+#define WRITE_ACCESS_FRAME (1 << 31)  /* 1 in the most significant bit signifies a write */
 #define WRITE_ACCESS_ADDR_MASK 0x1fffff  /* 21-bit address */
-#define WRITE_ACCESS_ADDR_POSITION 4  /* occupies bits[24:4] */
+#define WRITE_ACCESS_ADDR_POSITION 4  /* occupies bits[24:4] */ 
 
 /* Typedefs */
 
@@ -52,19 +56,29 @@ typedef struct {
 typedef struct {
     SJA1105_VariantTypeDef          variant;
     const SJA1105_CallbacksTypeDef *callbacks;
-	SPI_HandleTypeDef              *spi_handle;  /* SPI Handle */
+    SPI_HandleTypeDef              *spi_handle;  /* SPI Handle */
     GPIO_TypeDef                   *cs_port;
     uint16_t                        cs_pin;
     GPIO_TypeDef                   *rst_port;
     uint16_t                        rst_pin;
-    uint32_t                        write_timeout;  /* ms? */
+    uint32_t                        timeout;  /* Timeout in ms for doing anything with a timeout */
 } SJA1105_HandleTypeDef;
 
 
 /* Functions */
 
 /* Initialisation */
-SJA1105_StatusTypeDef SJA1105_Init(SJA1105_HandleTypeDef *dev, SJA1105_VariantTypeDef variant, const SJA1105_CallbacksTypeDef* callbacks, SPI_HandleTypeDef *spi_handle, GPIO_TypeDef *cs_port, uint16_t cs_pin, GPIO_TypeDef *rst_port, uint16_t rst_pin, uint32_t write_timeout);
+SJA1105_StatusTypeDef SJA1105_Init(
+    SJA1105_HandleTypeDef *dev,
+    SJA1105_VariantTypeDef variant,
+    const SJA1105_CallbacksTypeDef* callbacks,
+    SPI_HandleTypeDef *spi_handle,
+    GPIO_TypeDef *cs_port,
+    uint16_t cs_pin,
+    GPIO_TypeDef *rst_port,
+    uint16_t rst_pin,
+    uint32_t timeout
+);
 
 /* User Functions */
 
@@ -73,5 +87,8 @@ SJA1105_StatusTypeDef SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t 
 SJA1105_StatusTypeDef SJA1105_WriteRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size);
 void SJA1105_Reset(SJA1105_HandleTypeDef *dev);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SJA1105_INC_SJA1105_H_ */
