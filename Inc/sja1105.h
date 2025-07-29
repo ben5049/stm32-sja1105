@@ -73,6 +73,7 @@ extern "C" {
 
 
 #define SJA1105_STATIC_CONF_ADDR (0x20000)
+#define SJA1105_T_SWITCH_CORE_ID (0x9f00030e)
 #define SJA1105PR_SWITCH_CORE_ID (0xaf00030e)
 #define SJA1105QS_SWITCH_CORE_ID (0xae00030e)
 
@@ -172,10 +173,10 @@ SJA1105_StatusTypeDef SJA1105_Init(
 /* User Functions */
 
 /* Low-Level Functions */
-/* Note that the nanosecond delays specified in the datasheet have not been explicitely added. This is because the target MCU ran slowly enough that these were guaranteed to be met. */
 SJA1105_StatusTypeDef SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size);
 SJA1105_StatusTypeDef SJA1105_WriteRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, const uint32_t *data, uint32_t size);
 void SJA1105_Reset(SJA1105_HandleTypeDef *dev);
+SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size);
 
 #ifdef __cplusplus
 }

@@ -240,6 +240,10 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
 
 	/* Check the static config matches the device type */
 	switch (dev->variant) {
+	case VARIANT_SJA1105:
+	case VARIANT_SJA1105T:
+		if (static_conf[0] != SJA1105_T_SWITCH_CORE_ID) status = SJA1105_STATIC_CONF_ERROR;
+		break;
 	case VARIANT_SJA1105P:
 	case VARIANT_SJA1105R:
 		if (static_conf[0] != SJA1105PR_SWITCH_CORE_ID) status = SJA1105_STATIC_CONF_ERROR;
@@ -249,12 +253,13 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
 		if (static_conf[0] != SJA1105QS_SWITCH_CORE_ID) status = SJA1105_STATIC_CONF_ERROR;
 		break;
 	default:
+        status = SJA1105_PARAMETER_ERROR;  /* Unknown variant */
 		break;
 	}
 	if (status != SJA1105_OK) return status;
 
 	/* Write the config */
-	status = (dev, SJA1105_STATIC_CONF_ADDR, static_conf, static_conf_size);
+	status = SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR, static_conf, static_conf_size);
 	if (status != SJA1105_OK) return status;
 
 	return status;
