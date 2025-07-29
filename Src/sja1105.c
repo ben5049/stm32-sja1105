@@ -40,10 +40,11 @@ SJA1105_StatusTypeDef SJA1105_Init(
     if (dev->variant != VARIANT_SJA1105Q) status = SJA1105_PARAMETER_ERROR;
 
     /* Check SPI parameters */
-    if (dev->spi_handle->Init.DataSize != SPI_DATASIZE_32BIT) status = SJA1105_PARAMETER_ERROR;
+    if (dev->spi_handle->Init.DataSize != SPI_DATASIZE_32BIT)  status = SJA1105_PARAMETER_ERROR;
     if (dev->spi_handle->Init.CLKPolarity != SPI_POLARITY_LOW) status = SJA1105_PARAMETER_ERROR;
-    if (dev->spi_handle->Init.CLKPhase != SPI_PHASE_1EDGE) status = SJA1105_PARAMETER_ERROR;
-    if (dev->spi_handle->Init.NSS != SPI_NSS_SOFT) status = SJA1105_PARAMETER_ERROR;
+    if (dev->spi_handle->Init.CLKPhase != SPI_PHASE_1EDGE)     status = SJA1105_PARAMETER_ERROR;
+    if (dev->spi_handle->Init.NSS != SPI_NSS_SOFT)             status = SJA1105_PARAMETER_ERROR;
+    if (dev->spi_handle->Init.FirstBit != SPI_FIRSTBIT_MSB)    status = SJA1105_PARAMETER_ERROR;
 
     /* If there are invalid parameters then return */
     if (status != SJA1105_OK) return status;
