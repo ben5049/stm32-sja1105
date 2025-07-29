@@ -73,18 +73,22 @@ extern "C" {
 
 
 #define SJA1105_STATIC_CONF_ADDR (0x20000)
-
+#define SJA1105PR_SWITCH_CORE_ID (0xaf00030e)
+#define SJA1105QS_SWITCH_CORE_ID (0xae00030e)
 
 
 
 /* Typedefs */
 
 typedef enum {
-	SJA1105_OK              = HAL_OK,
-	SJA1105_ERROR           = HAL_ERROR,
-	SJA1105_BUSY            = HAL_BUSY,
-	SJA1105_TIMEOUT         = HAL_TIMEOUT,
-	SJA1105_PARAMETER_ERROR
+	SJA1105_OK                       = HAL_OK,
+	SJA1105_ERROR                    = HAL_ERROR,
+	SJA1105_BUSY                     = HAL_BUSY,
+	SJA1105_TIMEOUT                  = HAL_TIMEOUT,
+	SJA1105_PARAMETER_ERROR,
+	SJA1105_ALREADY_CONFIGURED_ERROR,
+	SJA1105_STATIC_CONF_ERROR,
+
 } SJA1105_StatusTypeDef;
 
 typedef enum {

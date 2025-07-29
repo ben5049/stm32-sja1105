@@ -22,7 +22,7 @@ SJA1105_StatusTypeDef SJA1105_ConfigurePort(SJA1105_PortTypeDef *ports, uint8_t 
 	if (port_num >= SJA1105_NUM_PORTS)       status = SJA1105_PARAMETER_ERROR;
 	if (interface > SJA1105_INTERFACE_SGMII) status = SJA1105_PARAMETER_ERROR;
 	if (speed > SJA1105_SPEED_1G)            status = SJA1105_PARAMETER_ERROR;
-	if (ports[port_num].configured)          status = SJA1105_ERROR;
+	if (ports[port_num].configured == true)  status = SJA1105_ALREADY_CONFIGURED_ERROR;  /* Note this may cause an unintended error if the struct uses non-zeroed memory. */
 	if (status != SJA1105_OK) return status;
 
 	/* Assign the parameters */
@@ -35,20 +35,24 @@ SJA1105_StatusTypeDef SJA1105_ConfigurePort(SJA1105_PortTypeDef *ports, uint8_t 
 }
 
 SJA1105_StatusTypeDef SJA1105_Init(
-		SJA1105_HandleTypeDef *dev,
-		const SJA1105_VariantTypeDef variant,
+		SJA1105_HandleTypeDef          *dev,
+		const SJA1105_VariantTypeDef    variant,
 		const SJA1105_CallbacksTypeDef *callbacks,
-		SPI_HandleTypeDef *spi_handle,
-		GPIO_TypeDef *cs_port,
-		uint16_t cs_pin,
-		GPIO_TypeDef *rst_port,
-		uint16_t rst_pin,
-		uint32_t timeout,
-		const uint32_t *static_conf,
-		uint32_t static_conf_size,
-		SJA1105_PortTypeDef *ports){
+		SPI_HandleTypeDef              *spi_handle,
+		GPIO_TypeDef                   *cs_port,
+		uint16_t                        cs_pin,
+		GPIO_TypeDef                   *rst_port,
+		uint16_t                        rst_pin,
+		uint32_t                        timeout,
+		const uint32_t                 *static_conf,
+		uint32_t                        static_conf_size,
+		SJA1105_PortTypeDef            *ports){
 
 	SJA1105_StatusTypeDef status = SJA1105_OK;
+
+	/* Check the struct hasn't already been initialised. Note this may cause an unintended error if the struct uses non-zeroed memory. */
+	if (dev->initialised == true) status = SJA1105_ALREADY_CONFIGURED_ERROR;
+	if (status != SJA1105_OK) return status;
 
 	dev->variant     = variant;
 	dev->callbacks   = callbacks;
@@ -58,24 +62,25 @@ SJA1105_StatusTypeDef SJA1105_Init(
 	dev->rst_port    = rst_port;
 	dev->rst_pin     = rst_pin;
 	dev->timeout     = timeout;
+	dev->ports       = ports;
 	dev->initialised = false;
 
 	/* Only the SJA1105Q has been implemented. TODO: Add more */
 	if (dev->variant != VARIANT_SJA1105Q) status = SJA1105_PARAMETER_ERROR;
 
 	/* Check SPI parameters */
-	if (dev->spi_handle->Init.DataSize != SPI_DATASIZE_32BIT)  status = SJA1105_PARAMETER_ERROR;
-	if (dev->spi_handle->Init.CLKPolarity != SPI_POLARITY_LOW) status = SJA1105_PARAMETER_ERROR;
-	if (dev->spi_handle->Init.CLKPhase != SPI_PHASE_1EDGE)     status = SJA1105_PARAMETER_ERROR;
-	if (dev->spi_handle->Init.NSS != SPI_NSS_SOFT)             status = SJA1105_PARAMETER_ERROR;
-	if (dev->spi_handle->Init.FirstBit != SPI_FIRSTBIT_MSB)    status = SJA1105_PARAMETER_ERROR;
+	if (dev->spi_handle->Init.DataSize    != SPI_DATASIZE_32BIT) status = SJA1105_PARAMETER_ERROR;
+	if (dev->spi_handle->Init.CLKPolarity != SPI_POLARITY_LOW  ) status = SJA1105_PARAMETER_ERROR;
+	if (dev->spi_handle->Init.CLKPhase    != SPI_PHASE_1EDGE   ) status = SJA1105_PARAMETER_ERROR;
+	if (dev->spi_handle->Init.NSS         != SPI_NSS_SOFT      ) status = SJA1105_PARAMETER_ERROR;
+	if (dev->spi_handle->Init.FirstBit    != SPI_FIRSTBIT_MSB  ) status = SJA1105_PARAMETER_ERROR;
 
 	/* If there are invalid parameters then return */
 	if (status != SJA1105_OK) return status;
 
 	/* Set pins to a known state */
 	HAL_GPIO_WritePin(dev->rst_port, dev->rst_pin, SET);
-	HAL_GPIO_WritePin(dev->cs_port, dev->cs_pin, SET);
+	HAL_GPIO_WritePin(dev->cs_port,  dev->cs_pin,  SET);
 
 
 	/* Configure the SJA1105 following the steps from UM11040 figure 2 */
@@ -90,8 +95,8 @@ SJA1105_StatusTypeDef SJA1105_Init(
 	/* Step 4: SGMII PHY/PCS (optional) */
 
 	/* Step 5: STATIC CONFIGURATION */
-	SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR, static_conf, static_conf_size);
-
+	status = SJA1105_WriteStaticConfig(dev, static_conf, static_conf_size);
+	if (status != SJA1105_OK) return status;
 
 	dev->initialised = true;
 
@@ -227,4 +232,30 @@ void SJA1105_Reset(SJA1105_HandleTypeDef *dev){
 	dev->callbacks->callback_delay_ns(SJA1105_T_RST);  /* 5us delay */
 	HAL_GPIO_WritePin(dev->rst_port, dev->rst_pin, SET);
 	dev->callbacks->callback_delay_ms(1);  /* 329us minimum until SPI commands can be written. Use a 1ms non-blocking delay so the RTOS can do other work */
+}
+
+SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size){
+
+	SJA1105_StatusTypeDef status = SJA1105_OK;
+
+	/* Check the static config matches the device type */
+	switch (dev->variant) {
+	case VARIANT_SJA1105P:
+	case VARIANT_SJA1105R:
+		if (static_conf[0] != SJA1105PR_SWITCH_CORE_ID) status = SJA1105_STATIC_CONF_ERROR;
+		break;
+	case VARIANT_SJA1105Q:
+	case VARIANT_SJA1105S:
+		if (static_conf[0] != SJA1105QS_SWITCH_CORE_ID) status = SJA1105_STATIC_CONF_ERROR;
+		break;
+	default:
+		break;
+	}
+	if (status != SJA1105_OK) return status;
+
+	/* Write the config */
+	status = (dev, SJA1105_STATIC_CONF_ADDR, static_conf, static_conf_size);
+	if (status != SJA1105_OK) return status;
+
+	return status;
 }
