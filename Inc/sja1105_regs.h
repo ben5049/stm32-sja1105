@@ -12,7 +12,10 @@
 extern "C" {
 #endif
 
+
 #include "sja1105.h"
+#include "stdint.h"
+
 
 /* ---------------------------------------------------------------------------- */
 /* Ethernet Switch Core */
@@ -23,14 +26,13 @@ extern "C" {
 #define SJA1105_L2BUSYS_SHIFT        (0)
 #define SJA1105_L2BUSYS_MASK         (0x1 << SJA1105_L2BUSYS_SHIFT)
 
-
 /* ---------------------------------------------------------------------------- */
 /* Auxiliary Configuration Unit */
 /* ---------------------------------------------------------------------------- */
 
 #define SJA1105_ACU_REG_CFG_PAD_MIIX_BASE          (0x100800)
-#define SJA1105_ACU_REG_CFG_PAD_MIIX_TX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE + 2 * port_num)
-#define SJA1105_ACU_REG_CFG_PAD_MIIX_RX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE + 2 * port_num + 1)
+#define SJA1105_ACU_REG_CFG_PAD_MIIX_TX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE +  2 * port_num)
+#define SJA1105_ACU_REG_CFG_PAD_MIIX_RX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE +  2 * port_num + 1)
 #define SJA1105_ACU_REG_CFG_PAD_MIIX_ID(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE + 16 + port_num)
 
 #define SJA1105_ACU_REG_CFG_PAD_MISC               (0x100840)
@@ -114,14 +116,44 @@ extern "C" {
 #define PART_NR_SJA1105R                           (0x9a86)
 #define PART_NR_SJA1105S                           (0x9a87)
 
+#define SJA1105_TS_PD                              (1 << 6)
+#define SJA1105_TS_THRESHOLD_MASK                  (0x3f)
+#define SJA1105_TS_EXCEEDED                        (1)
+
+#define SJA1105_TS_LUT_SIZE                        (40)
+static const int16_t SJA1105_TS_LUT[SJA1105_TS_LUT_SIZE] = {
+    INT16_MIN, -457, -417, -375, -330, -284, -235, -183,
+         -114,  -61,  -21,   21,   65,  110,  157,  206,
+          256,  309,  364,  420,  461,  502,  545,  588,
+          633,  679,  726,  774,  824,  875,  928,  982,
+         1025, 1069, 1114, 1160, 1207, 1255, 1305, 1355};
+
 /* ---------------------------------------------------------------------------- */
 /* Clock Generation Unit */
 /* ---------------------------------------------------------------------------- */
 
+#define SJA1105_CGU_REG_XO66M_0_C                (0x100006)  /* C = Control */
+#define SJA1105_CGU_REG_PLL_0_S                  (0x100007)  /* S = Status */
+#define SJA1105_CGU_REG_PLL_0_C                  (0x100008)
+#define SJA1105_CGU_REG_PLL_1_S                  (0x100009)
+#define SJA1105_CGU_REG_PLL_1_C                  (0x10000a)
 
+#define SJA1105_CGU_REG_IDIV_0_C                 (0x10000b)
+#define SJA1105_CGU_REG_IDIV_X_C(port_num)       (SJA1105_CGU_REG_IDIV_0_C + port_num)
 
+#define SJA1105_CGU_REG_MII_TX_CLK_0             (0x100013)
+#define SJA1105_CGU_REG_MII_RX_CLK_0             (0x100014)
+#define SJA1105_CGU_REG_RMII_REF_CLK_0           (0x100015)
+#define SJA1105_CGU_REG_RGMII_TX_CLK_0           (0x100016)
+#define SJA1105_CGU_REG_EXT_TX_CLK_0             (0x100017)
+#define SJA1105_CGU_REG_EXT_RX_CLK_0             (0x100018)
 
-
+#define SJA1105_CGU_REG_MII_TX_CLK_X(port_num)   (SJA1105_CGU_REG_MII_TX_CLK_0   + (6 * port_num))
+#define SJA1105_CGU_REG_MII_RX_CLK_X(port_num)   (SJA1105_CGU_REG_MII_RX_CLK_0   + (6 * port_num))
+#define SJA1105_CGU_REG_RMII_REF_CLK_X(port_num) (SJA1105_CGU_REG_RMII_REF_CLK_0 + (6 * port_num))
+#define SJA1105_CGU_REG_RGMII_TX_CLK_X(port_num) (SJA1105_CGU_REG_RGMII_TX_CLK_0 + (6 * port_num))
+#define SJA1105_CGU_REG_EXT_TX_CLK_X(port_num)   (SJA1105_CGU_REG_EXT_TX_CLK_0   + (6 * port_num))
+#define SJA1105_CGU_REG_EXT_RX_CLK_X(port_num)   (SJA1105_CGU_REG_EXT_RX_CLK_0   + (6 * port_num))
 
 /* ---------------------------------------------------------------------------- */
 /* Static Configuration */
@@ -135,7 +167,7 @@ extern "C" {
 #define SJA1105_STATIC_CONF_BLOCK_NUM_HEADERS  (2)
 #define SJA1105_STATIC_CONF_BLOCK_NUM_CRCS     (2)
 #define SJA1105_STATIC_CONF_BLOCK_FIRST_OFFSET (1)
-#define SJA1105_STATIC_CONF_BLOCK_LAST_SIZE    (3)  /* Last block contains two 0 words and the global CRC */
+#define SJA1105_STATIC_CONF_BLOCK_LAST_SIZE    (3)  /* Last block contains two empty words and the global CRC */
 
 #define SJA1105_STATIC_CONF_BLOCK_ID_OFFSET    (0)
 #define SJA1105_STATIC_CONF_BLOCK_ID_SHIFT     (24)
@@ -147,6 +179,7 @@ extern "C" {
 #define SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU (0x05)
 #define SJA1105_STATIC_CONF_BLOCK_ID_CGU       (0x80)
 #define SJA1105_STATIC_CONF_BLOCK_ID_ACU       (0x82)
+
 
 #ifdef __cplusplus
 }

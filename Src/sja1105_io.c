@@ -9,9 +9,6 @@
 #include "sja1105_regs.h"
 
 
-#define CONSTRAIN(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
-
-
 /* Low-Level Functions */
 SJA1105_StatusTypeDef SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size){
 
