@@ -24,7 +24,7 @@ SJA1105_StatusTypeDef SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t 
     if (status != SJA1105_OK) return status;
 
     /* Take the mutex */
-    status = dev->callbacks->callback_take_mutex(dev->timeout);
+    status = dev->callbacks->callback_take_mutex(dev->config->timeout);
     if (status != SJA1105_OK) return status;
 
     /* Initialise counter for the number of double words remaining to receive */
@@ -40,11 +40,11 @@ SJA1105_StatusTypeDef SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t 
 
         /* Start the transaction after a delay (ensures successive transactions meet timing requirements) */
         dev->callbacks->callback_delay_ns(SJA1105_T_SPI_WR);
-        HAL_GPIO_WritePin(dev->cs_port, dev->cs_pin, RESET);
+        HAL_GPIO_WritePin(dev->config->cs_port, dev->config->cs_pin, RESET);
         dev->callbacks->callback_delay_ns(SJA1105_T_SPI_LEAD);
 
         /* Send command frame */
-        if (HAL_SPI_Transmit(dev->spi_handle, (uint8_t *) &command_frame, 1, dev->timeout) != HAL_OK){
+        if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) &command_frame, 1, dev->config->timeout) != HAL_OK){
             status = SJA1105_SPI_ERROR;
             return status;
         }
@@ -53,14 +53,14 @@ SJA1105_StatusTypeDef SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t 
         dev->callbacks->callback_delay_ns(SJA1105_T_SPI_CTRL_DATA);
 
         /* Receive payload */
-        if (HAL_SPI_Receive(dev->spi_handle, (uint8_t *) &data[size - dwords_remaining], CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE), dev->timeout) != HAL_OK){
+        if (HAL_SPI_Receive(dev->config->spi_handle, (uint8_t *) &data[size - dwords_remaining], CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE), dev->config->timeout) != HAL_OK){
             status = SJA1105_SPI_ERROR;
             return status;
         }
 
         /* End the transaction */
         dev->callbacks->callback_delay_ns(SJA1105_T_SPI_LAG);
-        HAL_GPIO_WritePin(dev->cs_port, dev->cs_pin, SET);
+        HAL_GPIO_WritePin(dev->config->cs_port, dev->config->cs_pin, SET);
 
         /* Calculate the double words to receive remaining */
         dwords_remaining -= CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE);
@@ -85,7 +85,7 @@ SJA1105_StatusTypeDef SJA1105_WriteRegister(SJA1105_HandleTypeDef *dev, uint32_t
     if (status != SJA1105_OK) return status;
 
     /* Take the mutex */
-    status = dev->callbacks->callback_take_mutex(dev->timeout);
+    status = dev->callbacks->callback_take_mutex(dev->config->timeout);
     if (status != SJA1105_OK) return status;
 
     /* Initialise counter for the number of double words remaining to transmit */
@@ -100,24 +100,24 @@ SJA1105_StatusTypeDef SJA1105_WriteRegister(SJA1105_HandleTypeDef *dev, uint32_t
 
         /* Start the transaction after a delay (ensures successive transactions meet timing requirements) */
         dev->callbacks->callback_delay_ns(SJA1105_T_SPI_WR);
-        HAL_GPIO_WritePin(dev->cs_port, dev->cs_pin, RESET);
+        HAL_GPIO_WritePin(dev->config->cs_port, dev->config->cs_pin, RESET);
         dev->callbacks->callback_delay_ns(SJA1105_T_SPI_LEAD);
 
         /* Send command frame */
-        if (HAL_SPI_Transmit(dev->spi_handle, (uint8_t *) &command_frame, 1, dev->timeout) != HAL_OK){
+        if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) &command_frame, 1, dev->config->timeout) != HAL_OK){
             status = SJA1105_SPI_ERROR;
             return status;
         }
 
         /* Send payload */
-        if (HAL_SPI_Transmit(dev->spi_handle, (uint8_t *) &data[size - dwords_remaining], CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE), dev->timeout) != HAL_OK){
+        if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) &data[size - dwords_remaining], CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE), dev->config->timeout) != HAL_OK){
             status = SJA1105_SPI_ERROR;
             return status;
         }
 
         /* End the transaction */
         dev->callbacks->callback_delay_ns(SJA1105_T_SPI_LAG);
-        HAL_GPIO_WritePin(dev->cs_port, dev->cs_pin, SET);
+        HAL_GPIO_WritePin(dev->config->cs_port, dev->config->cs_pin, SET);
 
         /* Calculate the double words to transmit remaining */
         dwords_remaining -= CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE);
@@ -132,8 +132,8 @@ SJA1105_StatusTypeDef SJA1105_WriteRegister(SJA1105_HandleTypeDef *dev, uint32_t
 }
 
 void SJA1105_Reset(SJA1105_HandleTypeDef *dev){
-    HAL_GPIO_WritePin(dev->rst_port, dev->rst_pin, RESET);
+    HAL_GPIO_WritePin(dev->config->rst_port, dev->config->rst_pin, RESET);
     dev->callbacks->callback_delay_ns(SJA1105_T_RST);  /* 5us delay */
-    HAL_GPIO_WritePin(dev->rst_port, dev->rst_pin, SET);
+    HAL_GPIO_WritePin(dev->config->rst_port, dev->config->rst_pin, SET);
     dev->callbacks->callback_delay_ms(1);  /* 329us minimum until SPI commands can be written. Use a 1ms non-blocking delay so the RTOS can do other work */
 }

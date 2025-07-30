@@ -39,17 +39,11 @@ SJA1105_StatusTypeDef SJA1105_ConfigurePort(SJA1105_PortTypeDef *ports, uint8_t 
 
 SJA1105_StatusTypeDef SJA1105_Init(
         SJA1105_HandleTypeDef          *dev,
-        const SJA1105_VariantTypeDef    variant,
+        const SJA1105_ConfigTypeDef    *config,
+        SJA1105_PortTypeDef            *ports,
         const SJA1105_CallbacksTypeDef *callbacks,
-        SPI_HandleTypeDef              *spi_handle,
-        GPIO_TypeDef                   *cs_port,
-        uint16_t                        cs_pin,
-        GPIO_TypeDef                   *rst_port,
-        uint16_t                        rst_pin,
-        uint32_t                        timeout,
         const uint32_t                 *static_conf,
-        uint32_t                        static_conf_size,
-        SJA1105_PortTypeDef            *ports){
+        uint32_t                        static_conf_size){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
 
@@ -57,33 +51,34 @@ SJA1105_StatusTypeDef SJA1105_Init(
     if (dev->initialised == true) status = SJA1105_ALREADY_CONFIGURED_ERROR;
     if (status != SJA1105_OK) return status;
 
-    dev->variant     = variant;
-    dev->callbacks   = callbacks;
-    dev->spi_handle  = spi_handle;
-    dev->cs_port     = cs_port;
-    dev->cs_pin      = cs_pin;
-    dev->rst_port    = rst_port;
-    dev->rst_pin     = rst_pin;
-    dev->timeout     = timeout;
-    dev->ports       = ports;
-    dev->initialised = false;
+    /* Assign the input arguments */
+    dev->config->variant    = config->variant;
+    dev->config->spi_handle = config->spi_handle;
+    dev->config->cs_port    = config->cs_port;
+    dev->config->cs_pin     = config->cs_pin;
+    dev->config->rst_port   = config->rst_port;
+    dev->config->rst_pin    = config->rst_pin;
+    dev->config->timeout    = config->timeout;
+    dev->callbacks          = callbacks;
+    dev->ports              = ports;
+    dev->initialised        = false;
 
     /* Only the SJA1105Q has been implemented. TODO: Add more */
-    if (dev->variant != VARIANT_SJA1105Q) status = SJA1105_PARAMETER_ERROR;
+    if (dev->config->variant != VARIANT_SJA1105Q) status = SJA1105_PARAMETER_ERROR;
 
     /* Check SPI parameters */
-    if (dev->spi_handle->Init.DataSize    != SPI_DATASIZE_32BIT) status = SJA1105_PARAMETER_ERROR;
-    if (dev->spi_handle->Init.CLKPolarity != SPI_POLARITY_LOW  ) status = SJA1105_PARAMETER_ERROR;
-    if (dev->spi_handle->Init.CLKPhase    != SPI_PHASE_1EDGE   ) status = SJA1105_PARAMETER_ERROR;
-    if (dev->spi_handle->Init.NSS         != SPI_NSS_SOFT      ) status = SJA1105_PARAMETER_ERROR;
-    if (dev->spi_handle->Init.FirstBit    != SPI_FIRSTBIT_MSB  ) status = SJA1105_PARAMETER_ERROR;
+    if (dev->config->spi_handle->Init.DataSize    != SPI_DATASIZE_32BIT) status = SJA1105_PARAMETER_ERROR;
+    if (dev->config->spi_handle->Init.CLKPolarity != SPI_POLARITY_LOW  ) status = SJA1105_PARAMETER_ERROR;
+    if (dev->config->spi_handle->Init.CLKPhase    != SPI_PHASE_1EDGE   ) status = SJA1105_PARAMETER_ERROR;
+    if (dev->config->spi_handle->Init.NSS         != SPI_NSS_SOFT      ) status = SJA1105_PARAMETER_ERROR;
+    if (dev->config->spi_handle->Init.FirstBit    != SPI_FIRSTBIT_MSB  ) status = SJA1105_PARAMETER_ERROR;
 
     /* If there are invalid parameters then return */
     if (status != SJA1105_OK) return status;
     
     /* Set pins to a known state */
-    HAL_GPIO_WritePin(dev->rst_port, dev->rst_pin, SET);
-    HAL_GPIO_WritePin(dev->cs_port,  dev->cs_pin,  SET);
+    HAL_GPIO_WritePin(dev->config->rst_port, dev->config->rst_pin, SET);
+    HAL_GPIO_WritePin(dev->config->cs_port,  dev->config->cs_pin,  SET);
     
     /* Check the part number matches the specified variant */
     status = SJA1105_CheckPartNR(dev);
@@ -127,23 +122,23 @@ SJA1105_StatusTypeDef SJA1105_CheckPartNR(SJA1105_HandleTypeDef *dev){
     /* Extract and check the PART_NR */
     switch ((reg_data & SJA1105_PART_NR_MASK) >> SJA1105_PART_NR_OFFSET){
         case PART_NR_SJA1105_T:
-            if ((dev->variant != VARIANT_SJA1105) && (dev->variant != VARIANT_SJA1105T)) status = SJA1105_ID_ERROR;
+            if ((dev->config->variant != VARIANT_SJA1105) && (dev->config->variant != VARIANT_SJA1105T)) status = SJA1105_ID_ERROR;
             break;
         
         case PART_NR_SJA1105P:
-            if (dev->variant != VARIANT_SJA1105P) status = SJA1105_ID_ERROR;
+            if (dev->config->variant != VARIANT_SJA1105P) status = SJA1105_ID_ERROR;
             break;
         
         case PART_NR_SJA1105Q:
-            if (dev->variant != VARIANT_SJA1105Q) status = SJA1105_ID_ERROR;
+            if (dev->config->variant != VARIANT_SJA1105Q) status = SJA1105_ID_ERROR;
             break;
         
         case PART_NR_SJA1105R:
-            if (dev->variant != VARIANT_SJA1105R) status = SJA1105_ID_ERROR;
+            if (dev->config->variant != VARIANT_SJA1105R) status = SJA1105_ID_ERROR;
             break;
         
         case PART_NR_SJA1105S:
-            if (dev->variant != VARIANT_SJA1105S) status = SJA1105_ID_ERROR;
+            if (dev->config->variant != VARIANT_SJA1105S) status = SJA1105_ID_ERROR;
             break;
         
         default:
@@ -264,12 +259,22 @@ SJA1105_StatusTypeDef SJA1105_ConfigureCGU(SJA1105_HandleTypeDef *dev){
     return status;
 }
 
+SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8_t port_num){
+
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+
+    /* TODO: Implement */
+    status = SJA1105_ERROR;
+
+    return status;
+}
+
 SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
 
     /* Check the static config matches the device type */
-    switch (dev->variant) {
+    switch (dev->config->variant) {
         case VARIANT_SJA1105:
         case VARIANT_SJA1105T:
             if (static_conf[0] != SJA1105_T_SWITCH_CORE_ID) status = SJA1105_STATIC_CONF_ERROR;
@@ -302,7 +307,7 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
     bool     skip_block        = false;
     uint32_t skipped_size      = 0;  /* Every time a block is skipped this counter should be incremented by block_size_actual */
 
-    /* TODO: Get and check the CRC32s */
+    /* TODO: Get and check the CRC-32s */
 
     do {
 
@@ -339,16 +344,16 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
                 uint32_t reg_data = 0;
                 bool     ready    = false;
 
-                /* Check the general status 1 register for L2BUSYS (0 = initialised, 1 = not initialised). Try up to 10 times (with 1ms delay). */
+                /* Check the general status 1 register for L2BUSYS (0 = initialised, 1 = not initialised). Try up to 10 times. */
                 for (uint8_t retries = 0; !ready && (retries < 10); retries++){
 
                     /* Read the register */
                     status = SJA1105_ReadRegister(dev, SJA1105_REG_GENERAL_STATUS_1, &reg_data, 1);
                     if (status != SJA1105_OK) return status;
 
-                    /* Extract L2BUSYS and delay by 1ms if not set */
+                    /* Extract L2BUSYS and delay if not set */
                     ready = (bool) (((reg_data & SJA1105_L2BUSYS_MASK) >> SJA1105_L2BUSYS_SHIFT) == 1);
-                    if (!ready) dev->callbacks->callback_delay_ms(1);
+                    if (!ready) dev->callbacks->callback_delay_ms(dev->config->timeout / 10);
                 }
 
                 break;
@@ -372,6 +377,29 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
         block_index = block_index_next;
 
     } while (!last_block);
+
+    return status;
+}
+
+
+SJA1105_StatusTypeDef SJA1105_UpdatePort(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage){
+
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+
+    /* Set the port to unconfigured */
+    dev->ports[port_num].configured = false;
+    
+    /* Load the new configuration options */
+    status = SJA1105_ConfigurePort(dev->ports, port_num, interface, speed, voltage);
+    if (status != SJA1105_OK) return status;
+
+    /* Configure the ACU with new port parameters */
+    status = SJA1105_ConfigureACUPort(dev, port_num);
+    if (status != SJA1105_OK) return status;
+    
+    /* Configure the CGU with new port parameters */
+    status = SJA1105_ConfigureACUPort(dev, port_num);
+    if (status != SJA1105_OK) return status;
 
     return status;
 }

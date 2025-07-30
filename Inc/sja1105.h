@@ -52,7 +52,7 @@ typedef enum {
 	SJA1105_BUSY                     = HAL_BUSY,
 	SJA1105_TIMEOUT                  = HAL_TIMEOUT,
 	SJA1105_PARAMETER_ERROR,
-	SJA1105_ALREADY_CONFIGURED_ERROR,
+	SJA1105_ALREADY_CONFIGURED_ERROR,  /* Error when attempting to init an already initialised device or configure a port that has already been configured. */
     SJA1105_SPI_ERROR,
 	SJA1105_ID_ERROR,
 	SJA1105_STATIC_CONF_ERROR
@@ -111,16 +111,20 @@ typedef struct {
 } SJA1105_CallbacksTypeDef;
 
 typedef struct {
-	SJA1105_VariantTypeDef          variant;
-	const SJA1105_CallbacksTypeDef *callbacks;
-	SPI_HandleTypeDef              *spi_handle;  /* SPI Handle */
-	GPIO_TypeDef                   *cs_port;
-	uint16_t                        cs_pin;
-	GPIO_TypeDef                   *rst_port;
-	uint16_t                        rst_pin;
-	uint32_t                        timeout;  /* Timeout in ms for doing anything with a timeout (read, write, take mutex etc) */
-	bool                            initialised;
-	SJA1105_PortTypeDef            *ports;
+    SJA1105_VariantTypeDef  variant;
+    SPI_HandleTypeDef      *spi_handle;
+    GPIO_TypeDef           *cs_port;
+    uint16_t                cs_pin;
+    GPIO_TypeDef           *rst_port;
+    uint16_t                rst_pin;
+    uint32_t                timeout;  /* Timeout in ms for doing anything with a timeout (read, write, take mutex etc) */
+} SJA1105_ConfigTypeDef;
+
+typedef struct {
+    SJA1105_ConfigTypeDef          *config;
+    SJA1105_PortTypeDef            *ports;
+    const SJA1105_CallbacksTypeDef *callbacks;
+    bool                            initialised;
 } SJA1105_HandleTypeDef;
 
 
@@ -128,27 +132,15 @@ typedef struct {
 
 /* Initialisation */
 SJA1105_StatusTypeDef SJA1105_ConfigurePort(SJA1105_PortTypeDef *ports, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage);
-
-SJA1105_StatusTypeDef SJA1105_Init(
-		SJA1105_HandleTypeDef *dev,
-		const SJA1105_VariantTypeDef variant,
-		const SJA1105_CallbacksTypeDef *callbacks,
-		SPI_HandleTypeDef *spi_handle,
-		GPIO_TypeDef *cs_port,
-		uint16_t cs_pin,
-		GPIO_TypeDef *rst_port,
-		uint16_t rst_pin,
-		uint32_t timeout,
-		const uint32_t *static_conf,
-		uint32_t static_conf_size,
-		SJA1105_PortTypeDef *ports
-);
+SJA1105_StatusTypeDef SJA1105_Init(SJA1105_HandleTypeDef *dev, const SJA1105_ConfigTypeDef *config, SJA1105_PortTypeDef *ports, const *callbacks, const uint32_t *static_conf, uint32_t static_conf_size);
 
 /* User Functions */
+SJA1105_StatusTypeDef SJA1105_UpdatePort(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage){
 SJA1105_StatusTypeDef SJA1105_CheckPartNR(SJA1105_HandleTypeDef *dev);
 SJA1105_StatusTypeDef SJA1105_ConfigureACU(SJA1105_HandleTypeDef *dev);
 SJA1105_StatusTypeDef SJA1105_ConfigureACUPort(SJA1105_HandleTypeDef *dev, uint8_t port_num);
 SJA1105_StatusTypeDef SJA1105_ConfigureCGU(SJA1105_HandleTypeDef *dev);
+SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8_t port_num);
 SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size);
 
 #ifdef __cplusplus
