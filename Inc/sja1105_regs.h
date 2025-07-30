@@ -14,9 +14,18 @@ extern "C" {
 
 #include "sja1105.h"
 
+/* ---------------------------------------------------------------------------- */
+/* Ethernet Switch Core */
+/* ---------------------------------------------------------------------------- */
+
+#define SJA1105_REG_GENERAL_STATUS_1 (0x00000003)
+
+#define SJA1105_L2BUSYS_SHIFT        (0)
+#define SJA1105_L2BUSYS_MASK         (0x1 << SJA1105_L2BUSYS_SHIFT)
+
 
 /* ---------------------------------------------------------------------------- */
-/* Auxiliary Configurations Unit */
+/* Auxiliary Configuration Unit */
 /* ---------------------------------------------------------------------------- */
 
 #define SJA1105_ACU_REG_CFG_PAD_MIIX_BASE          (0x100800)
@@ -114,16 +123,30 @@ extern "C" {
 
 
 
+/* ---------------------------------------------------------------------------- */
+/* Static Configuration */
+/* ---------------------------------------------------------------------------- */
 
+#define SJA1105_STATIC_CONF_ADDR               (0x20000)
+#define SJA1105_T_SWITCH_CORE_ID               (0x9f00030e)
+#define SJA1105PR_SWITCH_CORE_ID               (0xaf00030e)
+#define SJA1105QS_SWITCH_CORE_ID               (0xae00030e)
 
+#define SJA1105_STATIC_CONF_BLOCK_NUM_HEADERS  (2)
+#define SJA1105_STATIC_CONF_BLOCK_NUM_CRCS     (2)
+#define SJA1105_STATIC_CONF_BLOCK_FIRST_OFFSET (1)
+#define SJA1105_STATIC_CONF_BLOCK_LAST_SIZE    (3)  /* Last block contains two 0 words and the global CRC */
 
+#define SJA1105_STATIC_CONF_BLOCK_ID_OFFSET    (0)
+#define SJA1105_STATIC_CONF_BLOCK_ID_SHIFT     (24)
+#define SJA1105_STATIC_CONF_BLOCK_ID_MASK      (0xff << SJA1105_STATIC_CONF_BLOCK_ID_SHIFT)
+#define SJA1105_STATIC_CONF_BLOCK_SIZE_OFFSET  (1)
+#define SJA1105_STATIC_CONF_BLOCK_SIZE_SHIFT   (0)
+#define SJA1105_STATIC_CONF_BLOCK_SIZE_MASK    (0xffffff)
 
-
-#define SJA1105_STATIC_CONF_ADDR (0x20000)
-#define SJA1105_T_SWITCH_CORE_ID (0x9f00030e)
-#define SJA1105PR_SWITCH_CORE_ID (0xaf00030e)
-#define SJA1105QS_SWITCH_CORE_ID (0xae00030e)
-
+#define SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU (0x05)
+#define SJA1105_STATIC_CONF_BLOCK_ID_CGU       (0x80)
+#define SJA1105_STATIC_CONF_BLOCK_ID_ACU       (0x82)
 
 #ifdef __cplusplus
 }

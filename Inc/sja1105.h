@@ -53,8 +53,9 @@ typedef enum {
 	SJA1105_TIMEOUT                  = HAL_TIMEOUT,
 	SJA1105_PARAMETER_ERROR,
 	SJA1105_ALREADY_CONFIGURED_ERROR,
-	SJA1105_STATIC_CONF_ERROR,
+    SJA1105_SPI_ERROR,
 	SJA1105_ID_ERROR,
+	SJA1105_STATIC_CONF_ERROR
 
 } SJA1105_StatusTypeDef;
 
@@ -149,9 +150,6 @@ SJA1105_StatusTypeDef SJA1105_ConfigureACU(SJA1105_HandleTypeDef *dev);
 SJA1105_StatusTypeDef SJA1105_ConfigureACUPort(SJA1105_HandleTypeDef *dev, uint8_t port_num);
 SJA1105_StatusTypeDef SJA1105_ConfigureCGU(SJA1105_HandleTypeDef *dev);
 SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size);
-
-
-void SJA1105_Reset(SJA1105_HandleTypeDef *dev);
 
 #ifdef __cplusplus
 }
