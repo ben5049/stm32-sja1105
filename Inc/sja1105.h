@@ -41,108 +41,6 @@ extern "C" {
 #define SJA1105_T_SPI_LAG            (40)          /* ns */
 
 
-/* ---------------------------------------------------------------------------- */
-/* Auxiliary Configurations Unit */
-/* ---------------------------------------------------------------------------- */
-
-#define SJA1105_ACU_REG_CFG_PAD_MIIX_BASE          (0x100800)
-#define SJA1105_ACU_REG_CFG_PAD_MIIX_TX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE + 2 * port_num)
-#define SJA1105_ACU_REG_CFG_PAD_MIIX_RX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE + 2 * port_num + 1)
-#define SJA1105_ACU_REG_CFG_PAD_MIIX_ID(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE + 16 + port_num)
-
-#define SJA1105_ACU_REG_CFG_PAD_MISC               (0x100840)
-#define SJA1105_ACU_REG_CFG_PAD_SPI                (0x100880)
-#define SJA1105_ACU_REG_CFG_PAD_JTAG               (0x100881)
-
-#define SJA1105_ACU_REG_PORT_STATUS_MIIX_BASE      (0x100900)
-#define SJA1105_ACU_REG_PORT_STATUS_MIIX(port_num) (SJA1105_ACU_REG_PORT_STATUS_MIIX_BASE + port_num)
-
-#define SJA1105_ACU_REG_TS_CONFIG                  (0x100a00)
-#define SJA1105_ACU_REG_TS_STATUS                  (0x100a01)
-#define SJA1105_ACU_REG_PROD_CFG                   (0x100bc0)
-#define SJA1105_ACU_REG_PROD_ID                    (0x100bc3)
-#define SJA1105_ACU_REG_ACCESS_DISABLE             (0x100bfd)
-
-#define SJA1105_ACU_PAD_CFG_TX                     (0)
-#define SJA1105_ACU_PAD_CFG_RX                     (1)
-#define SJA1105_ACU_PAD_CFG_SIZE                   (2)
-
-#define SJA1105_CLK_OS_LOW                         (0 << 3)
-#define SJA1105_CLK_OS_MEDIUM                      (1 << 3)
-#define SJA1105_CLK_OS_FAST                        (2 << 3)
-#define SJA1105_CLK_OS_HIGH                        (3 << 3)
-#define SJA1105_CTRL_OS_LOW                        (0 << 11)
-#define SJA1105_CTRL_OS_MEDIUM                     (1 << 11)
-#define SJA1105_CTRL_OS_FAST                       (2 << 11)
-#define SJA1105_CTRL_OS_HIGH                       (3 << 11)
-#define SJA1105_D10_OS_LOW                         (0 << 19)
-#define SJA1105_D10_OS_MEDIUM                      (1 << 19)
-#define SJA1105_D10_OS_FAST                        (2 << 19)
-#define SJA1105_D10_OS_HIGH                        (3 << 19)
-#define SJA1105_D32_OS_LOW                         (0 << 27)
-#define SJA1105_D32_OS_MEDIUM                      (1 << 27)
-#define SJA1105_D32_OS_FAST                        (2 << 27)
-#define SJA1105_D32_OS_HIGH                        (3 << 27)
-
-#define SJA1105_OS_LOW                             (SJA1105_CLK_OS_LOW    | SJA1105_CTRL_OS_LOW    | SJA1105_D10_OS_LOW    | SJA1105_D32_OS_LOW   )
-#define SJA1105_OS_MEDIUM                          (SJA1105_CLK_OS_MEDIUM | SJA1105_CTRL_OS_MEDIUM | SJA1105_D10_OS_MEDIUM | SJA1105_D32_OS_MEDIUM)
-#define SJA1105_OS_FAST                            (SJA1105_CLK_OS_FAST   | SJA1105_CTRL_OS_FAST   | SJA1105_D10_OS_FAST   | SJA1105_D32_OS_FAST  )
-#define SJA1105_OS_HIGH                            (SJA1105_CLK_OS_HIGH   | SJA1105_CTRL_OS_HIGH   | SJA1105_D10_OS_HIGH   | SJA1105_D32_OS_HIGH  )
-
-#define SJA1105_CLK_IPUD_PU                        (0 << 0)
-#define SJA1105_CLK_IPUD_R                         (1 << 0)
-#define SJA1105_CLK_IPUD_PI                        (2 << 0)
-#define SJA1105_CLK_IPUD_PD                        (3 << 0)
-#define SJA1105_CTRL_IPUD_PU                       (0 << 8)
-#define SJA1105_CTRL_IPUD_R                        (1 << 8)
-#define SJA1105_CTRL_IPUD_PI                       (2 << 8)
-#define SJA1105_CTRL_IPUD_PD                       (3 << 8)
-#define SJA1105_D10_IPUD_PU                        (0 << 16)
-#define SJA1105_D10_IPUD_R                         (1 << 16)
-#define SJA1105_D10_IPUD_PI                        (2 << 16)
-#define SJA1105_D10_IPUD_PD                        (3 << 16)
-#define SJA1105_D32_IPUD_PU                        (0 << 24)
-#define SJA1105_D32_IPUD_R                         (1 << 24)
-#define SJA1105_D32_IPUD_PI                        (2 << 24)
-#define SJA1105_D32_IPUD_PD                        (3 << 24)
-
-#define SJA1105_IPUD_PU                            (SJA1105_CLK_IPUD_PU | SJA1105_CTRL_IPUD_PU | SJA1105_D10_IPUD_PU | SJA1105_D32_IPUD_PU)
-#define SJA1105_IPUD_R                             (SJA1105_CLK_IPUD_R  | SJA1105_CTRL_IPUD_R  | SJA1105_D10_IPUD_R  | SJA1105_D32_IPUD_R )
-#define SJA1105_IPUD_PI                            (SJA1105_CLK_IPUD_PI | SJA1105_CTRL_IPUD_PI | SJA1105_D10_IPUD_PI | SJA1105_D32_IPUD_PI)
-#define SJA1105_IPUD_PD                            (SJA1105_CLK_IPUD_PD | SJA1105_CTRL_IPUD_PD | SJA1105_D10_IPUD_PD | SJA1105_D32_IPUD_PD)
-
-#define SJA1105_CLK_IH_SCHMITT                     (0 << 2)
-#define SJA1105_CLK_IH_NON_SCHMITT                 (1 << 2)
-#define SJA1105_CTRL_IH_SCHMITT                    (0 << 10)
-#define SJA1105_CTRL_IH_NON_SCHMITT                (1 << 10)
-#define SJA1105_D10_IH_SCHMITT                     (0 << 18)
-#define SJA1105_D10_IH_NON_SCHMITT                 (1 << 18)
-#define SJA1105_D32_IH_SCHMITT                     (0 << 26)
-#define SJA1105_D32_IH_NON_SCHMITT                 (1 << 26)
-
-#define SJA1105_IH_SCHMITT                         (SJA1105_CLK_IH_SCHMITT     | SJA1105_CTRL_IH_SCHMITT     | SJA1105_D10_IH_SCHMITT     | SJA1105_D32_IH_SCHMITT)
-#define SJA1105_IH_NON_SCHMITT                     (SJA1105_CLK_IH_NON_SCHMITT | SJA1105_CTRL_IH_NON_SCHMITT | SJA1105_D10_IH_NON_SCHMITT | SJA1105_D32_IH_NON_SCHMITT)
-
-#define SJA1105_PART_NR_OFFSET                     (4)
-#define SJA1105_PART_NR_MASK                       (0xffff << SJA1105_PART_NR_OFFSET)
-#define PART_NR_SJA1105_T                          (0x9a82)
-#define PART_NR_SJA1105P                           (0x9a84)
-#define PART_NR_SJA1105Q                           (0x9a85)
-#define PART_NR_SJA1105R                           (0x9a86)
-#define PART_NR_SJA1105S                           (0x9a87)
-
-/* ---------------------------------------------------------------------------- */
-/* Clock Generation Unit */
-/* ---------------------------------------------------------------------------- */
-
-
-
-
-
-#define SJA1105_STATIC_CONF_ADDR (0x20000)
-#define SJA1105_T_SWITCH_CORE_ID (0x9f00030e)
-#define SJA1105PR_SWITCH_CORE_ID (0xaf00030e)
-#define SJA1105QS_SWITCH_CORE_ID (0xae00030e)
 
 
 
@@ -252,9 +150,7 @@ SJA1105_StatusTypeDef SJA1105_ConfigureACUPort(SJA1105_HandleTypeDef *dev, uint8
 SJA1105_StatusTypeDef SJA1105_ConfigureCGU(SJA1105_HandleTypeDef *dev);
 SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size);
 
-/* Low-Level Functions */
-SJA1105_StatusTypeDef SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size);
-SJA1105_StatusTypeDef SJA1105_WriteRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, const uint32_t *data, uint32_t size);
+
 void SJA1105_Reset(SJA1105_HandleTypeDef *dev);
 
 #ifdef __cplusplus

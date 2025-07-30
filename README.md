@@ -1,1 +1,1 @@
-# stm32-sja1105
+# SJA1105 Driver for STM32
