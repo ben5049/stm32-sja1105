@@ -44,7 +44,7 @@ typedef enum {
 } SJA1105_StatusTypeDef;
 
 typedef enum {
-    VARIANT_SJA1105  = 0x00,
+    VARIANT_SJA1105E = 0x00,
     VARIANT_SJA1105T = 0x01,
     VARIANT_SJA1105P = 0x02,
     VARIANT_SJA1105Q = 0x03,
@@ -58,6 +58,11 @@ typedef enum {
     SJA1105_INTERFACE_RGMII,
     SJA1105_INTERFACE_SGMII
 } SJA1105_InterfaceTypeDef;
+
+typedef enum{
+    SJA1105_MODE_MAC,  /* The port acts like a MAC */
+    SJA1105_MODE_PHY   /* The port acts like a PHY and must connect to a true MAC */
+} SJA1105_ModeTypeDef;
 
 typedef enum {
     SJA1105_SPEED_DYNAMIC = 0x0,  /* Used for ports that need to negotiate a speed */
@@ -79,6 +84,7 @@ typedef struct {
     SJA1105_SpeedTypeDef     speed;
     SJA1105_SpeedTypeDef     dyanamic_speed;  /* When speed == SJA1105_SPEED_DYNAMIC, this value specifies the currently configured speed */
     SJA1105_InterfaceTypeDef interface;
+    SJA1105_ModeTypeDef      mode;
     bool                     configured;
     SJA1105_IOVoltageTypeDef voltage;
 } SJA1105_PortTypeDef;
@@ -119,7 +125,7 @@ typedef struct {
 /* Functions */
 
 /* Initialisation */
-SJA1105_StatusTypeDef SJA1105_ConfigurePort(SJA1105_PortTypeDef *ports, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage);
+SJA1105_StatusTypeDef SJA1105_ConfigurePort(SJA1105_PortTypeDef *ports, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_ModeTypeDef mode, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage);
 SJA1105_StatusTypeDef SJA1105_Init(SJA1105_HandleTypeDef *dev, const SJA1105_ConfigTypeDef *config, SJA1105_PortTypeDef *ports, const SJA1105_CallbacksTypeDef *callbacks, const uint32_t *static_conf, uint32_t static_conf_size);
 SJA1105_StatusTypeDef SJA1105_ReInit(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size);
 

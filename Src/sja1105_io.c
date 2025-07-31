@@ -21,6 +21,17 @@ SJA1105_StatusTypeDef SJA1105_ReadRegisterWithCheck(SJA1105_HandleTypeDef *dev, 
     return __SJA1105_ReadRegister(dev, addr, data, size, true);
 }
 
+SJA1105_StatusTypeDef SJA1105_ReadFlag(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t mask, bool *result){
+    
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+    uint32_t reg_data;
+
+    status = __SJA1105_ReadRegister(dev, addr, &reg_data, 1, false);
+
+    *result = (reg_data & mask) != 0;
+
+    return status;
+}
 
 SJA1105_StatusTypeDef __SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size, bool integrity_check){
 

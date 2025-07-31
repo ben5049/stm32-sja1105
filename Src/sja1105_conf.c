@@ -11,13 +11,14 @@
 #include "sja1105_regs.h"
 
 
-SJA1105_StatusTypeDef SJA1105_ConfigurePort(SJA1105_PortTypeDef *ports, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage){
+SJA1105_StatusTypeDef SJA1105_ConfigurePort(SJA1105_PortTypeDef *ports, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_ModeTypeDef mode, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
 
     /* Check the parameters */
     if ( port_num  >= SJA1105_NUM_PORTS                                       ) status = SJA1105_PARAMETER_ERROR;
     if ( interface >  SJA1105_INTERFACE_SGMII                                 ) status = SJA1105_PARAMETER_ERROR;
+    if ((mode      != SJA1105_MODE_MAC) && (mode != SJA1105_MODE_PHY)         ) status = SJA1105_PARAMETER_ERROR;
     if ( speed     >= SJA1105_SPEED_MAX                                       ) status = SJA1105_PARAMETER_ERROR;
     if ( voltage   >  SJA1105_IO_3V3                                          ) status = SJA1105_PARAMETER_ERROR;
     if ((interface == SJA1105_INTERFACE_MII)  && (speed == SJA1105_SPEED_1G)  ) status = SJA1105_PARAMETER_ERROR;           /* MII Interface doesn't support 1G speeds */
@@ -29,6 +30,7 @@ SJA1105_StatusTypeDef SJA1105_ConfigurePort(SJA1105_PortTypeDef *ports, uint8_t 
     /* Assign the parameters */
     ports[port_num].port_num       = port_num;
     ports[port_num].interface      = interface;
+    ports[port_num].mode           = mode;
     ports[port_num].speed          = speed;
     ports[port_num].dyanamic_speed = speed;
     ports[port_num].voltage        = voltage;
@@ -87,24 +89,35 @@ SJA1105_StatusTypeDef SJA1105_Init(
     if (status != SJA1105_OK) return status;
 
 
-    /* Configure the SJA1105 following the steps from UM11040 figure 2 */
+    /* Configure the SJA1105 */
 
     /* Step 1: RESET */
     SJA1105_Reset(dev);
 
-    /* Step 2: ACU REGISTER SETUP */
+    /* Step 2: STATIC CONFIGURATION (Try up to 3 times) */
+    bool crc_success = false;
+    for (uint8_t attempt = 0; !crc_success && (attempt < 3); attempt++){
+
+        /* Write the configuration */
+        status = SJA1105_WriteStaticConfig(dev, static_conf, static_conf_size);
+
+        /* Check for CRC errors */
+        if (status != SJA1105_OK) {
+            if (status != SJA1105_CRC_ERROR) return status;
+        }
+        else crc_success = true;
+    }
+    if (status != SJA1105_OK) return status;
+
+    /* Step 3: ACU REGISTER SETUP */
     status = SJA1105_ConfigureACU(dev);
     if (status != SJA1105_OK) return status;
     
-    /* Step 3: CGU REGISTER SETUP */
+    /* Step 4: CGU REGISTER SETUP */
     status = SJA1105_ConfigureCGU(dev);
     if (status != SJA1105_OK) return status;
 
-    /* Step 4: SGMII PHY/PCS (optional) */
-
-    /* Step 5: STATIC CONFIGURATION */
-    status = SJA1105_WriteStaticConfig(dev, static_conf, static_conf_size);
-    if (status != SJA1105_OK) return status;
+    /* Step 5: SGMII PHY/PCS (optional) */
     
 
     /* Check the status registers */
@@ -138,8 +151,8 @@ SJA1105_StatusTypeDef SJA1105_CheckPartID(SJA1105_HandleTypeDef *dev){
     /* Check the device ID config matches the variant */
     switch (reg_data) {
 
-        case SJA1105_T_DEVICE_ID:
-            if ((dev->config->variant != VARIANT_SJA1105) && (dev->config->variant != VARIANT_SJA1105T)) status = SJA1105_ID_ERROR;
+        case SJA1105ET_DEVICE_ID:
+            if ((dev->config->variant != VARIANT_SJA1105E) && (dev->config->variant != VARIANT_SJA1105T)) status = SJA1105_ID_ERROR;
             break;
 
         case SJA1105QS_DEVICE_ID:
@@ -162,8 +175,8 @@ SJA1105_StatusTypeDef SJA1105_CheckPartID(SJA1105_HandleTypeDef *dev){
         
         /* Extract and check the PART_NR */
         switch ((reg_data & SJA1105_PART_NR_MASK) >> SJA1105_PART_NR_OFFSET){
-            case PART_NR_SJA1105_T:
-                if ((dev->config->variant != VARIANT_SJA1105) && (dev->config->variant != VARIANT_SJA1105T)) status = SJA1105_ID_ERROR;
+            case PART_NR_SJA1105ET:
+                if ((dev->config->variant != VARIANT_SJA1105E) && (dev->config->variant != VARIANT_SJA1105T)) status = SJA1105_ID_ERROR;
                 break;
             
             case PART_NR_SJA1105P:
@@ -210,6 +223,9 @@ SJA1105_StatusTypeDef SJA1105_ConfigureACUPort(SJA1105_HandleTypeDef *dev, uint8
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
     SJA1105_PortTypeDef port = dev->ports[port_num];
+
+    /* Skip port 4 in variants that don't have one */
+    if (((dev->config->variant == VARIANT_SJA1105R) || (dev->config->variant == VARIANT_SJA1105S)) && (port_num == 4)) return status;
     
     /* Don't continue if no configuration is supplied. This isn't an error since a default register values will be used instead. */
     if (port.configured == false){
@@ -294,9 +310,31 @@ SJA1105_StatusTypeDef SJA1105_ConfigureACUPort(SJA1105_HandleTypeDef *dev, uint8
 SJA1105_StatusTypeDef SJA1105_ConfigureCGU(SJA1105_HandleTypeDef *dev){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
+    uint32_t reg_data;
 
-    /* TODO: Implement */
-    status = SJA1105_ERROR;
+    /* Setup PLL0 (f = 125MHz) */
+    reg_data = SJA1105_CGU_P23EN;  /* Enable 120 and 240 degree outputs for better EMC performance */
+    status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_PLL_0_C, &reg_data, 1);
+    if (status != SJA1105_OK) return status;
+
+    /* Setup PLL1 (f = 50MHz, integer mode) */
+    reg_data = 0;
+    reg_data &= ~SJA1105_CGU_PD;         /* Disable power down */
+    reg_data &= ~SJA1105_CGU_BYPASS;     /* Disable bypass */
+    reg_data |=  SJA1105_CGU_P23EN;      /* Enable 120 and 240 degree outputs for better EMC performance */
+    reg_data |=  SJA1105_CGU_FBSEL;      /* Enable PLL feedback */
+    reg_data |=  SJA1105_CGU_AUTOBLOCK;  /* Enable autoblock to prevent glitches */
+    reg_data |= (0x1 << SJA1105_CGU_PSEL_SHIFT) & SJA1105_CGU_PSEL_MASK;  /* PSEL = 1 */
+    reg_data |= (0x1 << SJA1105_CGU_MSEL_SHIFT) & SJA1105_CGU_MSEL_MASK;  /* MSEL = 1 */
+    reg_data |= (0x0 << SJA1105_CGU_NSEL_SHIFT) & SJA1105_CGU_NSEL_MASK;  /* NSEL = 0 */
+    status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_PLL_0_C, &reg_data, 1);
+    if (status != SJA1105_OK) return status;
+
+    /* Configure each port */
+    for (uint8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
+        status = SJA1105_ConfigureCGUPort(dev, port_num);
+        if (status != SJA1105_OK) return status;
+    }
 
     return status;
 }
@@ -304,23 +342,190 @@ SJA1105_StatusTypeDef SJA1105_ConfigureCGU(SJA1105_HandleTypeDef *dev){
 SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8_t port_num){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
+    SJA1105_PortTypeDef port = dev->ports[port_num];
+    uint32_t reg_data[SJA1105_CGU_REG_CLK_NUM];
 
-    /* TODO: Implement */
-    status = SJA1105_ERROR;
+    /* Skip port 4 in variants that don't have one */
+    if (((dev->config->variant == VARIANT_SJA1105R) || (dev->config->variant == VARIANT_SJA1105S)) && (port_num == 4)) return status;
+
+    switch (port.interface) {
+        case SJA1105_INTERFACE_MII:
+
+            /* MII MAC */
+            if (port.mode == SJA1105_MODE_MAC){
+
+                /* Disable IDIV */
+                reg_data[0] = SJA1105_CGU_PD;
+                status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_IDIV_C(port_num), reg_data, 1);
+                if (status != SJA1105_OK) return status;
+                
+                /* Set CLKSRC of MII_TX_CLK_X to TX_CLK_X */
+                reg_data[SJA1105_CGU_MII_TX_CLK] =  SJA1105_CGU_CLK_SRC_TX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;  /* Implicitly sets PD to 0 */
+                reg_data[SJA1105_CGU_MII_TX_CLK] |= SJA1105_CGU_AUTOBLOCK;  /* Prevent clock glitches */
+
+                /* Set CLKSRC of MII_RX_CLK_X to RX_CLK_X */
+                reg_data[SJA1105_CGU_MII_RX_CLK] =  SJA1105_CGU_CLK_SRC_RX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
+                reg_data[SJA1105_CGU_MII_RX_CLK] |= SJA1105_CGU_AUTOBLOCK;
+                
+                /* Disable all other clock sinks */
+                reg_data[SJA1105_CGU_RMII_REF_CLK] = SJA1105_CGU_PD;
+                reg_data[SJA1105_CGU_RGMII_TX_CLK] = SJA1105_CGU_PD;
+                reg_data[SJA1105_CGU_EXT_TX_CLK  ] = SJA1105_CGU_PD;
+                reg_data[SJA1105_CGU_EXT_RX_CLK  ] = SJA1105_CGU_PD;
+
+                /* Write the configuration */
+                status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_CLK_BASE(port_num), reg_data, SJA1105_CGU_REG_CLK_NUM);
+                if (status != SJA1105_OK) return status;
+            }
+
+            /* MII PHY */
+            else {
+                switch (port.speed){
+
+                    /* 10M MII PHY */
+                    case SJA1105_SPEED_10M:
+                        status = SJA1105_ERROR;
+                        break;
+
+                    /* 100M MII PHY */
+                    case SJA1105_SPEED_100M:
+                        status = SJA1105_ERROR;
+                        break;
+
+                    default:
+                        status = SJA1105_PARAMETER_ERROR;
+                        break;
+                }
+            }
+            break;
+
+        case SJA1105_INTERFACE_RMII:
+
+            /* RMII MAC */
+            if (port.mode == SJA1105_MODE_MAC){
+                switch (port.speed){
+
+                    /* 10M RMII MAC */
+                    case SJA1105_SPEED_10M:
+                        status = SJA1105_ERROR;
+                        break;
+
+                    /* 100M RMII MAC */
+                    case SJA1105_SPEED_100M:
+                        status = SJA1105_ERROR;
+                        break;
+
+                    default:
+                        status = SJA1105_PARAMETER_ERROR;
+                        break;
+                }
+            }
+
+            /* RMII PHY */
+            else {
+
+                switch (port.speed){
+
+                    /* 10M RMII PHY */
+                    case SJA1105_SPEED_10M:
+                        status = SJA1105_ERROR;
+                        break;
+
+                    /* 100M RMII PHY */
+                    case SJA1105_SPEED_100M:
+                        status = SJA1105_ERROR;
+                        break;
+
+                    default:
+                        status = SJA1105_PARAMETER_ERROR;
+                        break;
+                }
+            }
+            break;
+
+        case SJA1105_INTERFACE_RGMII:
+
+            /* RGMII MAC */
+            if (port.mode == SJA1105_MODE_MAC){
+                switch (port.speed){
+
+                    /* 10M RGMII MAC */
+                    case SJA1105_SPEED_10M:
+                        status = SJA1105_ERROR;
+                        break;
+
+                    /* 100M RGMII MAC */
+                    case SJA1105_SPEED_100M:
+                        status = SJA1105_ERROR;
+                        break;
+
+                    /* 1G RGMII MAC */
+                    case SJA1105_SPEED_1G:
+                        status = SJA1105_ERROR;
+                        break;
+
+                    default:
+                        status = SJA1105_PARAMETER_ERROR;
+                        break;
+                }
+            }
+
+            /* RGMII PHY */
+            else {
+
+                switch (port.speed){
+
+                    /* 10M RGMII PHY */
+                    case SJA1105_SPEED_10M:
+                        status = SJA1105_ERROR;
+                        break;
+
+                    /* 100M RGMII PHY */
+                    case SJA1105_SPEED_100M:
+                        status = SJA1105_ERROR;
+                        break;
+
+                    /* 1G RGMII PHY */
+                    case SJA1105_SPEED_1G:
+                        status = SJA1105_ERROR;
+                        break;
+
+                    default:
+                        status = SJA1105_PARAMETER_ERROR;
+                        break;
+                }
+            }
+            break;
+
+        default:
+            status = SJA1105_PARAMETER_ERROR;
+            break;
+    }
 
     return status;
 }
+
+// SJA1105_StatusTypeDef SJA1105_DisableIDIV(SJA1105_HandleTypeDef *dev, port)
 
 SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size){
 
     SJA1105_StatusTypeDef status   = SJA1105_OK;
     uint32_t              reg_data = 0;
 
+    /* Can't upload a static config if one has already been loaded */
+    if (dev->static_conf_loaded){
+        status = SJA1105_ALREADY_CONFIGURED_ERROR;
+        return status;
+    }
+
+    /* Update the device struct. This is done here so that if a SJA1105_STATIC_CONF_ERROR is returned the program knows which config caused the error */
+    dev->static_conf_crc32 = static_conf[static_conf_size - 1];
+
     /* Check the static config matches the device type */
     switch (dev->config->variant) {
-        case VARIANT_SJA1105:
+        case VARIANT_SJA1105E:
         case VARIANT_SJA1105T:
-            if (static_conf[0] != SJA1105_T_DEVICE_ID) status = SJA1105_STATIC_CONF_ERROR;
+            if (static_conf[0] != SJA1105ET_DEVICE_ID) status = SJA1105_STATIC_CONF_ERROR;
             break;
         case VARIANT_SJA1105P:
         case VARIANT_SJA1105R:
@@ -387,47 +592,40 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
             /* Check the L2BUSYS flag is set before writing the L2 address table */
             case SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU:
 
-                uint32_t reg_data = 0;
-                bool     ready    = false;
-
                 /* Check the general status 1 register for L2BUSYS (0 = initialised, 1 = not initialised). Try up to 10 times. */
+                bool ready = false;
                 for (uint8_t attempt = 0; !ready && (attempt < 10); attempt++){
 
-                    /* Read the register */
-                    status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_GENERAL_STATUS_1, &reg_data, 1);
+                    /* Read the flag */
+                    status = SJA1105_ReadFlag(dev, SJA1105_REG_GENERAL_STATUS_1, SJA1105_L2BUSYS_MASK, &ready);
                     if (status != SJA1105_OK) return status;
                     
-                    /* Extract L2BUSYS and delay if not set */
-                    ready = (bool) (reg_data & SJA1105_L2BUSYS_MASK);
+                    /* Delay and try again if not set */
                     if (!ready) dev->callbacks->callback_delay_ms(dev->config->timeout / 10);
                 }
                 if (!ready) status = SJA1105_L2_BUSY_ERROR;
                 break;
-                
+
             default:
                 break;
         }
         if (status != SJA1105_OK) return status;
 
-        /* Attempt to write the block up to 10 times */
-        bool crc_success = false;
-        for (uint8_t attempt = 0; !crc_success && (attempt < 10); attempt++){
-
-            /* Write */
-            status = SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR + block_index, &static_conf[block_index], block_size_actual);
+        /* Write the block */
+        status = SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR + block_index, &static_conf[block_index], block_size_actual);
+        if (status != SJA1105_OK) return status;
+        
+        /* Check the block had no CRC errors */
+        if (!last_block){
+            status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
             if (status != SJA1105_OK) return status;
-            
-            /* Check the block had no CRC errors */
-            if (!last_block){
-                status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
-                if (status != SJA1105_OK) return status;
-                
-                /* If no*/
-                if ((reg_data & SJA1105_CRCCHKL_MASK) == 0) crc_success = true;
+
+            /* If there is a CRC error then report it */
+            if ((reg_data & SJA1105_CRCCHKL_MASK) != 0){
+                status = SJA1105_CRC_ERROR;
+                return status;
             }
         }
-        if (!crc_success) status = SJA1105_CRC_ERROR;
-        if (status != SJA1105_OK) return status;
 
         /* Set the block index for the next block */
         block_index = block_index_next;
@@ -452,7 +650,6 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
 
     /* Update the device struct */
     dev->static_conf_loaded = true;
-    dev->static_conf_crc32 = static_conf[static_conf_size - 1];
 
     return status;
 }

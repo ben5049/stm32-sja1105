@@ -21,23 +21,25 @@ extern "C" {
 /* Ethernet Switch Core */
 /* ---------------------------------------------------------------------------- */
 
-#define SJA1105_REG_DEVICE_ID         (0x00000001)
-#define SJA1105_REG_STATIC_CONF_FLAGS (0x00000001)
-#define SJA1105_REG_VL_PART_STATUS    (0x00000002)
-#define SJA1105_REG_GENERAL_STATUS_1  (0x00000003)
-#define SJA1105_REG_GENERAL_STATUS_2  (0x00000004)
-#define SJA1105_REG_GENERAL_STATUS_3  (0x00000005)
-#define SJA1105_REG_GENERAL_STATUS_4  (0x00000006)
-#define SJA1105_REG_GENERAL_STATUS_5  (0x00000007)
-#define SJA1105_REG_GENERAL_STATUS_6  (0x00000008)
-#define SJA1105_REG_GENERAL_STATUS_7  (0x00000009)
-#define SJA1105_REG_GENERAL_STATUS_8  (0x0000000a)
-#define SJA1105_REG_GENERAL_STATUS_9  (0x0000000b)
-#define SJA1105_REG_GENERAL_STATUS_10 (0x0000000c)  /* RAM Parity error register (lower) */
-#define SJA1105_REG_GENERAL_STATUS_11 (0x0000000d)  /* RAM Parity error register (upper) */
+enum SJA1105_GeneralReg_Enum{
+    SJA1105_REG_DEVICE_ID         = 0x00000000,
+    SJA1105_REG_STATIC_CONF_FLAGS = 0x00000001,
+    SJA1105_REG_VL_PART_STATUS    = 0x00000002,
+    SJA1105_REG_GENERAL_STATUS_1  = 0x00000003,
+    SJA1105_REG_GENERAL_STATUS_2  = 0x00000004,
+    SJA1105_REG_GENERAL_STATUS_3  = 0x00000005,
+    SJA1105_REG_GENERAL_STATUS_4  = 0x00000006,
+    SJA1105_REG_GENERAL_STATUS_5  = 0x00000007,
+    SJA1105_REG_GENERAL_STATUS_6  = 0x00000008,
+    SJA1105_REG_GENERAL_STATUS_7  = 0x00000009,
+    SJA1105_REG_GENERAL_STATUS_8  = 0x0000000a,
+    SJA1105_REG_GENERAL_STATUS_9  = 0x0000000b,
+    SJA1105_REG_GENERAL_STATUS_10 = 0x0000000c,  /* RAM Parity error register (lower) */
+    SJA1105_REG_GENERAL_STATUS_11 = 0x0000000d,  /* RAM Parity error register (upper) */
+};
 
-enum DeviceID_Enum{
-    SJA1105_T_DEVICE_ID = 0x9f00030e,
+enum SJA1105_DeviceID_Enum{
+    SJA1105ET_DEVICE_ID = 0x9f00030e,
     SJA1105PR_DEVICE_ID = 0xaf00030e,
     SJA1105QS_DEVICE_ID = 0xae00030e,
 };
@@ -61,17 +63,23 @@ enum DeviceID_Enum{
 /* Auxiliary Configuration Unit */
 /* ---------------------------------------------------------------------------- */
 
-#define SJA1105_ACU_REG_CFG_PAD_MIIX_BASE          (0x100800)
+enum SJA1105_ACUReg_Enum{
+    SJA1105_ACU_REG_CFG_PAD_MIIX_BASE = 0x100800,
+    SJA1105_ACU_REG_CFG_PAD_MISC      = 0x100840,
+    SJA1105_ACU_REG_CFG_PAD_SPI       = 0x100880,
+    SJA1105_ACU_REG_CFG_PAD_JTAG      = 0x100881,
+    SJA1105_ACU_REG_PORT_STATUS_MII0  = 0x100900,
+    SJA1105_ACU_REG_PORT_STATUS_MII1  = 0x100901,
+    SJA1105_ACU_REG_PORT_STATUS_MII2  = 0x100902,
+    SJA1105_ACU_REG_PORT_STATUS_MII3  = 0x100903,
+    SJA1105_ACU_REG_PORT_STATUS_MII4  = 0x100904,
+};
+
 #define SJA1105_ACU_REG_CFG_PAD_MIIX_TX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE +  2 * port_num)
 #define SJA1105_ACU_REG_CFG_PAD_MIIX_RX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE +  2 * port_num + 1)
 #define SJA1105_ACU_REG_CFG_PAD_MIIX_ID(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE + 16 + port_num)
 
-#define SJA1105_ACU_REG_CFG_PAD_MISC               (0x100840)
-#define SJA1105_ACU_REG_CFG_PAD_SPI                (0x100880)
-#define SJA1105_ACU_REG_CFG_PAD_JTAG               (0x100881)
-
-#define SJA1105_ACU_REG_PORT_STATUS_MIIX_BASE      (0x100900)
-#define SJA1105_ACU_REG_PORT_STATUS_MIIX(port_num) (SJA1105_ACU_REG_PORT_STATUS_MIIX_BASE + port_num)
+#define SJA1105_ACU_REG_PORT_STATUS_MIIX(port_num) (SJA1105_ACU_REG_PORT_STATUS_MII0 + port_num)
 
 #define SJA1105_ACU_REG_TS_CONFIG                  (0x100a00)
 #define SJA1105_ACU_REG_TS_STATUS                  (0x100a01)
@@ -142,8 +150,8 @@ enum DeviceID_Enum{
 #define SJA1105_PART_NR_OFFSET                     (4)
 #define SJA1105_PART_NR_MASK                       (0xffff << SJA1105_PART_NR_OFFSET)
 
-enum PartNR_Enum{
-    PART_NR_SJA1105_T = 0x9a82,
+enum SJA1105_PartNR_Enum{
+    PART_NR_SJA1105ET = 0x9a82,
     PART_NR_SJA1105P  = 0x9a84,
     PART_NR_SJA1105Q  = 0x9a85,
     PART_NR_SJA1105R  = 0x9a86,
@@ -166,29 +174,55 @@ static const int16_t SJA1105_TS_LUT[SJA1105_TS_LUT_SIZE] = {
 /* Clock Generation Unit */
 /* ---------------------------------------------------------------------------- */
 
-#define SJA1105_CGU_REG_RFRQ                     (0x100006)
-#define SJA1105_CGU_REG_XO66M_0_C                (0x100006)  /* C = Control */
-#define SJA1105_CGU_REG_PLL_0_S                  (0x100007)  /* S = Status */
-#define SJA1105_CGU_REG_PLL_0_C                  (0x100008)
-#define SJA1105_CGU_REG_PLL_1_S                  (0x100009)
-#define SJA1105_CGU_REG_PLL_1_C                  (0x10000a)
+enum SJA1105_CGUReg_Enum{
+    SJA1105_CGU_REG_RFRQ           = 0x100006,
+    SJA1105_CGU_REG_XO66M_0_C      = 0x100006,  /* C = Control */
+    SJA1105_CGU_REG_PLL_0_S        = 0x100007,  /* S = Status */
+    SJA1105_CGU_REG_PLL_0_C        = 0x100008,
+    SJA1105_CGU_REG_PLL_1_S        = 0x100009,
+    SJA1105_CGU_REG_PLL_1_C        = 0x10000a,
+    SJA1105_CGU_REG_IDIV_0_C       = 0x10000b,
+    SJA1105_CGU_REG_IDIV_1_C       = 0x10000c,
+    SJA1105_CGU_REG_IDIV_2_C       = 0x10000d,
+    SJA1105_CGU_REG_IDIV_3_C       = 0x10000e,
+    SJA1105_CGU_REG_IDIV_4_C       = 0x10000f,
+    SJA1105_CGU_REG_MII_TX_CLK_0   = 0x100013,
+    SJA1105_CGU_REG_MII_RX_CLK_0   = 0x100014,
+    SJA1105_CGU_REG_RMII_REF_CLK_0 = 0x100015,
+    SJA1105_CGU_REG_RGMII_TX_CLK_0 = 0x100016,
+    SJA1105_CGU_REG_EXT_TX_CLK_0   = 0x100017,
+    SJA1105_CGU_REG_EXT_RX_CLK_0   = 0x100018,
+};
 
-#define SJA1105_CGU_REG_IDIV_0_C                 (0x10000b)
-#define SJA1105_CGU_REG_IDIV_X_C(port_num)       (SJA1105_CGU_REG_IDIV_0_C + port_num)
+#define SJA1105_CGU_REG_IDIV_C(port_num)     (SJA1105_CGU_REG_IDIV_0_C + port_num)
 
-#define SJA1105_CGU_REG_MII_TX_CLK_0             (0x100013)
-#define SJA1105_CGU_REG_MII_RX_CLK_0             (0x100014)
-#define SJA1105_CGU_REG_RMII_REF_CLK_0           (0x100015)
-#define SJA1105_CGU_REG_RGMII_TX_CLK_0           (0x100016)
-#define SJA1105_CGU_REG_EXT_TX_CLK_0             (0x100017)
-#define SJA1105_CGU_REG_EXT_RX_CLK_0             (0x100018)
+#define SJA1105_CGU_REG_CLK_NUM              (6)
+#define SJA1105_CGU_REG_CLK_BASE(port_num)   (SJA1105_CGU_REG_MII_TX_CLK_0 + (SJA1105_CGU_REG_CLK_NUM * port_num))
+#define SJA1105_CGU_MII_TX_CLK               (0)
+#define SJA1105_CGU_MII_RX_CLK               (1)
+#define SJA1105_CGU_RMII_REF_CLK             (2)
+#define SJA1105_CGU_RGMII_TX_CLK             (3)
+#define SJA1105_CGU_EXT_TX_CLK               (4)
+#define SJA1105_CGU_EXT_RX_CLK               (5)
 
-#define SJA1105_CGU_REG_MII_TX_CLK_X(port_num)   (SJA1105_CGU_REG_MII_TX_CLK_0   + (6 * port_num))
-#define SJA1105_CGU_REG_MII_RX_CLK_X(port_num)   (SJA1105_CGU_REG_MII_RX_CLK_0   + (6 * port_num))
-#define SJA1105_CGU_REG_RMII_REF_CLK_X(port_num) (SJA1105_CGU_REG_RMII_REF_CLK_0 + (6 * port_num))
-#define SJA1105_CGU_REG_RGMII_TX_CLK_X(port_num) (SJA1105_CGU_REG_RGMII_TX_CLK_0 + (6 * port_num))
-#define SJA1105_CGU_REG_EXT_TX_CLK_X(port_num)   (SJA1105_CGU_REG_EXT_TX_CLK_0   + (6 * port_num))
-#define SJA1105_CGU_REG_EXT_RX_CLK_X(port_num)   (SJA1105_CGU_REG_EXT_RX_CLK_0   + (6 * port_num))
+#define SJA1105_CGU_PD                       (1 << 0)
+#define SJA1105_CGU_BYPASS                   (1 << 1)
+#define SJA1105_CGU_P23EN                    (1 << 2)
+#define SJA1105_CGU_FBSEL                    (1 << 6)
+#define SJA1105_CGU_DIRECT                   (2 << 7)
+#define SJA1105_CGU_PSEL_SHIFT               (8)
+#define SJA1105_CGU_PSEL_MASK                (0x3 << SJA1105_CGU_PSEL_SHIFT)
+#define SJA1105_CGU_AUTOBLOCK                (11)
+#define SJA1105_CGU_NSEL_SHIFT               (12)
+#define SJA1105_CGU_NSEL_MASK                (0x3 << SJA1105_CGU_NSEL_SHIFT)
+#define SJA1105_CGU_MSEL_SHIFT               (16)
+#define SJA1105_CGU_MSEL_MASK                (0xff << SJA1105_CGU_MSEL_SHIFT)
+#define SJA1105_CGU_CLKSRC_SHIFT             (24)
+#define SJA1105_CGU_CLKSRC_MASK              (0x1f << SJA1105_CGU_CLKSRC_SHIFT)
+
+#define SJA1105_CGU_CLK_SRC_IDIV(port_num)   (0x11 + port_num)
+#define SJA1105_CGU_CLK_SRC_TX_CLK(port_num) (2 * port_num)
+#define SJA1105_CGU_CLK_SRC_RX_CLK(port_num) ((2 * port_num) + 1)
 
 /* ---------------------------------------------------------------------------- */
 /* Static Configuration */
