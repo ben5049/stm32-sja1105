@@ -48,8 +48,7 @@ SJA1105_StatusTypeDef SJA1105_Init(
     SJA1105_StatusTypeDef status = SJA1105_OK;
 
     /* Check the device hasn't already been initialised. Note this may cause an unintended error if the struct uses non-zeroed memory. */
-    if (dev->static_conf_loaded == true) status = SJA1105_ALREADY_CONFIGURED_ERROR;
-    if (dev->initialised        == true) status = SJA1105_ALREADY_CONFIGURED_ERROR;
+    if (dev->initialised == true) status = SJA1105_ALREADY_CONFIGURED_ERROR;
     if (status != SJA1105_OK) return status;
 
     /* Assign the input arguments */
@@ -63,6 +62,7 @@ SJA1105_StatusTypeDef SJA1105_Init(
     dev->callbacks          = callbacks;
     dev->ports              = ports;
     dev->static_conf_loaded = false;
+    dev->static_conf_crc32  = static_conf[static_conf_size-1];
     dev->initialised        = false;
 
     /* Only the SJA1105Q has been implemented. TODO: Add more */
@@ -105,12 +105,26 @@ SJA1105_StatusTypeDef SJA1105_Init(
     /* Step 5: STATIC CONFIGURATION */
     status = SJA1105_WriteStaticConfig(dev, static_conf, static_conf_size);
     if (status != SJA1105_OK) return status;
+    
+
+    /* Check the status registers */
+    status = SJA1105_CheckStatusRegisters(dev);
+    if (status != SJA1105_OK) return status;
 
     dev->initialised = true;
 
     return status;
 }
 
+SJA1105_StatusTypeDef SJA1105_ReInit(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size){
+
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+    
+    dev->initialised = false;
+    status = SJA1105_Init(dev, dev->config, dev->ports, dev->callbacks, static_conf, static_conf_size);
+
+    return status;
+}
 
 SJA1105_StatusTypeDef SJA1105_CheckPartID(SJA1105_HandleTypeDef *dev){
 

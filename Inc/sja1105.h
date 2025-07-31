@@ -28,10 +28,10 @@ extern "C" {
 /* Typedefs */
 
 typedef enum {
-    SJA1105_OK                       = HAL_OK,
-    SJA1105_ERROR                    = HAL_ERROR,
-    SJA1105_BUSY                     = HAL_BUSY,
-    SJA1105_TIMEOUT                  = HAL_TIMEOUT,
+    SJA1105_OK                        = HAL_OK,
+    SJA1105_ERROR                     = HAL_ERROR,
+    SJA1105_BUSY                      = HAL_BUSY,
+    SJA1105_TIMEOUT                   = HAL_TIMEOUT,
     SJA1105_PARAMETER_ERROR,
     SJA1105_ALREADY_CONFIGURED_ERROR,  /* Error when attempting to init an already initialised device or configure a port that has already been configured. */
     SJA1105_NOT_CONFIGURED_ERROR,
@@ -121,12 +121,13 @@ typedef struct {
 /* Initialisation */
 SJA1105_StatusTypeDef SJA1105_ConfigurePort(SJA1105_PortTypeDef *ports, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage);
 SJA1105_StatusTypeDef SJA1105_Init(SJA1105_HandleTypeDef *dev, const SJA1105_ConfigTypeDef *config, SJA1105_PortTypeDef *ports, const SJA1105_CallbacksTypeDef *callbacks, const uint32_t *static_conf, uint32_t static_conf_size);
+SJA1105_StatusTypeDef SJA1105_ReInit(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size);
 
 /* User Functions */
 SJA1105_StatusTypeDef SJA1105_UpdatePortSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef speed);
 SJA1105_StatusTypeDef SJA1105_ReadTemperatureX10(SJA1105_HandleTypeDef *dev, int16_t *temp);
 
-SJA1105_StatusTypeDef SJA1105_CheckStatus(SJA1105_HandleTypeDef *dev);
+SJA1105_StatusTypeDef SJA1105_CheckStatusRegisters(SJA1105_HandleTypeDef *dev);
 
 
 #ifdef __cplusplus

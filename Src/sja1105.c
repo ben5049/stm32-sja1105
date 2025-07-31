@@ -103,7 +103,7 @@ SJA1105_StatusTypeDef SJA1105_ReadTemperatureX10(SJA1105_HandleTypeDef *dev, int
 }
 
 
-SJA1105_StatusTypeDef SJA1105_CheckStatus(SJA1105_HandleTypeDef *dev){
+SJA1105_StatusTypeDef SJA1105_CheckStatusRegisters(SJA1105_HandleTypeDef *dev){
     
     SJA1105_StatusTypeDef status = SJA1105_OK;    
     uint32_t reg_data[SJA1105_REGULAR_CHECK_SIZE];
