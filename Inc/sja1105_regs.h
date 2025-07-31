@@ -21,10 +21,20 @@ extern "C" {
 /* Ethernet Switch Core */
 /* ---------------------------------------------------------------------------- */
 
-#define SJA1105_REG_GENERAL_STATUS_1 (0x00000003)
+#define SJA1105_REG_STATIC_CONF_FLAGS (0x00000001)
+#define SJA1105_REG_GENERAL_STATUS_1  (0x00000003)
 
-#define SJA1105_L2BUSYS_SHIFT        (0)
-#define SJA1105_L2BUSYS_MASK         (0x1 << SJA1105_L2BUSYS_SHIFT)
+#define SJA1105_CONFIGS_SHIFT         (31)
+#define SJA1105_CONFIGS_MASK          (0x1 << SJA1105_CONFIGS_SHIFT)
+#define SJA1105_CRCCHKL_SHIFT         (30)                            /* Local CRC check */
+#define SJA1105_CRCCHKL_MASK          (0x1 << SJA1105_CRCCHKL_SHIFT)  /* Local CRC check */
+#define SJA1105_IDS_SHIFT             (29)
+#define SJA1105_IDS_MASK              (0x1 << SJA1105_IDS_SHIFT)
+#define SJA1105_CRCCHKG_SHIFT         (28)                            /* Global CRC check */
+#define SJA1105_CRCCHKG_MASK          (0x1 << SJA1105_CRCCHKG_SHIFT)  /* Global CRC check */
+
+#define SJA1105_L2BUSYS_SHIFT         (0)
+#define SJA1105_L2BUSYS_MASK          (0x1 << SJA1105_L2BUSYS_SHIFT)
 
 /* ---------------------------------------------------------------------------- */
 /* Auxiliary Configuration Unit */
@@ -132,6 +142,7 @@ static const int16_t SJA1105_TS_LUT[SJA1105_TS_LUT_SIZE] = {
 /* Clock Generation Unit */
 /* ---------------------------------------------------------------------------- */
 
+#define SJA1105_CGU_REG_RFRQ                     (0x100006)
 #define SJA1105_CGU_REG_XO66M_0_C                (0x100006)  /* C = Control */
 #define SJA1105_CGU_REG_PLL_0_S                  (0x100007)  /* S = Status */
 #define SJA1105_CGU_REG_PLL_0_C                  (0x100008)
@@ -164,8 +175,9 @@ static const int16_t SJA1105_TS_LUT[SJA1105_TS_LUT_SIZE] = {
 #define SJA1105PR_SWITCH_CORE_ID               (0xaf00030e)
 #define SJA1105QS_SWITCH_CORE_ID               (0xae00030e)
 
-#define SJA1105_STATIC_CONF_BLOCK_NUM_HEADERS  (2)
-#define SJA1105_STATIC_CONF_BLOCK_NUM_CRCS     (2)
+#define SJA1105_STATIC_CONF_BLOCK_HEADER       (2)
+#define SJA1105_STATIC_CONF_BLOCK_HEADER_CRC   (1)
+#define SJA1105_STATIC_CONF_BLOCK_DATA_CRC     (1)
 #define SJA1105_STATIC_CONF_BLOCK_FIRST_OFFSET (1)
 #define SJA1105_STATIC_CONF_BLOCK_LAST_SIZE    (3)  /* Last block contains two empty words and the global CRC */
 
@@ -177,9 +189,17 @@ static const int16_t SJA1105_TS_LUT[SJA1105_TS_LUT_SIZE] = {
 #define SJA1105_STATIC_CONF_BLOCK_SIZE_MASK    (0xffffff)
 
 #define SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU (0x05)
+#define SJA1105_STATIC_CONF_BLOCK_ID_MAC_CONF  (0x09)
 #define SJA1105_STATIC_CONF_BLOCK_ID_CGU       (0x80)
 #define SJA1105_STATIC_CONF_BLOCK_ID_ACU       (0x82)
 
+#define SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE           (8)
+#define SJA1105_STATIC_CONF_MAC_CONF_BASE(port_num)       (port_num * SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE)
+#define SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, word) (SJA1105_STATIC_CONF_MAC_CONF_BASE(port_num) + word)
+
+#define SJA1105_STATIC_CONF_MAC_CONF_SPEED_OFFSET (3)  /* [98:97] therefore in the 4th word */
+#define SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT  (1)  /* shifted up by 1 */
+#define SJA1105_STATIC_CONF_MAC_CONF_SPEED_MASK   (0x3 << SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT)
 
 #ifdef __cplusplus
 }

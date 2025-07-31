@@ -53,10 +53,12 @@ typedef enum {
 	SJA1105_TIMEOUT                  = HAL_TIMEOUT,
 	SJA1105_PARAMETER_ERROR,
 	SJA1105_ALREADY_CONFIGURED_ERROR,  /* Error when attempting to init an already initialised device or configure a port that has already been configured. */
+	SJA1105_NOT_CONFIGURED_ERROR,
     SJA1105_SPI_ERROR,
 	SJA1105_ID_ERROR,
-	SJA1105_STATIC_CONF_ERROR
-
+	SJA1105_STATIC_CONF_ERROR,
+	SJA1105_L2_BUSY_ERROR,
+	SJA1105_CRC_ERROR,
 } SJA1105_StatusTypeDef;
 
 typedef enum {
@@ -76,22 +78,24 @@ typedef enum {
 } SJA1105_InterfaceTypeDef;
 
 typedef enum {
-	SJA1105_SPEED_UNKNOWN,  /* Used for ports that need to negotiate a speed */
-	SJA1105_SPEED_10M,
-	SJA1105_SPEED_100M,
-	SJA1105_SPEED_1G,
+	SJA1105_SPEED_DYNAMIC = 0x0,  /* Used for ports that need to negotiate a speed */
+	SJA1105_SPEED_1G      = 0x1,
+	SJA1105_SPEED_100M    = 0x2,
+	SJA1105_SPEED_10M     = 0x3,
+    SJA1105_SPEED_MAX     = 0x4   /* Dummmy value for argument checking */
 } SJA1105_SpeedTypeDef;
 
 typedef enum {
-    SJA1105_IO_VOLTAGE_UNSPECIFIED,
-    SJA1105_IO_1V8,
-    SJA1105_IO_2V5,
-    SJA1105_IO_3V3
+    SJA1105_IO_VOLTAGE_UNSPECIFIED = 0x0,
+    SJA1105_IO_1V8                 = 0x1,
+    SJA1105_IO_2V5                 = 0x2,
+    SJA1105_IO_3V3                 = 0x3
 } SJA1105_IOVoltageTypeDef;
 
 typedef struct {
 	uint8_t                  port_num;
 	SJA1105_SpeedTypeDef     speed;
+	SJA1105_SpeedTypeDef     dyanamic_speed;  /* When speed == SJA1105_SPEED_DYNAMIC, this value specifies the currently configured speed */
 	SJA1105_InterfaceTypeDef interface;
 	bool                     configured;
     SJA1105_IOVoltageTypeDef voltage;
@@ -124,6 +128,8 @@ typedef struct {
     SJA1105_ConfigTypeDef          *config;
     SJA1105_PortTypeDef            *ports;
     const SJA1105_CallbacksTypeDef *callbacks;
+    bool                            static_conf_loaded;
+    uint32_t                        static_conf_crc32;
     bool                            initialised;
 } SJA1105_HandleTypeDef;
 

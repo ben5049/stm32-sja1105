@@ -18,18 +18,21 @@ SJA1105_StatusTypeDef SJA1105_ConfigurePort(SJA1105_PortTypeDef *ports, uint8_t 
     /* Check the parameters */
     if ( port_num  >= SJA1105_NUM_PORTS                                       ) status = SJA1105_PARAMETER_ERROR;
     if ( interface >  SJA1105_INTERFACE_SGMII                                 ) status = SJA1105_PARAMETER_ERROR;
-    if ( speed     >  SJA1105_SPEED_1G                                        ) status = SJA1105_PARAMETER_ERROR;
+    if ( speed     >= SJA1105_SPEED_MAX                                       ) status = SJA1105_PARAMETER_ERROR;
     if ( voltage   >  SJA1105_IO_3V3                                          ) status = SJA1105_PARAMETER_ERROR;
+    if ((interface == SJA1105_INTERFACE_MII)  && (speed == SJA1105_SPEED_1G)  ) status = SJA1105_PARAMETER_ERROR;           /* MII Interface doesn't support 1G speeds */
+    if ((interface == SJA1105_INTERFACE_RMII) && (speed == SJA1105_SPEED_1G)  ) status = SJA1105_PARAMETER_ERROR;           /* RMII Interface doesn't support 1G speeds */
     if ((voltage   == SJA1105_IO_1V8) && (interface == SJA1105_INTERFACE_RMII)) status = SJA1105_PARAMETER_ERROR;           /* 1V8 RMII not supported */
     if (ports[port_num].configured == true                                    ) status = SJA1105_ALREADY_CONFIGURED_ERROR;  /* Note this may cause an unintended error if the struct uses non-zeroed memory. */
     if (status != SJA1105_OK) return status;
 
     /* Assign the parameters */
-    ports[port_num].port_num   = port_num;
-    ports[port_num].interface  = interface;
-    ports[port_num].speed      = speed;
-    ports[port_num].voltage    = voltage;
-    ports[port_num].configured = true;
+    ports[port_num].port_num       = port_num;
+    ports[port_num].interface      = interface;
+    ports[port_num].speed          = speed;
+    ports[port_num].dyanamic_speed = speed;
+    ports[port_num].voltage        = voltage;
+    ports[port_num].configured     = true;
 
     return status;
 }
@@ -44,8 +47,9 @@ SJA1105_StatusTypeDef SJA1105_Init(
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
 
-    /* Check the struct hasn't already been initialised. Note this may cause an unintended error if the struct uses non-zeroed memory. */
-    if (dev->initialised == true) status = SJA1105_ALREADY_CONFIGURED_ERROR;
+    /* Check the device hasn't already been initialised. Note this may cause an unintended error if the struct uses non-zeroed memory. */
+    if (dev->static_conf_loaded == true) status = SJA1105_ALREADY_CONFIGURED_ERROR;
+    if (dev->initialised        == true) status = SJA1105_ALREADY_CONFIGURED_ERROR;
     if (status != SJA1105_OK) return status;
 
     /* Assign the input arguments */
@@ -58,6 +62,7 @@ SJA1105_StatusTypeDef SJA1105_Init(
     dev->config->timeout    = config->timeout;
     dev->callbacks          = callbacks;
     dev->ports              = ports;
+    dev->static_conf_loaded = false;
     dev->initialised        = false;
 
     /* Only the SJA1105Q has been implemented. TODO: Add more */
@@ -268,7 +273,8 @@ SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8
 
 SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size){
 
-    SJA1105_StatusTypeDef status = SJA1105_OK;
+    SJA1105_StatusTypeDef status   = SJA1105_OK;
+    uint32_t              reg_data = 0;
 
     /* Check the static config matches the device type */
     switch (dev->config->variant) {
@@ -293,6 +299,14 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
     /* Write the device ID */
     status = SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR, static_conf, SJA1105_STATIC_CONF_BLOCK_FIRST_OFFSET);
     if (status != SJA1105_OK) return status;
+    
+    /* Check the device ID was accepted */
+    status = SJA1105_ReadRegister(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
+    if (status != SJA1105_OK) return status;
+    if ((reg_data & SJA1105_IDS_MASK) != 0) {
+        status = SJA1105_ID_ERROR;
+        return status;
+    }
 
     /* Setup block writing variables */
     uint32_t block_index       = SJA1105_STATIC_CONF_BLOCK_FIRST_OFFSET;  /* Index of static_conf_size used for the start of the current block. Starts at 1 because the SWITCH_CORE_ID comes first. */
@@ -314,7 +328,7 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
         
         /* Get the actual block size (with headers and CRCs) */
         if (block_size != 0){
-            block_size_actual = block_size + SJA1105_STATIC_CONF_BLOCK_NUM_HEADERS + SJA1105_STATIC_CONF_BLOCK_NUM_CRCS;
+            block_size_actual = block_size + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC + SJA1105_STATIC_CONF_BLOCK_DATA_CRC;
             block_index_next  = block_index + block_size_actual;
             if ((block_index_next) > static_conf_size) status = SJA1105_STATIC_CONF_ERROR;
         }
@@ -335,6 +349,11 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
                 skip_block = true;  
                 break;
 
+            /* Check the MAC configuration table */
+            case SJA1105_STATIC_CONF_BLOCK_ID_MAC_CONF:
+                status = SJA1105_CheckMACConfTable(dev, &static_conf[block_index + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC], block_size);
+                break;
+
             /* Check the L2BUSYS flag is set */
             case SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU:
 
@@ -347,17 +366,23 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
                     /* Read the register */
                     status = SJA1105_ReadRegister(dev, SJA1105_REG_GENERAL_STATUS_1, &reg_data, 1);
                     if (status != SJA1105_OK) return status;
-
+                    
                     /* Extract L2BUSYS and delay if not set */
                     ready = (bool) (((reg_data & SJA1105_L2BUSYS_MASK) >> SJA1105_L2BUSYS_SHIFT) == 1);
-                    if (!ready) dev->callbacks->callback_delay_ms(dev->config->timeout / 10);
+                    if (!ready) {
+                        status = SJA1105_L2_BUSY_ERROR;
+                        dev->callbacks->callback_delay_ms(dev->config->timeout / 10);
+                    }
+                    else {
+                        status = SJA1105_OK;
+                    }
                 }
-
                 break;
-
+                
             default:
                 break;
         }
+        if (status != SJA1105_OK) return status;
 
         /* Skip the block */
         if (skip_block){
@@ -370,10 +395,59 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
             if (status != SJA1105_OK) return status;
         }
 
+        /* Check the block had no CRC errors */
+        if (!last_block){
+            status = SJA1105_ReadRegister(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
+            if (status != SJA1105_OK) return status;
+            if ((reg_data & SJA1105_CRCCHKL_MASK) != 0) {
+                status = SJA1105_CRC_ERROR;
+                return status;
+            }
+        }
+
         /* Set the block index for the next block */
         block_index = block_index_next;
 
     } while (!last_block);
+
+    /* Read the intial config flags register */
+    status = SJA1105_ReadRegister(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
+    if (status != SJA1105_OK) return status;
+
+    /* Check for global CRC errors */
+    if ((reg_data & SJA1105_CRCCHKG_MASK) != 0) {
+        status = SJA1105_CRC_ERROR;
+        return status;
+    }
+
+    /* Check that the config was accepted */
+    if ((reg_data & SJA1105_CONFIGS_MASK) == 0) {
+        status = SJA1105_STATIC_CONF_ERROR;
+        return status;
+    }
+
+    /* Update the device struct */
+    dev->static_conf_loaded = true;
+    dev->static_conf_crc32 = static_conf[static_conf_size - 1];
+
+    return status;
+}
+
+SJA1105_StatusTypeDef SJA1105_CheckMACConfTable(SJA1105_HandleTypeDef *dev, const uint32_t *table, uint32_t size){
+    
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+    SJA1105_SpeedTypeDef speed;
+
+    /* Check the size is correct */
+    if (size != (SJA1105_NUM_PORTS * SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE)) status = SJA1105_STATIC_CONF_ERROR;
+    if (status != SJA1105_OK) return status;
+    
+    /* Check each port's speed */
+    for (uint8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
+        speed = (table[SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, SJA1105_STATIC_CONF_MAC_CONF_SPEED_OFFSET)] & SJA1105_STATIC_CONF_MAC_CONF_SPEED_MASK) >> SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT;
+        if (speed != dev->ports[port_num].speed) status = SJA1105_STATIC_CONF_ERROR;
+        if (status != SJA1105_OK) return status;
+    }
 
     return status;
 }

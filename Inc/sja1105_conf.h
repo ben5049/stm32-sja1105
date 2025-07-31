@@ -22,6 +22,8 @@ SJA1105_StatusTypeDef SJA1105_ConfigureACUPort(SJA1105_HandleTypeDef *dev, uint8
 SJA1105_StatusTypeDef SJA1105_ConfigureCGU(SJA1105_HandleTypeDef *dev);
 SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8_t port_num);
 SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size);
+SJA1105_StatusTypeDef SJA1105_CheckMACConfTable(SJA1105_HandleTypeDef *dev, const uint32_t *table, uint32_t size);
+
 
 #ifdef __cplusplus
 }

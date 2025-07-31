@@ -14,12 +14,14 @@
 SJA1105_StatusTypeDef SJA1105_UpdatePortSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef speed){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
+    SJA1105_PortTypeDef   port   = dev->ports[port_num];
 
-    /* Set the port to unconfigured */
-    dev->ports[port_num].configured = false;
-
-    /* Load the new configuration options */
-    status = SJA1105_ConfigurePort(dev->ports, port_num, dev->ports[port_num].interface, speed, dev->ports[port_num].voltage);
+    /* Check the speed argument */
+    if (port.dyanamic_speed == speed                ) status = SJA1105_ALREADY_CONFIGURED_ERROR;  /* New speed should be different */
+    if (port.speed          != SJA1105_SPEED_DYNAMIC) status = SJA1105_PARAMETER_ERROR;           /* Only ports configured as dynamic can have their speed changed */
+    if (speed               == SJA1105_SPEED_DYNAMIC) status = SJA1105_PARAMETER_ERROR;           /* Speed shouldn't be set to dynamic after the initial configuration */
+    if (speed               >= SJA1105_SPEED_MAX    ) status = SJA1105_PARAMETER_ERROR;           /* Invalid speed */
+    if (port.configured     == false                ) status = SJA1105_NOT_CONFIGURED_ERROR;      /* Port should have already been configured once with interface and voltage */
     if (status != SJA1105_OK) return status;
 
     /* Configure the ACU with new options */
@@ -29,6 +31,13 @@ SJA1105_StatusTypeDef SJA1105_UpdatePortSpeed(SJA1105_HandleTypeDef *dev, uint8_
     /* Configure the CGU with new options */
     status = SJA1105_ConfigureCGUPort(dev, port_num);
     if (status != SJA1105_OK) return status;
+
+    /* TODO: Update the MAC configuration table */
+    
+    /* TODO: is there more that needs doing?? */
+
+    /* Update the port struct */
+    dev->ports[port_num].dyanamic_speed = speed;
 
     return status;
 }
@@ -42,7 +51,7 @@ SJA1105_StatusTypeDef SJA1105_ReadTemperatureX10(SJA1105_HandleTypeDef *dev, int
     uint8_t  guess          = 0;
     uint8_t  previous_guess = 0;
     uint32_t reg_data       = 0;
-    
+
     /* Check the temperature sensor is enabled */
     status = SJA1105_ReadRegister(dev, SJA1105_ACU_REG_TS_CONFIG, &reg_data, 1);
     if (status != SJA1105_OK) return status;
@@ -67,7 +76,7 @@ SJA1105_StatusTypeDef SJA1105_ReadTemperatureX10(SJA1105_HandleTypeDef *dev, int
         reg_data = guess & SJA1105_TS_THRESHOLD_MASK;
         status = SJA1105_WriteRegister(dev, SJA1105_ACU_REG_TS_CONFIG, &reg_data, 1);
         if (status != SJA1105_OK) return status;
-        
+
         /* Read from the TS_STATUS register */
         status = SJA1105_WriteRegister(dev, SJA1105_ACU_REG_TS_STATUS, &reg_data, 1);
         if (status != SJA1105_OK) return status;
