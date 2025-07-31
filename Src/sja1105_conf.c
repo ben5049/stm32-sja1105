@@ -118,7 +118,7 @@ SJA1105_StatusTypeDef SJA1105_CheckPartID(SJA1105_HandleTypeDef *dev){
     uint32_t reg_data;
 
     /* Read the DEVICE_ID register */
-    status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_DEVICE_ID, &reg_data, 1, true);
+    status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_DEVICE_ID, &reg_data, 1);
     if (status != SJA1105_OK) return status;
     
     /* Check the device ID config matches the variant */
@@ -143,7 +143,7 @@ SJA1105_StatusTypeDef SJA1105_CheckPartID(SJA1105_HandleTypeDef *dev){
         if (status != SJA1105_OK) return status;
         
         /* Read the PROD_ID register */
-        status = SJA1105_ReadRegister(dev, SJA1105_ACU_REG_PROD_ID, &reg_data, 1);
+        status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_ACU_REG_PROD_ID, &reg_data, 1);
         if (status != SJA1105_OK) return status;
         
         /* Extract and check the PART_NR */
@@ -327,7 +327,7 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
     if (status != SJA1105_OK) return status;
     
     /* Check the device ID was accepted */
-    status = SJA1105_ReadRegister(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
+    status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
     if (status != SJA1105_OK) return status;
     if ((reg_data & SJA1105_IDS_MASK) != 0) {
         status = SJA1105_ID_ERROR;
@@ -388,7 +388,7 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
                 for (uint8_t retries = 0; !ready && (retries < 10); retries++){
 
                     /* Read the register */
-                    status = SJA1105_ReadRegister(dev, SJA1105_REG_GENERAL_STATUS_1, &reg_data, 1);
+                    status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_GENERAL_STATUS_1, &reg_data, 1);
                     if (status != SJA1105_OK) return status;
                     
                     /* Extract L2BUSYS and delay if not set */
@@ -416,7 +416,7 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
 
         /* Check the block had no CRC errors */
         if (!last_block){
-            status = SJA1105_ReadRegister(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
+            status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
             if (status != SJA1105_OK) return status;
             if ((reg_data & SJA1105_CRCCHKL_MASK) != 0) {
                 status = SJA1105_CRC_ERROR;
@@ -430,7 +430,7 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
     } while (!last_block);
 
     /* Read the intial config flags register */
-    status = SJA1105_ReadRegister(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
+    status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
     if (status != SJA1105_OK) return status;
 
     /* Check for global CRC errors */

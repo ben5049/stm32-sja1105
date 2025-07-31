@@ -9,15 +9,20 @@
 #include "sja1105_regs.h"
 
 
-/* Low-Level Functions */
+SJA1105_StatusTypeDef __SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size, bool integrity_check);
 
 
 SJA1105_StatusTypeDef SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size){
-    return SJA1105_ReadRegisterWithCheck(dev, addr, data, size, false);
+    return __SJA1105_ReadRegister(dev, addr, data, size, false);
 }
 
 
-SJA1105_StatusTypeDef SJA1105_ReadRegisterWithCheck(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size, bool integrity_check){
+SJA1105_StatusTypeDef SJA1105_ReadRegisterWithCheck(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size){
+    return __SJA1105_ReadRegister(dev, addr, data, size, true);
+}
+
+
+SJA1105_StatusTypeDef __SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size, bool integrity_check){
 
     SJA1105_StatusTypeDef status        = SJA1105_OK;
     static const uint32_t dummy_payload = 0xcccc5555;  /* When size = 1, send this payload as we are reading data to confirm everything is working. */
@@ -41,7 +46,7 @@ SJA1105_StatusTypeDef SJA1105_ReadRegisterWithCheck(SJA1105_HandleTypeDef *dev, 
         /* Create the command frame */
         uint32_t command_frame = SJA1105_SPI_READ_FRAME;
         command_frame |= ((addr + size - dwords_remaining) & SJA1105_SPI_ADDR_MASK) << SJA1105_SPI_ADDR_POSITION;
-        command_frame |= (CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE) & SJA1105_SPI_SIZE_MASK) << SJA1105_SPI_SIZE_POSITION;  /* Note that if the read size = SPI_MAX_PAYLOAD_SIZE it will wrap to 0 as intended */
+        command_frame |= (CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_RX_PAYLOAD_SIZE) & SJA1105_SPI_SIZE_MASK) << SJA1105_SPI_SIZE_POSITION;  /* Note that if the read size = SPI_MAX_PAYLOAD_SIZE it will wrap to 0 as intended */
 
         /* Start the transaction after a delay (ensures successive transactions meet timing requirements) */
         dev->callbacks->callback_delay_ns(SJA1105_T_SPI_WR);
@@ -59,7 +64,7 @@ SJA1105_StatusTypeDef SJA1105_ReadRegisterWithCheck(SJA1105_HandleTypeDef *dev, 
 
         /* Receive data, if size = 1 then send dummy payload to test for faults */
         if ((size == 1) && integrity_check){
-            if (HAL_SPI_TransmitReceive(dev->config->spi_handle, (uint8_t *) &dummy_payload, (uint8_t *) &data[size - dwords_remaining], CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE), dev->config->timeout) != HAL_OK){
+            if (HAL_SPI_TransmitReceive(dev->config->spi_handle, (uint8_t *) &dummy_payload, (uint8_t *) data, 1, dev->config->timeout) != HAL_OK){
                 status = SJA1105_SPI_ERROR;
                 return status;
             }
@@ -68,19 +73,18 @@ SJA1105_StatusTypeDef SJA1105_ReadRegisterWithCheck(SJA1105_HandleTypeDef *dev, 
                 return status;
         }
         } else {
-            if (HAL_SPI_Receive(dev->config->spi_handle, (uint8_t *) &data[size - dwords_remaining], CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE), dev->config->timeout) != HAL_OK){
+            if (HAL_SPI_Receive(dev->config->spi_handle, (uint8_t *) &data[size - dwords_remaining], CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_RX_PAYLOAD_SIZE), dev->config->timeout) != HAL_OK){
                 status = SJA1105_SPI_ERROR;
                 return status;
             }
         }
-        
 
         /* End the transaction */
         dev->callbacks->callback_delay_ns(SJA1105_T_SPI_LAG);
         HAL_GPIO_WritePin(dev->config->cs_port, dev->config->cs_pin, SET);
 
         /* Calculate the double words to receive remaining */
-        dwords_remaining -= CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE);
+        dwords_remaining -= CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_RX_PAYLOAD_SIZE);
 
     } while (dwords_remaining > 0);
 
@@ -127,7 +131,7 @@ SJA1105_StatusTypeDef SJA1105_WriteRegister(SJA1105_HandleTypeDef *dev, uint32_t
         }
 
         /* Send payload */
-        if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) &data[size - dwords_remaining], CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE), dev->config->timeout) != HAL_OK){
+        if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) &data[size - dwords_remaining], CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_TX_PAYLOAD_SIZE), dev->config->timeout) != HAL_OK){
             status = SJA1105_SPI_ERROR;
             return status;
         }
@@ -137,7 +141,7 @@ SJA1105_StatusTypeDef SJA1105_WriteRegister(SJA1105_HandleTypeDef *dev, uint32_t
         HAL_GPIO_WritePin(dev->config->cs_port, dev->config->cs_pin, SET);
 
         /* Calculate the double words to transmit remaining */
-        dwords_remaining -= CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE);
+        dwords_remaining -= CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_TX_PAYLOAD_SIZE);
 
     } while (dwords_remaining > 0);
 

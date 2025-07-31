@@ -24,25 +24,6 @@ extern "C" {
 
 #define SJA1105_NUM_PORTS (5)
 
-/* Control frame */
-#define SJA1105_SPI_WRITE_FRAME      (1 << 31)     /* 1 in the most significant bit signifies a write */
-#define SJA1105_SPI_READ_FRAME       (0)           /* 0 in the most significant bit signifies a write */
-#define SJA1105_SPI_MAX_PAYLOAD_SIZE (64)          /* 2080 bits / 32 = 65 frames (minus 1 for the control frame) */
-#define SJA1105_SPI_ADDR_MASK        (0x001fffff)  /* 21-bit address */
-#define SJA1105_SPI_ADDR_POSITION    (4)           /* occupies bits[24:4] */ 
-#define SJA1105_SPI_SIZE_MASK        (0x0000003f)  /* 6-bit size */
-#define SJA1105_SPI_SIZE_POSITION    (25)          /* occupies bits[30:25] */
-
-/* Timings */
-#define SJA1105_T_RST                (5000)        /* 5000ns (5us) */
-#define SJA1105_T_SPI_WR             (130)         /* ns */
-#define SJA1105_T_SPI_CTRL_DATA      (64)          /* Time between writing the command frame and reading data in ns */
-#define SJA1105_T_SPI_LEAD           (40)          /* ns */
-#define SJA1105_T_SPI_LAG            (40)          /* ns */
-
-
-
-
 
 /* Typedefs */
 

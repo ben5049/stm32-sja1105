@@ -53,7 +53,7 @@ SJA1105_StatusTypeDef SJA1105_ReadTemperatureX10(SJA1105_HandleTypeDef *dev, int
     uint32_t reg_data       = 0;
 
     /* Check the temperature sensor is enabled */
-    status = SJA1105_ReadRegister(dev, SJA1105_ACU_REG_TS_CONFIG, &reg_data, 1);
+    status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_ACU_REG_TS_CONFIG, &reg_data, 1);
     if (status != SJA1105_OK) return status;
 
     /* Enable it if it isn't */
@@ -78,7 +78,7 @@ SJA1105_StatusTypeDef SJA1105_ReadTemperatureX10(SJA1105_HandleTypeDef *dev, int
         if (status != SJA1105_OK) return status;
 
         /* Read from the TS_STATUS register */
-        status = SJA1105_WriteRegister(dev, SJA1105_ACU_REG_TS_STATUS, &reg_data, 1);
+        status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_ACU_REG_TS_STATUS, &reg_data, 1);
         if (status != SJA1105_OK) return status;
 
         /* Adjust the range based on the result */
