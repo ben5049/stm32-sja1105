@@ -101,3 +101,24 @@ SJA1105_StatusTypeDef SJA1105_ReadTemperatureX10(SJA1105_HandleTypeDef *dev, int
 
     return status;
 }
+
+
+SJA1105_StatusTypeDef SJA1105_CheckStatus(SJA1105_HandleTypeDef *dev){
+    
+    SJA1105_StatusTypeDef status = SJA1105_OK;    
+    uint32_t reg_data[SJA1105_REGULAR_CHECK_SIZE];
+
+    /* Read the status registers */
+    status = SJA1105_ReadRegister(dev, SJA1105_REGULAR_CHECK_ADDR, reg_data, SJA1105_REGULAR_CHECK_SIZE);
+    if (status != SJA1105_OK) return status;
+
+    /* TODO: Check other registers */
+
+    /* Check for RAM parity errors */
+    if (reg_data[SJA1105_REG_GENERAL_STATUS_10 - SJA1105_REGULAR_CHECK_ADDR] || reg_data[SJA1105_REG_GENERAL_STATUS_11 - SJA1105_REGULAR_CHECK_ADDR]){
+        status = SJA1105_RAM_PARITY_ERROR;
+        return status;
+    }
+
+    return status;
+}

@@ -47,41 +47,42 @@ extern "C" {
 /* Typedefs */
 
 typedef enum {
-	SJA1105_OK                       = HAL_OK,
-	SJA1105_ERROR                    = HAL_ERROR,
-	SJA1105_BUSY                     = HAL_BUSY,
-	SJA1105_TIMEOUT                  = HAL_TIMEOUT,
-	SJA1105_PARAMETER_ERROR,
-	SJA1105_ALREADY_CONFIGURED_ERROR,  /* Error when attempting to init an already initialised device or configure a port that has already been configured. */
-	SJA1105_NOT_CONFIGURED_ERROR,
+    SJA1105_OK                       = HAL_OK,
+    SJA1105_ERROR                    = HAL_ERROR,
+    SJA1105_BUSY                     = HAL_BUSY,
+    SJA1105_TIMEOUT                  = HAL_TIMEOUT,
+    SJA1105_PARAMETER_ERROR,
+    SJA1105_ALREADY_CONFIGURED_ERROR,  /* Error when attempting to init an already initialised device or configure a port that has already been configured. */
+    SJA1105_NOT_CONFIGURED_ERROR,
     SJA1105_SPI_ERROR,
-	SJA1105_ID_ERROR,
-	SJA1105_STATIC_CONF_ERROR,
-	SJA1105_L2_BUSY_ERROR,
-	SJA1105_CRC_ERROR,
+    SJA1105_ID_ERROR,
+    SJA1105_STATIC_CONF_ERROR,
+    SJA1105_L2_BUSY_ERROR,
+    SJA1105_CRC_ERROR,
+    SJA1105_RAM_PARITY_ERROR,
 } SJA1105_StatusTypeDef;
 
 typedef enum {
-	VARIANT_SJA1105  = 0x00,
-	VARIANT_SJA1105T = 0x01,
-	VARIANT_SJA1105P = 0x02,
-	VARIANT_SJA1105Q = 0x03,
-	VARIANT_SJA1105R = 0x04,
-	VARIANT_SJA1105S = 0x05
+    VARIANT_SJA1105  = 0x00,
+    VARIANT_SJA1105T = 0x01,
+    VARIANT_SJA1105P = 0x02,
+    VARIANT_SJA1105Q = 0x03,
+    VARIANT_SJA1105R = 0x04,
+    VARIANT_SJA1105S = 0x05
 } SJA1105_VariantTypeDef;
 
 typedef enum {
-	SJA1105_INTERFACE_MII  = HAL_ETH_MII_MODE,
-	SJA1105_INTERFACE_RMII = HAL_ETH_RMII_MODE,
-	SJA1105_INTERFACE_RGMII,
-	SJA1105_INTERFACE_SGMII
+    SJA1105_INTERFACE_MII  = HAL_ETH_MII_MODE,
+    SJA1105_INTERFACE_RMII = HAL_ETH_RMII_MODE,
+    SJA1105_INTERFACE_RGMII,
+    SJA1105_INTERFACE_SGMII
 } SJA1105_InterfaceTypeDef;
 
 typedef enum {
-	SJA1105_SPEED_DYNAMIC = 0x0,  /* Used for ports that need to negotiate a speed */
-	SJA1105_SPEED_1G      = 0x1,
-	SJA1105_SPEED_100M    = 0x2,
-	SJA1105_SPEED_10M     = 0x3,
+    SJA1105_SPEED_DYNAMIC = 0x0,  /* Used for ports that need to negotiate a speed */
+    SJA1105_SPEED_1G      = 0x1,
+    SJA1105_SPEED_100M    = 0x2,
+    SJA1105_SPEED_10M     = 0x3,
     SJA1105_SPEED_MAX     = 0x4   /* Dummmy value for argument checking */
 } SJA1105_SpeedTypeDef;
 
@@ -93,11 +94,11 @@ typedef enum {
 } SJA1105_IOVoltageTypeDef;
 
 typedef struct {
-	uint8_t                  port_num;
-	SJA1105_SpeedTypeDef     speed;
-	SJA1105_SpeedTypeDef     dyanamic_speed;  /* When speed == SJA1105_SPEED_DYNAMIC, this value specifies the currently configured speed */
-	SJA1105_InterfaceTypeDef interface;
-	bool                     configured;
+    uint8_t                  port_num;
+    SJA1105_SpeedTypeDef     speed;
+    SJA1105_SpeedTypeDef     dyanamic_speed;  /* When speed == SJA1105_SPEED_DYNAMIC, this value specifies the currently configured speed */
+    SJA1105_InterfaceTypeDef interface;
+    bool                     configured;
     SJA1105_IOVoltageTypeDef voltage;
 } SJA1105_PortTypeDef;
 
@@ -108,10 +109,10 @@ typedef SJA1105_StatusTypeDef (*SJA1105_CallbackTakeMutexTypeDef) (uint32_t time
 typedef SJA1105_StatusTypeDef (*SJA1105_CallbackGiveMutexTypeDef) (void);
 
 typedef struct {
-	SJA1105_CallbackDelayMSTypeDef   callback_delay_ms;  /* Non-blocking delay in ms */
-	SJA1105_CallbackDelayNSTypeDef   callback_delay_ns;  /* Blocking delay in ns */
-	SJA1105_CallbackTakeMutexTypeDef callback_take_mutex;
-	SJA1105_CallbackGiveMutexTypeDef callback_give_mutex;
+    SJA1105_CallbackDelayMSTypeDef   callback_delay_ms;  /* Non-blocking delay in ms */
+    SJA1105_CallbackDelayNSTypeDef   callback_delay_ns;  /* Blocking delay in ns */
+    SJA1105_CallbackTakeMutexTypeDef callback_take_mutex;
+    SJA1105_CallbackGiveMutexTypeDef callback_give_mutex;
 } SJA1105_CallbacksTypeDef;
 
 typedef struct {
@@ -143,6 +144,8 @@ SJA1105_StatusTypeDef SJA1105_Init(SJA1105_HandleTypeDef *dev, const SJA1105_Con
 /* User Functions */
 SJA1105_StatusTypeDef SJA1105_UpdatePortSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef speed);
 SJA1105_StatusTypeDef SJA1105_ReadTemperatureX10(SJA1105_HandleTypeDef *dev, int16_t *temp);
+
+SJA1105_StatusTypeDef SJA1105_CheckStatus(SJA1105_HandleTypeDef *dev);
 
 
 #ifdef __cplusplus

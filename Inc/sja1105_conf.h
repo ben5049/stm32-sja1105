@@ -16,7 +16,7 @@ extern "C" {
 #include "sja1105.h"
 
 
-SJA1105_StatusTypeDef SJA1105_CheckPartNR(SJA1105_HandleTypeDef *dev);
+SJA1105_StatusTypeDef SJA1105_CheckPartID(SJA1105_HandleTypeDef *dev);
 SJA1105_StatusTypeDef SJA1105_ConfigureACU(SJA1105_HandleTypeDef *dev);
 SJA1105_StatusTypeDef SJA1105_ConfigureACUPort(SJA1105_HandleTypeDef *dev, uint8_t port_num);
 SJA1105_StatusTypeDef SJA1105_ConfigureCGU(SJA1105_HandleTypeDef *dev);

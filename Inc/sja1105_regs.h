@@ -21,8 +21,24 @@ extern "C" {
 /* Ethernet Switch Core */
 /* ---------------------------------------------------------------------------- */
 
+#define SJA1105_REG_DEVICE_ID         (0x00000001)
 #define SJA1105_REG_STATIC_CONF_FLAGS (0x00000001)
+#define SJA1105_REG_VL_PART_STATUS    (0x00000002)
 #define SJA1105_REG_GENERAL_STATUS_1  (0x00000003)
+#define SJA1105_REG_GENERAL_STATUS_2  (0x00000004)
+#define SJA1105_REG_GENERAL_STATUS_3  (0x00000005)
+#define SJA1105_REG_GENERAL_STATUS_4  (0x00000006)
+#define SJA1105_REG_GENERAL_STATUS_5  (0x00000007)
+#define SJA1105_REG_GENERAL_STATUS_6  (0x00000008)
+#define SJA1105_REG_GENERAL_STATUS_7  (0x00000009)
+#define SJA1105_REG_GENERAL_STATUS_8  (0x0000000a)
+#define SJA1105_REG_GENERAL_STATUS_9  (0x0000000b)
+#define SJA1105_REG_GENERAL_STATUS_10 (0x0000000c)  /* RAM Parity error register (lower) */
+#define SJA1105_REG_GENERAL_STATUS_11 (0x0000000d)  /* RAM Parity error register (upper) */
+
+#define SJA1105_T_DEVICE_ID           (0x9f00030e)
+#define SJA1105PR_DEVICE_ID           (0xaf00030e)
+#define SJA1105QS_DEVICE_ID           (0xae00030e)
 
 #define SJA1105_CONFIGS_SHIFT         (31)
 #define SJA1105_CONFIGS_MASK          (0x1 << SJA1105_CONFIGS_SHIFT)
@@ -32,6 +48,9 @@ extern "C" {
 #define SJA1105_IDS_MASK              (0x1 << SJA1105_IDS_SHIFT)
 #define SJA1105_CRCCHKG_SHIFT         (28)                            /* Global CRC check */
 #define SJA1105_CRCCHKG_MASK          (0x1 << SJA1105_CRCCHKG_SHIFT)  /* Global CRC check */
+
+#define SJA1105_REGULAR_CHECK_ADDR    (SJA1105_REG_VL_PART_STATUS)
+#define SJA1105_REGULAR_CHECK_SIZE    (SJA1105_REG_GENERAL_STATUS_11 - SJA1105_REGULAR_CHECK_ADDR + 1)
 
 #define SJA1105_L2BUSYS_SHIFT         (0)
 #define SJA1105_L2BUSYS_MASK          (0x1 << SJA1105_L2BUSYS_SHIFT)
@@ -171,9 +190,6 @@ static const int16_t SJA1105_TS_LUT[SJA1105_TS_LUT_SIZE] = {
 /* ---------------------------------------------------------------------------- */
 
 #define SJA1105_STATIC_CONF_ADDR               (0x20000)
-#define SJA1105_T_SWITCH_CORE_ID               (0x9f00030e)
-#define SJA1105PR_SWITCH_CORE_ID               (0xaf00030e)
-#define SJA1105QS_SWITCH_CORE_ID               (0xae00030e)
 
 #define SJA1105_STATIC_CONF_BLOCK_HEADER       (2)
 #define SJA1105_STATIC_CONF_BLOCK_HEADER_CRC   (1)
@@ -200,6 +216,7 @@ static const int16_t SJA1105_TS_LUT[SJA1105_TS_LUT_SIZE] = {
 #define SJA1105_STATIC_CONF_MAC_CONF_SPEED_OFFSET (3)  /* [98:97] therefore in the 4th word */
 #define SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT  (1)  /* shifted up by 1 */
 #define SJA1105_STATIC_CONF_MAC_CONF_SPEED_MASK   (0x3 << SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT)
+
 
 #ifdef __cplusplus
 }

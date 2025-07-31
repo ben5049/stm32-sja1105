@@ -83,7 +83,7 @@ SJA1105_StatusTypeDef SJA1105_Init(
     HAL_GPIO_WritePin(dev->config->cs_port,  dev->config->cs_pin,  SET);
     
     /* Check the part number matches the specified variant */
-    status = SJA1105_CheckPartNR(dev);
+    status = SJA1105_CheckPartID(dev);
     if (status != SJA1105_OK) return status;
 
 
@@ -112,7 +112,7 @@ SJA1105_StatusTypeDef SJA1105_Init(
 }
 
 
-SJA1105_StatusTypeDef SJA1105_CheckPartNR(SJA1105_HandleTypeDef *dev){
+SJA1105_StatusTypeDef SJA1105_CheckPartID(SJA1105_HandleTypeDef *dev){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
     uint32_t reg_data;
@@ -120,7 +120,7 @@ SJA1105_StatusTypeDef SJA1105_CheckPartNR(SJA1105_HandleTypeDef *dev){
     /* Read the PROD_ID register */
     status = SJA1105_ReadRegister(dev, SJA1105_ACU_REG_PROD_ID, &reg_data, 1);
     if (status != SJA1105_OK) return status;
-
+    
     /* Extract and check the PART_NR */
     switch ((reg_data & SJA1105_PART_NR_MASK) >> SJA1105_PART_NR_OFFSET){
         case PART_NR_SJA1105_T:
@@ -144,9 +144,35 @@ SJA1105_StatusTypeDef SJA1105_CheckPartNR(SJA1105_HandleTypeDef *dev){
             break;
         
         default:
-            status = SJA1105_ID_ERROR;
+        status = SJA1105_ID_ERROR;
+            break;
+        }
+    if (status != SJA1105_OK) return status;
+    
+    /* Read the DEVICE_ID register */
+    status = SJA1105_ReadRegister(dev, SJA1105_REG_DEVICE_ID, &reg_data, 1);
+    if (status != SJA1105_OK) return status;
+
+    /* Check the device ID config matches the variant */
+    switch (reg_data) {
+
+        case SJA1105_T_DEVICE_ID:
+            if ((dev->config->variant != VARIANT_SJA1105) && (dev->config->variant != VARIANT_SJA1105T)) status = SJA1105_ID_ERROR;
+            break;
+
+        case SJA1105QS_DEVICE_ID:
+            if ((dev->config->variant != VARIANT_SJA1105Q) && (dev->config->variant != VARIANT_SJA1105S)) status = SJA1105_ID_ERROR;
+            break;
+
+        case SJA1105PR_DEVICE_ID:
+            if ((dev->config->variant != VARIANT_SJA1105P) && (dev->config->variant != VARIANT_SJA1105R)) status = SJA1105_ID_ERROR;
+            break;
+
+        default:
+            status = SJA1105_ID_ERROR;  /* Unknown device */
             break;
     }
+    if (status != SJA1105_OK) return status;
 
     return status;
 }
@@ -280,15 +306,15 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
     switch (dev->config->variant) {
         case VARIANT_SJA1105:
         case VARIANT_SJA1105T:
-            if (static_conf[0] != SJA1105_T_SWITCH_CORE_ID) status = SJA1105_STATIC_CONF_ERROR;
+            if (static_conf[0] != SJA1105_T_DEVICE_ID) status = SJA1105_STATIC_CONF_ERROR;
             break;
         case VARIANT_SJA1105P:
         case VARIANT_SJA1105R:
-            if (static_conf[0] != SJA1105PR_SWITCH_CORE_ID) status = SJA1105_STATIC_CONF_ERROR;
+            if (static_conf[0] != SJA1105PR_DEVICE_ID) status = SJA1105_STATIC_CONF_ERROR;
             break;
         case VARIANT_SJA1105Q:
         case VARIANT_SJA1105S:
-            if (static_conf[0] != SJA1105QS_SWITCH_CORE_ID) status = SJA1105_STATIC_CONF_ERROR;
+            if (static_conf[0] != SJA1105QS_DEVICE_ID) status = SJA1105_STATIC_CONF_ERROR;
             break;
         default:
             status = SJA1105_PARAMETER_ERROR;  /* Unknown variant */
@@ -317,8 +343,6 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
     bool     last_block        = false;
     bool     skip_block        = false;
     uint32_t skipped_size      = 0;  /* Every time a block is skipped this counter should be incremented by block_size_actual */
-
-    /* TODO: Get and check the CRC-32s */
 
     do {
 
@@ -354,7 +378,7 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
                 status = SJA1105_CheckMACConfTable(dev, &static_conf[block_index + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC], block_size);
                 break;
 
-            /* Check the L2BUSYS flag is set */
+            /* Check the L2BUSYS flag is set before writing the L2 address table */
             case SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU:
 
                 uint32_t reg_data = 0;
@@ -368,15 +392,10 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
                     if (status != SJA1105_OK) return status;
                     
                     /* Extract L2BUSYS and delay if not set */
-                    ready = (bool) (((reg_data & SJA1105_L2BUSYS_MASK) >> SJA1105_L2BUSYS_SHIFT) == 1);
-                    if (!ready) {
-                        status = SJA1105_L2_BUSY_ERROR;
-                        dev->callbacks->callback_delay_ms(dev->config->timeout / 10);
-                    }
-                    else {
-                        status = SJA1105_OK;
-                    }
+                    ready = (bool) (reg_data & SJA1105_L2BUSYS_MASK);
+                    if (!ready) dev->callbacks->callback_delay_ms(dev->config->timeout / 10);
                 }
+                if (!ready) status = SJA1105_L2_BUSY_ERROR;
                 break;
                 
             default:
