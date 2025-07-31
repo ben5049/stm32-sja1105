@@ -117,42 +117,10 @@ SJA1105_StatusTypeDef SJA1105_CheckPartID(SJA1105_HandleTypeDef *dev){
     SJA1105_StatusTypeDef status = SJA1105_OK;
     uint32_t reg_data;
 
-    /* Read the PROD_ID register */
-    status = SJA1105_ReadRegister(dev, SJA1105_ACU_REG_PROD_ID, &reg_data, 1);
-    if (status != SJA1105_OK) return status;
-    
-    /* Extract and check the PART_NR */
-    switch ((reg_data & SJA1105_PART_NR_MASK) >> SJA1105_PART_NR_OFFSET){
-        case PART_NR_SJA1105_T:
-            if ((dev->config->variant != VARIANT_SJA1105) && (dev->config->variant != VARIANT_SJA1105T)) status = SJA1105_ID_ERROR;
-            break;
-        
-        case PART_NR_SJA1105P:
-            if (dev->config->variant != VARIANT_SJA1105P) status = SJA1105_ID_ERROR;
-            break;
-        
-        case PART_NR_SJA1105Q:
-            if (dev->config->variant != VARIANT_SJA1105Q) status = SJA1105_ID_ERROR;
-            break;
-        
-        case PART_NR_SJA1105R:
-            if (dev->config->variant != VARIANT_SJA1105R) status = SJA1105_ID_ERROR;
-            break;
-        
-        case PART_NR_SJA1105S:
-            if (dev->config->variant != VARIANT_SJA1105S) status = SJA1105_ID_ERROR;
-            break;
-        
-        default:
-        status = SJA1105_ID_ERROR;
-            break;
-        }
-    if (status != SJA1105_OK) return status;
-    
     /* Read the DEVICE_ID register */
-    status = SJA1105_ReadRegister(dev, SJA1105_REG_DEVICE_ID, &reg_data, 1);
+    status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_DEVICE_ID, &reg_data, 1, true);
     if (status != SJA1105_OK) return status;
-
+    
     /* Check the device ID config matches the variant */
     switch (reg_data) {
 
@@ -171,9 +139,41 @@ SJA1105_StatusTypeDef SJA1105_CheckPartID(SJA1105_HandleTypeDef *dev){
         default:
             status = SJA1105_ID_ERROR;  /* Unknown device */
             break;
-    }
-    if (status != SJA1105_OK) return status;
-
+        }
+        if (status != SJA1105_OK) return status;
+        
+        /* Read the PROD_ID register */
+        status = SJA1105_ReadRegister(dev, SJA1105_ACU_REG_PROD_ID, &reg_data, 1);
+        if (status != SJA1105_OK) return status;
+        
+        /* Extract and check the PART_NR */
+        switch ((reg_data & SJA1105_PART_NR_MASK) >> SJA1105_PART_NR_OFFSET){
+            case PART_NR_SJA1105_T:
+                if ((dev->config->variant != VARIANT_SJA1105) && (dev->config->variant != VARIANT_SJA1105T)) status = SJA1105_ID_ERROR;
+                break;
+            
+            case PART_NR_SJA1105P:
+                if (dev->config->variant != VARIANT_SJA1105P) status = SJA1105_ID_ERROR;
+                break;
+            
+            case PART_NR_SJA1105Q:
+                if (dev->config->variant != VARIANT_SJA1105Q) status = SJA1105_ID_ERROR;
+                break;
+            
+            case PART_NR_SJA1105R:
+                if (dev->config->variant != VARIANT_SJA1105R) status = SJA1105_ID_ERROR;
+                break;
+            
+            case PART_NR_SJA1105S:
+                if (dev->config->variant != VARIANT_SJA1105S) status = SJA1105_ID_ERROR;
+                break;
+            
+            default:
+            status = SJA1105_ID_ERROR;
+                break;
+            }
+        if (status != SJA1105_OK) return status;
+        
     return status;
 }
 

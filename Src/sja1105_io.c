@@ -10,9 +10,17 @@
 
 
 /* Low-Level Functions */
-SJA1105_StatusTypeDef SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size){
 
-    SJA1105_StatusTypeDef status = SJA1105_OK;
+
+SJA1105_StatusTypeDef SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size){
+    return SJA1105_ReadRegisterWithCheck(dev, addr, data, size, false);
+}
+
+
+SJA1105_StatusTypeDef SJA1105_ReadRegisterWithCheck(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size, bool integrity_check){
+
+    SJA1105_StatusTypeDef status        = SJA1105_OK;
+    static const uint32_t dummy_payload = 0xcccc5555;  /* When size = 1, send this payload as we are reading data to confirm everything is working. */
 
     /* Check the parameters */
     if ( size         ==  0                    ) status = SJA1105_PARAMETER_ERROR;  /* Empty check */
@@ -23,10 +31,10 @@ SJA1105_StatusTypeDef SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t 
     /* Take the mutex */
     status = dev->callbacks->callback_take_mutex(dev->config->timeout);
     if (status != SJA1105_OK) return status;
-
+    
     /* Initialise counter for the number of double words remaining to receive */
     uint32_t dwords_remaining = size;
-
+    
     /* If the number of double words to read is greater than SJA1105_SPI_MAX_PAYLOAD_SIZE, then the read needs to be broken into smaller transactions */
     do {
 
@@ -49,11 +57,23 @@ SJA1105_StatusTypeDef SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t 
         /* Insert delay to allow the device to fetch the data */
         dev->callbacks->callback_delay_ns(SJA1105_T_SPI_CTRL_DATA);
 
-        /* Receive payload */
-        if (HAL_SPI_Receive(dev->config->spi_handle, (uint8_t *) &data[size - dwords_remaining], CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE), dev->config->timeout) != HAL_OK){
-            status = SJA1105_SPI_ERROR;
-            return status;
+        /* Receive data, if size = 1 then send dummy payload to test for faults */
+        if ((size == 1) && integrity_check){
+            if (HAL_SPI_TransmitReceive(dev->config->spi_handle, (uint8_t *) &dummy_payload, (uint8_t *) &data[size - dwords_remaining], CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE), dev->config->timeout) != HAL_OK){
+                status = SJA1105_SPI_ERROR;
+                return status;
+            }
+            if (data[0] == dummy_payload){
+                status = SJA1105_SPI_ERROR;
+                return status;
         }
+        } else {
+            if (HAL_SPI_Receive(dev->config->spi_handle, (uint8_t *) &data[size - dwords_remaining], CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_PAYLOAD_SIZE), dev->config->timeout) != HAL_OK){
+                status = SJA1105_SPI_ERROR;
+                return status;
+            }
+        }
+        
 
         /* End the transaction */
         dev->callbacks->callback_delay_ns(SJA1105_T_SPI_LAG);
