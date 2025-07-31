@@ -355,8 +355,6 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
     uint16_t block_size        = 0;  /* Block size listed in the static config */
     uint16_t block_size_actual = 0;  /* Actual block size including headers and CRCs */
     bool     last_block        = false;
-    bool     skip_block        = false;
-    uint32_t skipped_size      = 0;  /* Every time a block is skipped this counter should be incremented by block_size_actual */
 
     do {
 
@@ -381,12 +379,6 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
         /* Pre-write options */
         switch (block_id) {
 
-            /* The CGU and ACU are configured by SJA1105_Init() and should not be overwritten */
-            case SJA1105_STATIC_CONF_BLOCK_ID_CGU:
-            case SJA1105_STATIC_CONF_BLOCK_ID_ACU:
-                skip_block = true;  
-                break;
-
             /* Check the MAC configuration table */
             case SJA1105_STATIC_CONF_BLOCK_ID_MAC_CONF:
                 status = SJA1105_CheckMACConfTable(dev, &static_conf[block_index + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC], block_size);
@@ -399,7 +391,7 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
                 bool     ready    = false;
 
                 /* Check the general status 1 register for L2BUSYS (0 = initialised, 1 = not initialised). Try up to 10 times. */
-                for (uint8_t retries = 0; !ready && (retries < 10); retries++){
+                for (uint8_t attempt = 0; !ready && (attempt < 10); attempt++){
 
                     /* Read the register */
                     status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_GENERAL_STATUS_1, &reg_data, 1);
@@ -417,26 +409,25 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
         }
         if (status != SJA1105_OK) return status;
 
-        /* Skip the block */
-        if (skip_block){
-            skipped_size += block_size_actual;
-        }
+        /* Attempt to write the block up to 10 times */
+        bool crc_success = false;
+        for (uint8_t attempt = 0; !crc_success && (attempt < 10); attempt++){
 
-        /* Write the block */
-        else {
-            status = SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR + block_index - skipped_size, &static_conf[block_index], block_size_actual);
+            /* Write */
+            status = SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR + block_index, &static_conf[block_index], block_size_actual);
             if (status != SJA1105_OK) return status;
-        }
-
-        /* Check the block had no CRC errors */
-        if (!last_block){
-            status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
-            if (status != SJA1105_OK) return status;
-            if ((reg_data & SJA1105_CRCCHKL_MASK) != 0) {
-                status = SJA1105_CRC_ERROR;
-                return status;
+            
+            /* Check the block had no CRC errors */
+            if (!last_block){
+                status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
+                if (status != SJA1105_OK) return status;
+                
+                /* If no*/
+                if ((reg_data & SJA1105_CRCCHKL_MASK) == 0) crc_success = true;
             }
         }
+        if (!crc_success) status = SJA1105_CRC_ERROR;
+        if (status != SJA1105_OK) return status;
 
         /* Set the block index for the next block */
         block_index = block_index_next;

@@ -36,9 +36,11 @@ extern "C" {
 #define SJA1105_REG_GENERAL_STATUS_10 (0x0000000c)  /* RAM Parity error register (lower) */
 #define SJA1105_REG_GENERAL_STATUS_11 (0x0000000d)  /* RAM Parity error register (upper) */
 
-#define SJA1105_T_DEVICE_ID           (0x9f00030e)
-#define SJA1105PR_DEVICE_ID           (0xaf00030e)
-#define SJA1105QS_DEVICE_ID           (0xae00030e)
+enum DeviceID_Enum{
+    SJA1105_T_DEVICE_ID = 0x9f00030e,
+    SJA1105PR_DEVICE_ID = 0xaf00030e,
+    SJA1105QS_DEVICE_ID = 0xae00030e,
+};
 
 #define SJA1105_CONFIGS_SHIFT         (31)
 #define SJA1105_CONFIGS_MASK          (0x1 << SJA1105_CONFIGS_SHIFT)
@@ -139,11 +141,14 @@ extern "C" {
 
 #define SJA1105_PART_NR_OFFSET                     (4)
 #define SJA1105_PART_NR_MASK                       (0xffff << SJA1105_PART_NR_OFFSET)
-#define PART_NR_SJA1105_T                          (0x9a82)
-#define PART_NR_SJA1105P                           (0x9a84)
-#define PART_NR_SJA1105Q                           (0x9a85)
-#define PART_NR_SJA1105R                           (0x9a86)
-#define PART_NR_SJA1105S                           (0x9a87)
+
+enum PartNR_Enum{
+    PART_NR_SJA1105_T = 0x9a82,
+    PART_NR_SJA1105P  = 0x9a84,
+    PART_NR_SJA1105Q  = 0x9a85,
+    PART_NR_SJA1105R  = 0x9a86,
+    PART_NR_SJA1105S  = 0x9a87
+};
 
 #define SJA1105_TS_PD                              (1 << 6)
 #define SJA1105_TS_THRESHOLD_MASK                  (0x3f)
