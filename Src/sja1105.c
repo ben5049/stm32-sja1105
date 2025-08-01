@@ -11,17 +11,17 @@
 #include "sja1105_regs.h"
 
 
-SJA1105_StatusTypeDef SJA1105_UpdatePortSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef speed){
+SJA1105_StatusTypeDef SJA1105_PortUpdateSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef speed){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
     SJA1105_PortTypeDef   port   = dev->ports[port_num];
 
     /* Check the speed argument */
-    if (port.dyanamic_speed == speed                ) status = SJA1105_ALREADY_CONFIGURED_ERROR;  /* New speed should be different */
-    if (port.speed          != SJA1105_SPEED_DYNAMIC) status = SJA1105_PARAMETER_ERROR;           /* Only ports configured as dynamic can have their speed changed */
-    if (speed               == SJA1105_SPEED_DYNAMIC) status = SJA1105_PARAMETER_ERROR;           /* Speed shouldn't be set to dynamic after the initial configuration */
-    if (speed               >= SJA1105_SPEED_MAX    ) status = SJA1105_PARAMETER_ERROR;           /* Invalid speed */
-    if (port.configured     == false                ) status = SJA1105_NOT_CONFIGURED_ERROR;      /* Port should have already been configured once with interface and voltage */
+    if (port.dyanamic_speed == speed                ) {status = SJA1105_OK; return status;}    /* New speed should be different */
+    if (port.speed          != SJA1105_SPEED_DYNAMIC)  status = SJA1105_PARAMETER_ERROR;       /* Only ports configured as dynamic can have their speed changed */
+    if (speed               == SJA1105_SPEED_DYNAMIC)  status = SJA1105_PARAMETER_ERROR;       /* Speed shouldn't be set to dynamic after the initial configuration */
+    if (speed               >= SJA1105_SPEED_INVALID)  status = SJA1105_PARAMETER_ERROR;       /* Invalid speed */
+    if (port.configured     == false                )  status = SJA1105_NOT_CONFIGURED_ERROR;  /* Port should have already been configured once with interface and voltage */
     if (status != SJA1105_OK) return status;
 
     /* Configure the ACU with new options */
@@ -33,7 +33,7 @@ SJA1105_StatusTypeDef SJA1105_UpdatePortSpeed(SJA1105_HandleTypeDef *dev, uint8_
     if (status != SJA1105_OK) return status;
 
     /* TODO: Update the MAC configuration table */
-    
+    /* TODO: Check port is not SGMII */
     /* TODO: is there more that needs doing?? */
 
     /* Update the port struct */
@@ -119,6 +119,24 @@ SJA1105_StatusTypeDef SJA1105_CheckStatusRegisters(SJA1105_HandleTypeDef *dev){
         status = SJA1105_RAM_PARITY_ERROR;
         return status;
     }
+
+    return status;
+}
+
+
+/* TODO: Disable transmitted clocks */
+SJA1105_StatusTypeDef SJA1105_PortSleep(SJA1105_HandleTypeDef *dev, uint8_t port_num){
+
+    SJA1105_StatusTypeDef status = SJA1105_NOT_IMPLEMENTED_ERROR;
+
+    return status;
+}
+
+
+/* TODO: Enable transmitted clocks */
+SJA1105_StatusTypeDef SJA1105_PortWake(SJA1105_HandleTypeDef *dev, uint8_t port_num){
+
+    SJA1105_StatusTypeDef status = SJA1105_NOT_IMPLEMENTED_ERROR;
 
     return status;
 }

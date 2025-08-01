@@ -11,16 +11,16 @@
 #include "sja1105_regs.h"
 
 
-SJA1105_StatusTypeDef SJA1105_ConfigurePort(SJA1105_PortTypeDef *ports, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_ModeTypeDef mode, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage){
+SJA1105_StatusTypeDef SJA1105_PortConfigure(SJA1105_PortTypeDef *ports, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_ModeTypeDef mode, bool output_rmii_refclk, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
 
     /* Check the parameters */
     if ( port_num  >= SJA1105_NUM_PORTS                                       ) status = SJA1105_PARAMETER_ERROR;
-    if ( interface >  SJA1105_INTERFACE_SGMII                                 ) status = SJA1105_PARAMETER_ERROR;
-    if ((mode      != SJA1105_MODE_MAC) && (mode != SJA1105_MODE_PHY)         ) status = SJA1105_PARAMETER_ERROR;
-    if ( speed     >= SJA1105_SPEED_MAX                                       ) status = SJA1105_PARAMETER_ERROR;
-    if ( voltage   >  SJA1105_IO_3V3                                          ) status = SJA1105_PARAMETER_ERROR;
+    if ( interface >= SJA1105_INTERFACE_INVALID                               ) status = SJA1105_PARAMETER_ERROR;
+    if ( mode      >= SJA1105_MODE_INVALID                                    ) status = SJA1105_PARAMETER_ERROR;
+    if ( speed     >= SJA1105_SPEED_INVALID                                   ) status = SJA1105_PARAMETER_ERROR;
+    if ( voltage   >= SJA1105_IO_INVALID_V                                    ) status = SJA1105_PARAMETER_ERROR;
     if ((interface == SJA1105_INTERFACE_MII)  && (speed == SJA1105_SPEED_1G)  ) status = SJA1105_PARAMETER_ERROR;           /* MII Interface doesn't support 1G speeds */
     if ((interface == SJA1105_INTERFACE_RMII) && (speed == SJA1105_SPEED_1G)  ) status = SJA1105_PARAMETER_ERROR;           /* RMII Interface doesn't support 1G speeds */
     if ((voltage   == SJA1105_IO_1V8) && (interface == SJA1105_INTERFACE_RMII)) status = SJA1105_PARAMETER_ERROR;           /* 1V8 RMII not supported */
@@ -28,13 +28,14 @@ SJA1105_StatusTypeDef SJA1105_ConfigurePort(SJA1105_PortTypeDef *ports, uint8_t 
     if (status != SJA1105_OK) return status;
 
     /* Assign the parameters */
-    ports[port_num].port_num       = port_num;
-    ports[port_num].interface      = interface;
-    ports[port_num].mode           = mode;
-    ports[port_num].speed          = speed;
-    ports[port_num].dyanamic_speed = speed;
-    ports[port_num].voltage        = voltage;
-    ports[port_num].configured     = true;
+    ports[port_num].port_num           = port_num;
+    ports[port_num].interface          = interface;
+    ports[port_num].mode               = mode;
+    ports[port_num].output_rmii_refclk = output_rmii_refclk;
+    ports[port_num].speed              = speed;
+    ports[port_num].dyanamic_speed     = speed;
+    ports[port_num].voltage            = voltage;
+    ports[port_num].configured         = true;
 
     return status;
 }
@@ -61,6 +62,7 @@ SJA1105_StatusTypeDef SJA1105_Init(
     dev->config->rst_port   = config->rst_port;
     dev->config->rst_pin    = config->rst_pin;
     dev->config->timeout    = config->timeout;
+    dev->config->host_port  = config->host_port;
     dev->callbacks          = callbacks;
     dev->ports              = ports;
     dev->static_conf_loaded = false;
@@ -68,7 +70,7 @@ SJA1105_StatusTypeDef SJA1105_Init(
     dev->initialised        = false;
 
     /* Only the SJA1105Q has been implemented. TODO: Add more */
-    if (dev->config->variant != VARIANT_SJA1105Q) status = SJA1105_PARAMETER_ERROR;
+    if (dev->config->variant != VARIANT_SJA1105Q) status = SJA1105_NOT_IMPLEMENTED_ERROR;
 
     /* Check SPI parameters */
     if (dev->config->spi_handle->Init.DataSize    != SPI_DATASIZE_32BIT) status = SJA1105_PARAMETER_ERROR;
@@ -204,308 +206,6 @@ SJA1105_StatusTypeDef SJA1105_CheckPartID(SJA1105_HandleTypeDef *dev){
     return status;
 }
 
-SJA1105_StatusTypeDef SJA1105_ConfigureACU(SJA1105_HandleTypeDef *dev){
-
-    SJA1105_StatusTypeDef status = SJA1105_OK;
-
-    /* Configure the ACU with each port's IO pad configuration */
-    for (uint8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
-        status = SJA1105_ConfigureACUPort(dev, port_num);
-        if (status != SJA1105_OK) return status;
-    }
-
-    /* TODO: Configure MISC, SPI, and JTAG IO pads. Also configure temperature sensor. */
-
-    return status;
-}
-
-SJA1105_StatusTypeDef SJA1105_ConfigureACUPort(SJA1105_HandleTypeDef *dev, uint8_t port_num){
-
-    SJA1105_StatusTypeDef status = SJA1105_OK;
-    SJA1105_PortTypeDef port = dev->ports[port_num];
-
-    /* Skip port 4 in variants that don't have one */
-    if (((dev->config->variant == VARIANT_SJA1105R) || (dev->config->variant == VARIANT_SJA1105S)) && (port_num == 4)) return status;
-    
-    /* Don't continue if no configuration is supplied. This isn't an error since a default register values will be used instead. */
-    if (port.configured == false){
-        status = SJA1105_OK;
-        return status;
-    }
-    
-    /* Check port numbers match */
-    if (port.port_num != port_num) status = SJA1105_PARAMETER_ERROR;
-    if (status != SJA1105_OK) return status;
-    
-    /* Create and clear buffer */
-    uint32_t reg_data[SJA1105_ACU_PAD_CFG_SIZE];
-    reg_data[SJA1105_ACU_PAD_CFG_TX] = 0;
-    reg_data[SJA1105_ACU_PAD_CFG_RX] = 0;
-
-    /* Set slew rates */
-    switch (port.interface)
-    {
-        case SJA1105_INTERFACE_MII:
-
-            /* Low speed */
-            reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_OS_LOW;
-            break;
-
-        case SJA1105_INTERFACE_RMII:
-
-            /* 1V8 RMII not supported */
-            if (port.voltage == SJA1105_IO_1V8) status = SJA1105_PARAMETER_ERROR;
-            if (status != SJA1105_OK) return status;
-
-            /* Low speed */
-            reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_OS_LOW;
-            break;
-
-        case SJA1105_INTERFACE_RGMII:
-
-            switch (port.voltage) {
-
-                case SJA1105_IO_2V5:
-                case SJA1105_IO_3V3:
-
-                    /* Medium speed */
-                    reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_OS_MEDIUM;
-                    break;
-
-                case SJA1105_IO_1V8:
-                default:
-
-                    /* Fast speed */
-                    reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_OS_HIGH;
-                    break;
-                }
-                break;
-                
-                default:
-                break;
-            }
-            
-    /* Disable internal TX pull downs */
-    reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_IPUD_PI;
-    
-    /* Set TX CLK input hysteresis to non-Schmitt  */
-    reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_CLK_IH_NON_SCHMITT;
-    
-    /* Disable internal RX pull downs and set input hysteresis to non-Schmitt */
-    reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_IPUD_PI;
-    reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_IH_NON_SCHMITT;
-
-    /* Write the pad config */
-    SJA1105_WriteRegister(dev, SJA1105_ACU_REG_CFG_PAD_MIIX_TX(port_num), reg_data, SJA1105_ACU_PAD_CFG_SIZE);
-    
-    /* TODO: Update the internal delay (ID) register (SJA1105_ACU_REG_CFG_PAD_MIIX_ID) if internal RGMII
-     *       CLK delays are needed. Many PHYs also implement this and it is only needed once per TX or RX
-     *       channel. Since the SJA1105's ID implementation uses phase (not time) delays and requires
-     *       managing frequency transitions, the PHY implementation is preferred.
-     */
-
-    return status;
-}
-
-SJA1105_StatusTypeDef SJA1105_ConfigureCGU(SJA1105_HandleTypeDef *dev){
-
-    SJA1105_StatusTypeDef status = SJA1105_OK;
-    uint32_t reg_data;
-
-    /* Setup PLL0 (f = 125MHz) */
-    reg_data = SJA1105_CGU_P23EN;  /* Enable 120 and 240 degree outputs for better EMC performance */
-    status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_PLL_0_C, &reg_data, 1);
-    if (status != SJA1105_OK) return status;
-
-    /* Setup PLL1 (f = 50MHz, integer mode) */
-    reg_data = 0;
-    reg_data &= ~SJA1105_CGU_PD;         /* Disable power down */
-    reg_data &= ~SJA1105_CGU_BYPASS;     /* Disable bypass */
-    reg_data |=  SJA1105_CGU_P23EN;      /* Enable 120 and 240 degree outputs for better EMC performance */
-    reg_data |=  SJA1105_CGU_FBSEL;      /* Enable PLL feedback */
-    reg_data |=  SJA1105_CGU_AUTOBLOCK;  /* Enable autoblock to prevent glitches */
-    reg_data |= (0x1 << SJA1105_CGU_PSEL_SHIFT) & SJA1105_CGU_PSEL_MASK;  /* PSEL = 1 */
-    reg_data |= (0x1 << SJA1105_CGU_MSEL_SHIFT) & SJA1105_CGU_MSEL_MASK;  /* MSEL = 1 */
-    reg_data |= (0x0 << SJA1105_CGU_NSEL_SHIFT) & SJA1105_CGU_NSEL_MASK;  /* NSEL = 0 */
-    status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_PLL_0_C, &reg_data, 1);
-    if (status != SJA1105_OK) return status;
-
-    /* Configure each port */
-    for (uint8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
-        status = SJA1105_ConfigureCGUPort(dev, port_num);
-        if (status != SJA1105_OK) return status;
-    }
-
-    return status;
-}
-
-SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8_t port_num){
-
-    SJA1105_StatusTypeDef status = SJA1105_OK;
-    SJA1105_PortTypeDef port = dev->ports[port_num];
-    uint32_t reg_data[SJA1105_CGU_REG_CLK_NUM];
-
-    /* Skip port 4 in variants that don't have one */
-    if (((dev->config->variant == VARIANT_SJA1105R) || (dev->config->variant == VARIANT_SJA1105S)) && (port_num == 4)) return status;
-
-    switch (port.interface) {
-        case SJA1105_INTERFACE_MII:
-
-            /* MII MAC */
-            if (port.mode == SJA1105_MODE_MAC){
-
-                /* Disable IDIV */
-                reg_data[0] = SJA1105_CGU_PD;
-                status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_IDIV_C(port_num), reg_data, 1);
-                if (status != SJA1105_OK) return status;
-                
-                /* Set CLKSRC of MII_TX_CLK_X to TX_CLK_X */
-                reg_data[SJA1105_CGU_MII_TX_CLK] =  SJA1105_CGU_CLK_SRC_TX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;  /* Implicitly sets PD to 0 */
-                reg_data[SJA1105_CGU_MII_TX_CLK] |= SJA1105_CGU_AUTOBLOCK;  /* Prevent clock glitches */
-
-                /* Set CLKSRC of MII_RX_CLK_X to RX_CLK_X */
-                reg_data[SJA1105_CGU_MII_RX_CLK] =  SJA1105_CGU_CLK_SRC_RX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
-                reg_data[SJA1105_CGU_MII_RX_CLK] |= SJA1105_CGU_AUTOBLOCK;
-                
-                /* Disable all other clock sinks */
-                reg_data[SJA1105_CGU_RMII_REF_CLK] = SJA1105_CGU_PD;
-                reg_data[SJA1105_CGU_RGMII_TX_CLK] = SJA1105_CGU_PD;
-                reg_data[SJA1105_CGU_EXT_TX_CLK  ] = SJA1105_CGU_PD;
-                reg_data[SJA1105_CGU_EXT_RX_CLK  ] = SJA1105_CGU_PD;
-
-                /* Write the configuration */
-                status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_CLK_BASE(port_num), reg_data, SJA1105_CGU_REG_CLK_NUM);
-                if (status != SJA1105_OK) return status;
-            }
-
-            /* MII PHY */
-            else {
-                switch (port.speed){
-
-                    /* 10M MII PHY */
-                    case SJA1105_SPEED_10M:
-                        status = SJA1105_ERROR;
-                        break;
-
-                    /* 100M MII PHY */
-                    case SJA1105_SPEED_100M:
-                        status = SJA1105_ERROR;
-                        break;
-
-                    default:
-                        status = SJA1105_PARAMETER_ERROR;
-                        break;
-                }
-            }
-            break;
-
-        case SJA1105_INTERFACE_RMII:
-
-            /* RMII MAC */
-            if (port.mode == SJA1105_MODE_MAC){
-                switch (port.speed){
-
-                    /* 10M RMII MAC */
-                    case SJA1105_SPEED_10M:
-                        status = SJA1105_ERROR;
-                        break;
-
-                    /* 100M RMII MAC */
-                    case SJA1105_SPEED_100M:
-                        status = SJA1105_ERROR;
-                        break;
-
-                    default:
-                        status = SJA1105_PARAMETER_ERROR;
-                        break;
-                }
-            }
-
-            /* RMII PHY */
-            else {
-
-                switch (port.speed){
-
-                    /* 10M RMII PHY */
-                    case SJA1105_SPEED_10M:
-                        status = SJA1105_ERROR;
-                        break;
-
-                    /* 100M RMII PHY */
-                    case SJA1105_SPEED_100M:
-                        status = SJA1105_ERROR;
-                        break;
-
-                    default:
-                        status = SJA1105_PARAMETER_ERROR;
-                        break;
-                }
-            }
-            break;
-
-        case SJA1105_INTERFACE_RGMII:
-
-            /* RGMII MAC */
-            if (port.mode == SJA1105_MODE_MAC){
-                switch (port.speed){
-
-                    /* 10M RGMII MAC */
-                    case SJA1105_SPEED_10M:
-                        status = SJA1105_ERROR;
-                        break;
-
-                    /* 100M RGMII MAC */
-                    case SJA1105_SPEED_100M:
-                        status = SJA1105_ERROR;
-                        break;
-
-                    /* 1G RGMII MAC */
-                    case SJA1105_SPEED_1G:
-                        status = SJA1105_ERROR;
-                        break;
-
-                    default:
-                        status = SJA1105_PARAMETER_ERROR;
-                        break;
-                }
-            }
-
-            /* RGMII PHY */
-            else {
-
-                switch (port.speed){
-
-                    /* 10M RGMII PHY */
-                    case SJA1105_SPEED_10M:
-                        status = SJA1105_ERROR;
-                        break;
-
-                    /* 100M RGMII PHY */
-                    case SJA1105_SPEED_100M:
-                        status = SJA1105_ERROR;
-                        break;
-
-                    /* 1G RGMII PHY */
-                    case SJA1105_SPEED_1G:
-                        status = SJA1105_ERROR;
-                        break;
-
-                    default:
-                        status = SJA1105_PARAMETER_ERROR;
-                        break;
-                }
-            }
-            break;
-
-        default:
-            status = SJA1105_PARAMETER_ERROR;
-            break;
-    }
-
-    return status;
-}
-
-// SJA1105_StatusTypeDef SJA1105_DisableIDIV(SJA1105_HandleTypeDef *dev, port)
 
 SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size){
 
@@ -588,6 +288,11 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
             case SJA1105_STATIC_CONF_BLOCK_ID_MAC_CONF:
                 status = SJA1105_CheckMACConfTable(dev, &static_conf[block_index + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC], block_size);
                 break;
+            
+            /* Check the xMII mode parameters table */
+            case SJA1105_STATIC_CONF_BLOCK_ID_XMII_MODE:
+                status = SJA1105_CheckxMIIModeTable(dev, &static_conf[block_index + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC], block_size);
+                break;
 
             /* Check the L2BUSYS flag is set before writing the L2 address table */
             case SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU:
@@ -657,17 +362,61 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
 SJA1105_StatusTypeDef SJA1105_CheckMACConfTable(SJA1105_HandleTypeDef *dev, const uint32_t *table, uint32_t size){
     
     SJA1105_StatusTypeDef status = SJA1105_OK;
-    SJA1105_SpeedTypeDef speed;
+    SJA1105_SpeedTypeDef  speed;
 
     /* Check the size is correct */
     if (size != (SJA1105_NUM_PORTS * SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE)) status = SJA1105_STATIC_CONF_ERROR;
     if (status != SJA1105_OK) return status;
-    
+
     /* Check each port's speed */
     for (uint8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
         speed = (table[SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, SJA1105_STATIC_CONF_MAC_CONF_SPEED_OFFSET)] & SJA1105_STATIC_CONF_MAC_CONF_SPEED_MASK) >> SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT;
         if (speed != dev->ports[port_num].speed) status = SJA1105_STATIC_CONF_ERROR;
         if (status != SJA1105_OK) return status;
+    }
+
+    return status;
+}
+
+SJA1105_StatusTypeDef SJA1105_CheckxMIIModeTable(SJA1105_HandleTypeDef *dev, const uint32_t *table, uint32_t size){
+    
+    SJA1105_StatusTypeDef    status = SJA1105_OK;
+    SJA1105_ModeTypeDef      mode;
+    SJA1105_InterfaceTypeDef interface;
+
+    /* Check the size is correct */
+    if (size != 1) status = SJA1105_STATIC_CONF_ERROR;
+    if (status != SJA1105_OK) return status;
+
+    /* Check each port's mode and interface */
+    for (uint8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
+
+        /* Check the mode */
+        mode = (table[0] & SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_MASK(port_num)) >> SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_SHIFT(port_num);
+        if (mode != dev->ports[port_num].mode){
+
+            /* Special case: The switch is acting as a PHY, but the MAC it is connected to cannot supply REFCLK.
+            *               In this case the switch port is actually configured as a MAC, but operates as a PHY.
+            */
+            if ((dev->ports[port_num].mode      == SJA1105_MODE_PHY      ) &&
+                (dev->ports[port_num].interface == SJA1105_INTERFACE_RMII) &&
+                 dev->ports[port_num].output_rmii_refclk) status = SJA1105_OK;
+
+            /* Otherwise its an error */
+            else status = SJA1105_STATIC_CONF_ERROR;
+        }
+        if (status != SJA1105_OK) return status;
+
+        /* Check the interface */
+        interface = (table[0] & SJA1105_STATIC_CONF_XMII_MODE_INTERFACE_MASK(port_num)) >> SJA1105_STATIC_CONF_XMII_MODE_INTERFACE_SHIFT(port_num);
+        if (interface != dev->ports[port_num].interface) status = SJA1105_STATIC_CONF_ERROR;
+        if (status != SJA1105_OK) return status;
+
+        /* Check SGMII is configured correctly */
+        if ((dev->ports[port_num].interface == SJA1105_INTERFACE_SGMII) && (mode != SJA1105_MODE_MAC)){
+            status = SJA1105_STATIC_CONF_ERROR;
+            return status;
+        }
     }
 
     return status;

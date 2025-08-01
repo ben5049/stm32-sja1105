@@ -75,11 +75,11 @@ enum SJA1105_ACUReg_Enum{
     SJA1105_ACU_REG_PORT_STATUS_MII4  = 0x100904,
 };
 
-#define SJA1105_ACU_REG_CFG_PAD_MIIX_TX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE +  2 * port_num)
-#define SJA1105_ACU_REG_CFG_PAD_MIIX_RX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE +  2 * port_num + 1)
-#define SJA1105_ACU_REG_CFG_PAD_MIIX_ID(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE + 16 + port_num)
+#define SJA1105_ACU_REG_CFG_PAD_MIIX_TX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE +  2 * (port_num))
+#define SJA1105_ACU_REG_CFG_PAD_MIIX_RX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE +  2 * (port_num) + 1)
+#define SJA1105_ACU_REG_CFG_PAD_MIIX_ID(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE + 16 + (port_num))
 
-#define SJA1105_ACU_REG_PORT_STATUS_MIIX(port_num) (SJA1105_ACU_REG_PORT_STATUS_MII0 + port_num)
+#define SJA1105_ACU_REG_PORT_STATUS_MIIX(port_num) (SJA1105_ACU_REG_PORT_STATUS_MII0 + (port_num))
 
 #define SJA1105_ACU_REG_TS_CONFIG                  (0x100a00)
 #define SJA1105_ACU_REG_TS_STATUS                  (0x100a01)
@@ -194,10 +194,10 @@ enum SJA1105_CGUReg_Enum{
     SJA1105_CGU_REG_EXT_RX_CLK_0   = 0x100018,
 };
 
-#define SJA1105_CGU_REG_IDIV_C(port_num)     (SJA1105_CGU_REG_IDIV_0_C + port_num)
+#define SJA1105_CGU_REG_IDIV_C(port_num)     (SJA1105_CGU_REG_IDIV_0_C + (port_num))
 
 #define SJA1105_CGU_REG_CLK_NUM              (6)
-#define SJA1105_CGU_REG_CLK_BASE(port_num)   (SJA1105_CGU_REG_MII_TX_CLK_0 + (SJA1105_CGU_REG_CLK_NUM * port_num))
+#define SJA1105_CGU_REG_CLK_BASE(port_num)   (SJA1105_CGU_REG_MII_TX_CLK_0 + (SJA1105_CGU_REG_CLK_NUM * (port_num)))
 #define SJA1105_CGU_MII_TX_CLK               (0)
 #define SJA1105_CGU_MII_RX_CLK               (1)
 #define SJA1105_CGU_RMII_REF_CLK             (2)
@@ -220,41 +220,54 @@ enum SJA1105_CGUReg_Enum{
 #define SJA1105_CGU_CLKSRC_SHIFT             (24)
 #define SJA1105_CGU_CLKSRC_MASK              (0x1f << SJA1105_CGU_CLKSRC_SHIFT)
 
-#define SJA1105_CGU_CLK_SRC_IDIV(port_num)   (0x11 + port_num)
-#define SJA1105_CGU_CLK_SRC_TX_CLK(port_num) (2 * port_num)
-#define SJA1105_CGU_CLK_SRC_RX_CLK(port_num) ((2 * port_num) + 1)
+#define SJA1105_CGU_IDIV_SHIFT               (2)
+#define SJA1105_CGU_IDIV_MASK                (0xff << SJA1105_CGU_IDIV_SHIFT)
+
+#define SJA1105_CGU_CLK_SRC_XO66M_0          (0xa)
+#define SJA1105_CGU_CLK_SRC_PLL0(port_num)   (0xb + ((port_num) % 3))  /* Use different phase for each port to improve EMC */
+#define SJA1105_CGU_CLK_SRC_PLL1(port_num)   (0xe + ((port_num) % 3))  /* Use different phase for each port to improve EMC */
+#define SJA1105_CGU_CLK_SRC_IDIV(port_num)   (0x11 + (port_num))
+#define SJA1105_CGU_CLK_SRC_TX_CLK(port_num) (2 * (port_num))
+#define SJA1105_CGU_CLK_SRC_RX_CLK(port_num) ((2 * (port_num)) + 1)
 
 /* ---------------------------------------------------------------------------- */
 /* Static Configuration */
 /* ---------------------------------------------------------------------------- */
 
-#define SJA1105_STATIC_CONF_ADDR               (0x20000)
+#define SJA1105_STATIC_CONF_ADDR                                (0x20000)
 
-#define SJA1105_STATIC_CONF_BLOCK_HEADER       (2)
-#define SJA1105_STATIC_CONF_BLOCK_HEADER_CRC   (1)
-#define SJA1105_STATIC_CONF_BLOCK_DATA_CRC     (1)
-#define SJA1105_STATIC_CONF_BLOCK_FIRST_OFFSET (1)
-#define SJA1105_STATIC_CONF_BLOCK_LAST_SIZE    (3)  /* Last block contains two empty words and the global CRC */
+#define SJA1105_STATIC_CONF_BLOCK_HEADER                        (2)
+#define SJA1105_STATIC_CONF_BLOCK_HEADER_CRC                    (1)
+#define SJA1105_STATIC_CONF_BLOCK_DATA_CRC                      (1)
+#define SJA1105_STATIC_CONF_BLOCK_FIRST_OFFSET                  (1)
+#define SJA1105_STATIC_CONF_BLOCK_LAST_SIZE                     (3)  /* Last block contains two empty words and the global CRC */
 
-#define SJA1105_STATIC_CONF_BLOCK_ID_OFFSET    (0)
-#define SJA1105_STATIC_CONF_BLOCK_ID_SHIFT     (24)
-#define SJA1105_STATIC_CONF_BLOCK_ID_MASK      (0xff << SJA1105_STATIC_CONF_BLOCK_ID_SHIFT)
-#define SJA1105_STATIC_CONF_BLOCK_SIZE_OFFSET  (1)
-#define SJA1105_STATIC_CONF_BLOCK_SIZE_SHIFT   (0)
-#define SJA1105_STATIC_CONF_BLOCK_SIZE_MASK    (0xffffff)
+#define SJA1105_STATIC_CONF_BLOCK_ID_OFFSET                     (0)
+#define SJA1105_STATIC_CONF_BLOCK_ID_SHIFT                      (24)
+#define SJA1105_STATIC_CONF_BLOCK_ID_MASK                       (0xff << SJA1105_STATIC_CONF_BLOCK_ID_SHIFT)
+#define SJA1105_STATIC_CONF_BLOCK_SIZE_OFFSET                   (1)
+#define SJA1105_STATIC_CONF_BLOCK_SIZE_SHIFT                    (0)
+#define SJA1105_STATIC_CONF_BLOCK_SIZE_MASK                     (0xffffff)
 
-#define SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU (0x05)
-#define SJA1105_STATIC_CONF_BLOCK_ID_MAC_CONF  (0x09)
-#define SJA1105_STATIC_CONF_BLOCK_ID_CGU       (0x80)
-#define SJA1105_STATIC_CONF_BLOCK_ID_ACU       (0x82)
+#define SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU                  (0x05)
+#define SJA1105_STATIC_CONF_BLOCK_ID_MAC_CONF                   (0x09)
+#define SJA1105_STATIC_CONF_BLOCK_ID_CGU                        (0x80)
+#define SJA1105_STATIC_CONF_BLOCK_ID_ACU                        (0x82)
+#define SJA1105_STATIC_CONF_BLOCK_ID_XMII_MODE                  (0x4e)
 
-#define SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE           (8)
-#define SJA1105_STATIC_CONF_MAC_CONF_BASE(port_num)       (port_num * SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE)
-#define SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, word) (SJA1105_STATIC_CONF_MAC_CONF_BASE(port_num) + word)
+#define SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE                 (8)
+#define SJA1105_STATIC_CONF_MAC_CONF_BASE(port_num)             ((port_num) * SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE)
+#define SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, word)       (SJA1105_STATIC_CONF_MAC_CONF_BASE(port_num) + (word))
 
-#define SJA1105_STATIC_CONF_MAC_CONF_SPEED_OFFSET (3)  /* [98:97] therefore in the 4th word */
-#define SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT  (1)  /* shifted up by 1 */
-#define SJA1105_STATIC_CONF_MAC_CONF_SPEED_MASK   (0x3 << SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT)
+#define SJA1105_STATIC_CONF_MAC_CONF_SPEED_OFFSET               (3)  /* [98:97] therefore in the 4th word */
+#define SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT                (1)  /* shifted up by 1 */
+#define SJA1105_STATIC_CONF_MAC_CONF_SPEED_MASK                 (0x3 << SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT)
+
+#define SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_SHIFT(port_num)   (19 + ((port_num) * 3))
+#define SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_MASK(port_num)    (1 << SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_SHIFT(port_num))
+
+#define SJA1105_STATIC_CONF_XMII_MODE_INTERFACE_SHIFT(port_num) (17 + ((port_num) * 3))
+#define SJA1105_STATIC_CONF_XMII_MODE_INTERFACE_MASK(port_num)  (0x3 << SJA1105_STATIC_CONF_XMII_MODE_INTERFACE_SHIFT(port_num))
 
 
 #ifdef __cplusplus

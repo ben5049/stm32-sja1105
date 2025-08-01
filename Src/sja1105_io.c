@@ -36,7 +36,7 @@ SJA1105_StatusTypeDef SJA1105_ReadFlag(SJA1105_HandleTypeDef *dev, uint32_t addr
 SJA1105_StatusTypeDef __SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size, bool integrity_check){
 
     SJA1105_StatusTypeDef status        = SJA1105_OK;
-    static const uint32_t dummy_payload = 0xcccc5555;  /* When size = 1, send this payload as we are reading data to confirm everything is working. */
+    static const uint32_t dummy_payload = 0xcccc5555;  /* When size = 1 and integrity_check = true, send this payload as we are reading data to confirm everything is working. */
 
     /* Check the parameters */
     if ( size         ==  0                    ) status = SJA1105_PARAMETER_ERROR;  /* Empty check */
