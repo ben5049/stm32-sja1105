@@ -14,8 +14,7 @@ extern "C" {
 #endif
 
 /* Includes*/
-#include "stm32h5xx_hal.h" /* Needed for SPI */
-#include "stm32h573xx.h" /* Needed for GPIO_TypeDef */
+#include "hal.h"
 #include "stdint.h"
 #include "stdbool.h"
 

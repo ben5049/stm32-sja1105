@@ -123,7 +123,7 @@ SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8
 
                     /* 100M MII PHY */
                     case SJA1105_SPEED_100M: {
-                        status = SJA1105_ERROR;
+                        status = SJA1105_NOT_IMPLEMENTED_ERROR;
                         break;
                     }
 
