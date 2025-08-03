@@ -132,6 +132,13 @@ typedef struct {
     uint8_t mac_flt1[MAC_ADDR_SIZE];
 } SJA1105_MACFiltersTypeDef;
 
+/* Stores information about the driver */
+typedef struct {
+    uint32_t words_read;
+    uint32_t words_written;
+    uint32_t crc_errors;
+} SJA1105_EventCountersTypeDef;
+
 typedef void                  (*SJA1105_CallbackDelayMSTypeDef)   (SJA1105_HandleTypeDef *dev, uint32_t ms);
 typedef void                  (*SJA1105_CallbackDelayNSTypeDef)   (SJA1105_HandleTypeDef *dev, uint32_t ns);
 typedef SJA1105_StatusTypeDef (*SJA1105_CallbackTakeMutexTypeDef) (SJA1105_HandleTypeDef *dev, uint32_t timeout);
@@ -150,6 +157,7 @@ struct SJA1105_HandleTypeDef {
     const SJA1105_CallbacksTypeDef *callbacks;
     SJA1105_TablesTypeDef           tables;
     SJA1105_MACFiltersTypeDef       filters;
+    SJA1105_EventCountersTypeDef    events;
     bool                            static_conf_loaded;
     uint32_t                        static_conf_crc32;
     atomic_bool                     initialised;

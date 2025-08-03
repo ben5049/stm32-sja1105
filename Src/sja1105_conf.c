@@ -89,6 +89,11 @@ SJA1105_StatusTypeDef SJA1105_Init(
     dev->tables.mac_config_size     = 0;
     dev->tables.general_params_size = 0;
 
+    /* Reset event counters */
+    dev->events.words_read    = 0;
+    dev->events.words_written = 0;
+    dev->events.crc_errors    = 0;
+
     /* Set pins to a known state */
     HAL_GPIO_WritePin(dev->config->rst_port, dev->config->rst_pin, SET);
     HAL_GPIO_WritePin(dev->config->cs_port,  dev->config->cs_pin,  SET);
@@ -103,7 +108,7 @@ SJA1105_StatusTypeDef SJA1105_Init(
     /* Step 1: RESET */
     SJA1105_Reset(dev);
 
-    /* Step 2: STATIC CONFIGURATION (Try up to 3 times) */
+    /* Step 2: STATIC CONFIGURATION (Try up to 3 times in case of CRC errors) */
     bool crc_success = false;
     for (uint_fast8_t attempt = 0; !crc_success && (attempt < 3); attempt++){
 
@@ -117,6 +122,12 @@ SJA1105_StatusTypeDef SJA1105_Init(
         else crc_success = true;
     }
     if (status != SJA1105_OK) goto end;
+    
+    /* 2.1 Disable forwarding (ingress and egress) on all ports */
+    for (uint_fast8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
+        status = SJA1105_PortSetForwarding(dev, port_num, false);
+        if (status != SJA1105_OK) goto end;
+    }
 
     /* Step 3: ACU REGISTER SETUP */
     status = SJA1105_ConfigureACU(dev);
@@ -176,6 +187,11 @@ SJA1105_StatusTypeDef SJA1105_DeInit(SJA1105_HandleTypeDef *dev, bool hard){
         dev->callbacks   = NULL;
     }
 
+    /* Reset event counters */
+    dev->events.words_read    = 0;
+    dev->events.words_written = 0;
+    dev->events.crc_errors    = 0;
+
     /* Set the device to uninitialised */
     dev->initialised = false;
 
@@ -191,6 +207,8 @@ SJA1105_StatusTypeDef SJA1105_ReInit(SJA1105_HandleTypeDef *dev, const uint32_t 
 
     /* Take the mutex */
     SJA1105_LOCK;
+
+    /* TODO Save and reapply event counters */
 
     status = SJA1105_DeInit(dev, false);
     if (status != SJA1105_OK) goto end;
@@ -419,6 +437,7 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
             /* If there is a CRC error then report it */
             if ((reg_data & SJA1105_CRCCHKL_MASK) != 0){
                 status = SJA1105_CRC_ERROR;
+                dev->events.crc_errors++;
                 return status;
             }
         }
@@ -435,6 +454,7 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
     /* Check for global CRC errors */
     if ((reg_data & SJA1105_CRCCHKG_MASK) != 0) {
         status = SJA1105_CRC_ERROR;
+        dev->events.crc_errors++;
         return status;
     }
 
