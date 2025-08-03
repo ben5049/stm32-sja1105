@@ -22,9 +22,9 @@ extern "C" {
 
 /* Defines */
 
-#define SJA1105_NUM_PORTS (5)
-#define MAC_ADDR_SIZE     (6)
-
+#define SJA1105_NUM_PORTS    (5)
+#define MAC_ADDR_SIZE        (6)
+#define SJA1105_MAX_ATTEMPTS (10)  /* Maximum number of attempts to try anything. E.g. polling a flag with timeout = 100ms will result in 10 reads 10ms apart. Must be > 0 */
 
 /* Typedefs */
 typedef struct SJA1105_HandleTypeDef SJA1105_HandleTypeDef;
@@ -40,12 +40,13 @@ typedef enum {
     SJA1105_SPI_ERROR,
     SJA1105_ID_ERROR,
     SJA1105_STATIC_CONF_ERROR,
-    SJA1105_L2_BUSY_ERROR,
     SJA1105_CRC_ERROR,
     SJA1105_RAM_PARITY_ERROR,
     SJA1105_NOT_IMPLEMENTED_ERROR,
     SJA1105_MUTEX_ERROR,               /* Serious mutex error, will normally just return SJA1105_BUSY if it tries to take a mutex held by another thread */
     SJA1105_DYNAMIC_MEMORY_ERROR,
+    SJA1105_DYNAMIC_RECONFIG_ERROR,
+    SJA1105_NEEDS_RESET,               /* Catastrophic error has occured such as an error while fixing another error */
 } SJA1105_StatusTypeDef;
 
 typedef enum {
@@ -148,7 +149,7 @@ struct SJA1105_HandleTypeDef {
     const SJA1105_ConfigTypeDef    *config;
     SJA1105_PortTypeDef            *ports;
     const SJA1105_CallbacksTypeDef *callbacks;
-    SJA1105_TablesTypeDef          *tables;
+    SJA1105_TablesTypeDef           tables;
     SJA1105_MACFiltersTypeDef       filters;
     bool                            static_conf_loaded;
     uint32_t                        static_conf_crc32;

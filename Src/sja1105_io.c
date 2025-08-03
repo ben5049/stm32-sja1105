@@ -22,6 +22,31 @@ SJA1105_StatusTypeDef SJA1105_ReadRegisterWithCheck(SJA1105_HandleTypeDef *dev, 
     return __SJA1105_ReadRegister(dev, addr, data, size, true);
 }
 
+
+/* Repeatedly read a flag until the flag is set or dev->config->timeout ms have passed 
+ * If polarity is high then it will poll until the flag is 1
+ * If polarity is low then it will poll until the flag is 0
+ */
+SJA1105_StatusTypeDef SJA1105_PollFlag(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t mask, bool polarity){
+
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+    bool flag = false;
+
+    /* Read the flag up to SJA1105_MAX_ATTEMPTS times */
+    for (uint_fast8_t i = 0; i < SJA1105_MAX_ATTEMPTS; i++){
+        status = SJA1105_ReadFlag(dev, addr, mask, &flag);
+        if (status != SJA1105_OK || flag == polarity) break;
+        dev->callbacks->callback_delay_ms(dev, dev->config->timeout / SJA1105_MAX_ATTEMPTS);
+    }
+
+    /* If the loop reaches the end and the flag hasn't been set */
+    if (status == SJA1105_OK && flag != polarity) {
+        status = SJA1105_TIMEOUT;
+    }
+
+    return status;
+}
+
 SJA1105_StatusTypeDef SJA1105_ReadFlag(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t mask, bool *result){
     
     SJA1105_StatusTypeDef status = SJA1105_OK;

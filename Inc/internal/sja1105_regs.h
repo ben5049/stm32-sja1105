@@ -283,8 +283,24 @@ enum SJA1105_CGUReg_Enum{
 /* Dynamic Reonfiguration */
 /* ---------------------------------------------------------------------------- */
 
-#define SJA1105_GENERAL_PARAMS
 
+enum SJA1105_DynConf_Enum{
+    SJA1105_DYN_CONF_MAC_CONF_REG_1 = 0x4b,
+    SJA1105_DYN_CONF_MAC_CONF_REG_2 = 0x4c,
+    SJA1105_DYN_CONF_MAC_CONF_REG_3 = 0x4d,
+    SJA1105_DYN_CONF_MAC_CONF_REG_4 = 0x4e,
+    SJA1105_DYN_CONF_MAC_CONF_REG_5 = 0x4f,
+    SJA1105_DYN_CONF_MAC_CONF_REG_6 = 0x50,
+    SJA1105_DYN_CONF_MAC_CONF_REG_7 = 0x51,
+    SJA1105_DYN_CONF_MAC_CONF_REG_8 = 0x52,
+    SJA1105_DYN_CONF_MAC_CONF_REG_0 = 0x53,
+};
+
+#define SJA1105_DYN_CONF_MAC_CONF_VALID        (1 << 31)
+#define SJA1105_DYN_CONF_MAC_CONF_ERRORS       (1 << 30)
+#define SJA1105_DYN_CONF_MAC_CONF_RDWRSET      (1 << 29)
+#define SJA1105_DYN_CONF_MAC_CONF_PORTID_SHIFT (0)
+#define SJA1105_DYN_CONF_MAC_CONF_PORTID_MASK  (0x7 << SJA1105_DYN_CONF_MAC_CONF_PORTID_SHIFT)
 
 #ifdef __cplusplus
 }

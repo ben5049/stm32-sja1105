@@ -87,8 +87,8 @@ SJA1105_StatusTypeDef SJA1105_Init(
     dev->initialised        = false;
     
     /* Set the table sizes to 0 */
-    dev->tables->mac_config_size     = 0;
-    dev->tables->general_params_size = 0;
+    dev->tables.mac_config_size     = 0;
+    dev->tables.general_params_size = 0;
 
     /* Set pins to a known state */
     HAL_GPIO_WritePin(dev->config->rst_port, dev->config->rst_pin, SET);
@@ -142,23 +142,46 @@ SJA1105_StatusTypeDef SJA1105_Init(
     return status;
 }
 
-SJA1105_StatusTypeDef SJA1105_DeInit(SJA1105_HandleTypeDef *dev){
+SJA1105_StatusTypeDef SJA1105_DeInit(SJA1105_HandleTypeDef *dev, bool hard){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
+
+    /* Can't deinit if not initialised */
+    if (!dev->initialised) return status;
 
     /* Take the mutex */
     SJA1105_LOCK;
 
-    if (dev->initialised) goto end;
+    /* Save the give mutex function because the callback struct may be unassigend by the end */
+    SJA1105_CallbackGiveMutexTypeDef give_mutex = dev->callbacks->callback_give_mutex;
 
-    /* Free table memory. Note this is also done when the static table is uploaded */
+    /* Free table memory and set lengths to 0 */
     SJA1105_FreeAllTableMemory(dev);
 
+    /* Clear the MAC address filters */
+    for (uint_fast8_t i = 0; i < MAC_ADDR_SIZE; i++){
+        dev->filters.mac_flt0[i]    = 0;
+        dev->filters.mac_flt1[i]    = 0;
+        dev->filters.mac_fltres0[i] = 0;
+        dev->filters.mac_fltres1[i] = 0;
+    }
+
+    /* Clear static conf info */
+    dev->static_conf_loaded = false;
+    dev->static_conf_crc32  = 0;
+
+    /* A hard deinit means clearing all config structs too */
+    if (hard){
+        dev->config      = NULL;
+        dev->ports       = NULL;
+        dev->callbacks   = NULL;
+    }
+
+    /* Set the device to uninitialised */
     dev->initialised = false;
 
     /* Give the mutex and return */
-    end:
-    SJA1105_UNLOCK;
+    give_mutex(dev);
     return status;
 }
 
@@ -170,7 +193,7 @@ SJA1105_StatusTypeDef SJA1105_ReInit(SJA1105_HandleTypeDef *dev, const uint32_t 
     /* Take the mutex */
     SJA1105_LOCK;
 
-    status = SJA1105_DeInit(dev);
+    status = SJA1105_DeInit(dev, false);
     if (status != SJA1105_OK) goto end;
     
     status = SJA1105_Init(dev, dev->config, dev->ports, dev->callbacks, static_conf, static_conf_size);
@@ -334,18 +357,8 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
             /* Check the L2BUSYS flag is set before writing the L2 address table */
             case SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU: {
 
-                /* Check the general status 1 register for L2BUSYS (0 = initialised, 1 = not initialised). Try up to 10 times. */
-                bool ready = false;
-                for (uint_fast8_t attempt = 0; !ready && (attempt < 10); attempt++){
-
-                    /* Read the flag */
-                    status = SJA1105_ReadFlag(dev, SJA1105_REG_GENERAL_STATUS_1, SJA1105_L2BUSYS_MASK, &ready);
-                    if (status != SJA1105_OK) return status;
-                    
-                    /* Delay and try again if not set */
-                    SJA1105_DELAY_MS(dev->config->timeout / 10);
-                }
-                if (!ready) status = SJA1105_L2_BUSY_ERROR;
+                /* Poll the general status 1 register until L2BUSYS = 1 (0 = initialised, 1 = not initialised) */
+                status = SJA1105_PollFlag(dev, SJA1105_REG_GENERAL_STATUS_1, SJA1105_L2BUSYS_MASK, true);
                 break;
             }
 
@@ -358,10 +371,10 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
                 if (status != SJA1105_OK) break;
                 
                 /* Allocate memory and save a copy */
-                if (dev->tables->mac_config_size > 0) {status = SJA1105_DYNAMIC_MEMORY_ERROR; break;}
-                dev->tables->mac_config = malloc(block_size * sizeof(uint32_t));
-                dev->tables->mac_config_size = block_size;
-                memcpy(dev->tables->mac_config, mac_config_table, block_size * sizeof(uint32_t));
+                if (dev->tables.mac_config_size > 0) {status = SJA1105_DYNAMIC_MEMORY_ERROR; break;}
+                dev->tables.mac_config = malloc(block_size * sizeof(uint32_t));
+                dev->tables.mac_config_size = block_size;
+                memcpy(dev->tables.mac_config, mac_config_table, block_size * sizeof(uint32_t));
                 break;
             }
             
@@ -377,10 +390,10 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
                 SJA1105_GeneralParamsTableGetMACFilters(general_params_table, block_size, &dev->filters);
 
                 /* Allocate memory and save a copy */
-                if (dev->tables->general_params_size > 0) {status = SJA1105_DYNAMIC_MEMORY_ERROR; break;}
-                dev->tables->general_params = malloc(block_size * sizeof(uint32_t));
-                dev->tables->general_params_size = block_size;
-                memcpy(dev->tables->general_params, general_params_table, block_size * sizeof(uint32_t));
+                if (dev->tables.general_params_size > 0) {status = SJA1105_DYNAMIC_MEMORY_ERROR; break;}
+                dev->tables.general_params = malloc(block_size * sizeof(uint32_t));
+                dev->tables.general_params_size = block_size;
+                memcpy(dev->tables.general_params, general_params_table, block_size * sizeof(uint32_t));
                 break;
             }
 

@@ -1,6 +1,5 @@
 # TODO
 
-- Writing Mac conf table
 - Updating port states
 - Reading port states
 - Setting up management routes

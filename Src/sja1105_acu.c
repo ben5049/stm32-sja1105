@@ -21,7 +21,9 @@ SJA1105_StatusTypeDef SJA1105_ConfigureACU(SJA1105_HandleTypeDef *dev){
         if (status != SJA1105_OK) return status;
     }
 
-    /* TODO: Configure MISC, SPI, and JTAG IO pads. Also configure temperature sensor. */
+    /* TODO: Configure MISC, SPI, and JTAG IO pads. */
+
+    /* No need to configure the temperature sensor sice that is done when the temperature sensor is read */
 
     return status;
 }

@@ -16,12 +16,13 @@ SJA1105_StatusTypeDef SJA1105_PortGetSpeed(SJA1105_HandleTypeDef *dev, uint8_t p
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
 
-    /* Take the mutex */
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     /* For dynamic ports look at the MAC Configuration table */
     if (dev->ports[port_num].speed == SJA1105_SPEED_DYNAMIC){
-        SJA1105_MACConfTableGetSpeed(dev->tables->mac_config, dev->tables->mac_config_size, port_num, speed);
+        SJA1105_MACConfTableGetSpeed(dev->tables.mac_config, dev->tables.mac_config_size, port_num, speed);
     }
 
     /* For static ports look at the port config struct */
@@ -34,21 +35,25 @@ SJA1105_StatusTypeDef SJA1105_PortGetSpeed(SJA1105_HandleTypeDef *dev, uint8_t p
     return status;
 }
 
-SJA1105_StatusTypeDef SJA1105_PortSetSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef new_speed){
+
+SJA1105_StatusTypeDef __SJA1105_PortSetSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef new_speed, bool recurse){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
     
-    /* Take the mutex */
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
-    SJA1105_PortTypeDef port = dev->ports[port_num];
-    SJA1105_SpeedTypeDef current_speed;
+    SJA1105_PortTypeDef   port = dev->ports[port_num];
+    SJA1105_SpeedTypeDef  current_speed;
+    bool                  revert = false;
+    SJA1105_StatusTypeDef revert_status = SJA1105_OK;
 
     /* Get the current speed */
     SJA1105_PortGetSpeed(dev, port_num, &current_speed);
 
     /* Check the speed argument */
-    if (new_speed           == current_speed          ) {status = SJA1105_OK; goto end;};    /* New speed should be different */
+    if (new_speed           == current_speed          ) {status = SJA1105_OK; goto end;};        /* New speed should be different */
     if (port.speed          != SJA1105_SPEED_DYNAMIC  )  status = SJA1105_PARAMETER_ERROR;       /* Only ports configured as dynamic can have their speed changed */
     if (new_speed           == SJA1105_SPEED_DYNAMIC  )  status = SJA1105_PARAMETER_ERROR;       /* Speed shouldn't be set to dynamic after the initial configuration */
     if (new_speed           >= SJA1105_SPEED_INVALID  )  status = SJA1105_PARAMETER_ERROR;       /* Invalid speed */
@@ -61,36 +66,61 @@ SJA1105_StatusTypeDef SJA1105_PortSetSpeed(SJA1105_HandleTypeDef *dev, uint8_t p
         goto end;
     }
 
-    /* Set MII, RMII or RGMII port speed */
+    /* Set MII, RMII or RGMII port speed (AH1704 section 6.1) */
     else {
-        /* Configure the ACU with new options */
-        status = SJA1105_ConfigureACUPort(dev, port_num);
-        if (status != SJA1105_OK) goto end;
-
-        /* Configure the CGU with new options */
-        status = SJA1105_ConfigureCGUPort(dev, port_num);
-        if (status != SJA1105_OK) goto end;
 
         /* Update the MAC Configuration table */
-        status = SJA1105_MACConfTableSetSpeed(dev->tables->mac_config, dev->tables->mac_config_size, port_num, new_speed);
-        if (status != SJA1105_OK) goto end;
+        status = SJA1105_MACConfTableSetSpeed(dev->tables.mac_config, dev->tables.mac_config_size, port_num, new_speed);
+        if (status != SJA1105_OK) goto end;  /* No need to revert here because nothing has been changed if this fails */
 
         /* Write the MAC Configuration table */
         status = SJA1105_MACConfTableWrite(dev, port_num);
-        if (status != SJA1105_OK) goto end;
+        if (status != SJA1105_OK) {
+            revert = true;
+            goto end;
+        }
+        /* Configure the ACU with new options */
+        status = SJA1105_ConfigureACUPort(dev, port_num);
+        if (status != SJA1105_OK) {
+            revert = true;
+            goto end;
+        }
+        
+        /* Configure the CGU with new options */
+        status = SJA1105_ConfigureCGUPort(dev, port_num);
+        if (status != SJA1105_OK) {
+            revert = true;
+            goto end;
+        }
     }
 
-    /* TODO: is there more that needs doing?? */
+    end:
+
+    /* If the configuration failed midway then try to revert it */
+    if (revert){
+        revert_status = __SJA1105_PortSetSpeed(dev, port_num, current_speed, false);
+        if (revert_status != SJA1105_OK) status = SJA1105_NEEDS_RESET;  /* Error while fixing an error! */
+    }
 
     /* Give the mutex and return */
-    end:
     SJA1105_UNLOCK;
     return status;
 }
 
+
+/* Allow one layer of recursion so the speed can be reverted if the new value is invalid */
+SJA1105_StatusTypeDef SJA1105_PortSetSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef new_speed){
+    return __SJA1105_PortSetSpeed(dev, port_num, new_speed, true);
+}
+
+
 SJA1105_StatusTypeDef SJA1105_ReadTemperatureX10(SJA1105_HandleTypeDef *dev, int16_t *temp_x10){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
+
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
+    SJA1105_LOCK;
 
     /* Setup variables */
     uint8_t  temp_low_i     = 0;
@@ -98,9 +128,6 @@ SJA1105_StatusTypeDef SJA1105_ReadTemperatureX10(SJA1105_HandleTypeDef *dev, int
     uint8_t  guess          = 0;
     uint8_t  previous_guess = 0;
     uint32_t reg_data       = 0;
-    
-    /* Take the mutex */
-    SJA1105_LOCK;
     
     /* Check the temperature sensor is enabled */
     status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_ACU_REG_TS_CONFIG, &reg_data, 1);
@@ -160,7 +187,8 @@ SJA1105_StatusTypeDef SJA1105_CheckStatusRegisters(SJA1105_HandleTypeDef *dev){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;    
     
-    /* Take the mutex */
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     /* Read the status registers */
@@ -187,35 +215,43 @@ SJA1105_StatusTypeDef SJA1105_PortGetState(SJA1105_HandleTypeDef *dev, uint8_t p
 
     SJA1105_StatusTypeDef status = SJA1105_NOT_IMPLEMENTED_ERROR;
 
-    /* Take the mutex */
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
-    
+
+
     /* Give the mutex and return */
     SJA1105_UNLOCK;
     return status;
 }
+
 
 /* TODO: Disable transmitted clocks */
 SJA1105_StatusTypeDef SJA1105_PortSleep(SJA1105_HandleTypeDef *dev, uint8_t port_num){
 
     SJA1105_StatusTypeDef status = SJA1105_NOT_IMPLEMENTED_ERROR;
     
-    /* Take the mutex */
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
+
     
     /* Give the mutex and return */
     SJA1105_UNLOCK;
     return status;
 }
 
+
 /* TODO: Enable transmitted clocks */
 SJA1105_StatusTypeDef SJA1105_PortWake(SJA1105_HandleTypeDef *dev, uint8_t port_num){
 
     SJA1105_StatusTypeDef status = SJA1105_NOT_IMPLEMENTED_ERROR;
 
-    /* Take the mutex */
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
-    
+
+
     /* Give the mutex and return */
     SJA1105_UNLOCK;
     return status;
@@ -226,11 +262,12 @@ SJA1105_StatusTypeDef SJA1105_CreateManagementRoute(SJA1105_HandleTypeDef *dev, 
 
     SJA1105_StatusTypeDef status = SJA1105_NOT_IMPLEMENTED_ERROR;
 
-    /* Take the mutex */
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
+
     /* Give the mutex and return */
-//    end:
     SJA1105_UNLOCK;
     return status;
 }
@@ -239,8 +276,13 @@ SJA1105_StatusTypeDef SJA1105_MACAddrTrapTest(SJA1105_HandleTypeDef *dev, const 
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
 
-    /* Take the mutex */
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
+
+    /* Check the device is running */
+    if (!dev->initialised) status = SJA1105_NOT_CONFIGURED_ERROR;
+    if (status != SJA1105_OK) goto end;
 
     /* Test against the first filter */
     *trapped = true;

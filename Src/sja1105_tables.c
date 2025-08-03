@@ -11,11 +11,12 @@
 #include "sja1105.h"
 #include "internal/sja1105_tables.h"
 #include "internal/sja1105_regs.h"
+#include "internal/sja1105_io.h"
 
 
 void SJA1105_FreeAllTableMemory(SJA1105_HandleTypeDef *dev){
 
-    SJA1105_TablesTypeDef tables = *(dev->tables);
+    SJA1105_TablesTypeDef tables = dev->tables;
 
     if (tables.mac_config_size > 0){
         free(tables.mac_config);
@@ -75,12 +76,49 @@ SJA1105_StatusTypeDef SJA1105_MACConfTableSetSpeed(uint32_t *table, uint32_t siz
     return status;
 }
 
+
 SJA1105_StatusTypeDef SJA1105_MACConfTableWrite(SJA1105_HandleTypeDef *dev, uint8_t port_num){
 
-    SJA1105_StatusTypeDef status = SJA1105_NOT_IMPLEMENTED_ERROR;
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+    uint32_t reg_data;
+
+    /* Wait for VALID to be 0.
+     *
+     * Note: The VALID bit should be write only, but the documentation mentions "On read [of ERRORS] it has meaning at times when VALID is found reset".
+     *       How can VALID be found reset if it cannot be read? Write only bits return 0 on read so there is no harm in polling until it is 0.
+     */
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_VALID, false);
+    if (status != SJA1105_OK) return status;
+
+    /* Parameter and bounds checking */
+    if (dev->tables.mac_config_size != (SJA1105_DYN_CONF_MAC_CONF_REG_8 - SJA1105_DYN_CONF_MAC_CONF_REG_1 + 1)) status = SJA1105_PARAMETER_ERROR;
+    if (status != SJA1105_OK) return status;
+    
+    /* Write the table */
+    status = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_MAC_CONF_REG_1, dev->tables.mac_config, dev->tables.mac_config_size);
+    if (status != SJA1105_OK) return status;
+    
+    /* Apply the table */
+    reg_data = 0;
+    reg_data |= SJA1105_DYN_CONF_MAC_CONF_VALID;
+    reg_data |= SJA1105_DYN_CONF_MAC_CONF_RDWRSET;  /* Operation is a write */
+    reg_data |= (port_num << SJA1105_DYN_CONF_MAC_CONF_PORTID_SHIFT) & SJA1105_DYN_CONF_MAC_CONF_PORTID_MASK;
+    status = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, &reg_data, 1);
+    if (status != SJA1105_OK) return status;
+    
+    /* Wait for VALID to be 0 then check ERRORS */
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_VALID, false);
+    if (status != SJA1105_OK) return status;
+    status = SJA1105_ReadFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_ERRORS, (bool *) &reg_data);
+    if (status != SJA1105_OK) return status;
+
+    /* If ERRORS is set then the configuration is invalid and was not applied */
+    if (reg_data) status = SJA1105_DYNAMIC_RECONFIG_ERROR;
+    if (status != SJA1105_OK) return status;
 
     return status;
 }
+
 
 SJA1105_StatusTypeDef SJA1105_GeneralParamsTableCheck(SJA1105_HandleTypeDef *dev, const uint32_t *table, uint32_t size){
 
@@ -105,8 +143,9 @@ SJA1105_StatusTypeDef SJA1105_GeneralParamsTableCheck(SJA1105_HandleTypeDef *dev
     return status;
 }
 
+
 /*
- * Extract 4x 6-byte MAC filters from the 32-bit table (array) that are not aligned.
+ * Extract 4x 6-byte MAC filters from the 32-bit gerneral params table (array) that are not aligned.
  *
  * Word #:           4    5    6    7    8    9    10   11
  * Table:        ... XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX

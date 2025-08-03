@@ -19,8 +19,9 @@ extern "C" {
 #define CONSTRAIN(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
 
-#define SJA1105_LOCK do {status = dev->callbacks->callback_take_mutex(dev, dev->config->timeout); if (status != SJA1105_OK) return status;} while (0)
-#define SJA1105_UNLOCK dev->callbacks->callback_give_mutex(dev)
+#define SJA1105_INIT_CHECK   do {if (!dev->initialised) status = SJA1105_NOT_CONFIGURED_ERROR; if (status != SJA1105_OK) return status;} while (0)
+#define SJA1105_LOCK         do {status = dev->callbacks->callback_take_mutex(dev, dev->config->timeout); if (status != SJA1105_OK) return status;} while (0)
+#define SJA1105_UNLOCK       dev->callbacks->callback_give_mutex(dev)
 #define SJA1105_DELAY_NS(ns) dev->callbacks->callback_delay_ms(dev, (ns))
 #define SJA1105_DELAY_MS(ms) dev->callbacks->callback_delay_ns(dev, (ms))
 
@@ -48,6 +49,7 @@ SJA1105_StatusTypeDef SJA1105_ReadRegisterWithCheck(SJA1105_HandleTypeDef *dev, 
 SJA1105_StatusTypeDef SJA1105_WriteRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, const uint32_t *data, uint32_t size);
 
 SJA1105_StatusTypeDef SJA1105_ReadFlag(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t mask, bool *result);
+SJA1105_StatusTypeDef SJA1105_PollFlag(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t mask, bool polarity);
 
 void SJA1105_Reset(SJA1105_HandleTypeDef *dev);
 
