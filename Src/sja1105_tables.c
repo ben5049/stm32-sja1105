@@ -173,7 +173,7 @@ SJA1105_StatusTypeDef SJA1105_MACConfTableSetSpeed(uint32_t *table, uint32_t siz
 
     /* Clear and set the speed */
     table[index] &= ~SJA1105_STATIC_CONF_MAC_CONF_SPEED_MASK;
-    table[index] |= (speed << SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT) & SJA1105_STATIC_CONF_MAC_CONF_SPEED_MASK;
+    table[index] |= ((uint32_t) speed << SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT) & SJA1105_STATIC_CONF_MAC_CONF_SPEED_MASK;
 
     return status;
 }
@@ -206,7 +206,7 @@ SJA1105_StatusTypeDef SJA1105_MACConfTableWrite(SJA1105_HandleTypeDef *dev, uint
     reg_data = 0;
     reg_data |= SJA1105_DYN_CONF_MAC_CONF_VALID;
     reg_data |= SJA1105_DYN_CONF_MAC_CONF_RDWRSET;  /* Operation is a write */
-    reg_data |= (port_num << SJA1105_DYN_CONF_MAC_CONF_PORTID_SHIFT) & SJA1105_DYN_CONF_MAC_CONF_PORTID_MASK;
+    reg_data |= ((uint32_t) port_num << SJA1105_DYN_CONF_MAC_CONF_PORTID_SHIFT) & SJA1105_DYN_CONF_MAC_CONF_PORTID_MASK;
     status = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, &reg_data, 1);
     if (status != SJA1105_OK) return status;
     

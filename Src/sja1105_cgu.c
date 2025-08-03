@@ -28,9 +28,9 @@ SJA1105_StatusTypeDef SJA1105_ConfigureCGU(SJA1105_HandleTypeDef *dev){
     reg_data |=  SJA1105_CGU_P23EN;      /* Enable 120 and 240 degree outputs for better EMC performance */
     reg_data |=  SJA1105_CGU_FBSEL;      /* Enable PLL feedback */
     reg_data |=  SJA1105_CGU_AUTOBLOCK;  /* Enable autoblock to prevent glitches */
-    reg_data |= (0x1 << SJA1105_CGU_PSEL_SHIFT) & SJA1105_CGU_PSEL_MASK;  /* PSEL = 1 */
-    reg_data |= (0x1 << SJA1105_CGU_MSEL_SHIFT) & SJA1105_CGU_MSEL_MASK;  /* MSEL = 1 */
-    reg_data |= (0x0 << SJA1105_CGU_NSEL_SHIFT) & SJA1105_CGU_NSEL_MASK;  /* NSEL = 0 */
+    reg_data |= ((uint32_t) 0x1 << SJA1105_CGU_PSEL_SHIFT) & SJA1105_CGU_PSEL_MASK;  /* PSEL = 1 */
+    reg_data |= ((uint32_t) 0x1 << SJA1105_CGU_MSEL_SHIFT) & SJA1105_CGU_MSEL_MASK;  /* MSEL = 1 */
+    reg_data |= ((uint32_t) 0x0 << SJA1105_CGU_NSEL_SHIFT) & SJA1105_CGU_NSEL_MASK;  /* NSEL = 0 */
     status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_PLL_0_C, &reg_data, 1);
     if (status != SJA1105_OK) return status;
 
@@ -64,11 +64,11 @@ SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8
                 if (status != SJA1105_OK) return status;
 
                 /* Set CLKSRC of MII_TX_CLK_X to TX_CLK_X */
-                reg_data[SJA1105_CGU_MII_TX_CLK  ]  = SJA1105_CGU_CLK_SRC_TX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;  /* Implicitly sets PD to 0 */
+                reg_data[SJA1105_CGU_MII_TX_CLK  ]  = (uint32_t) SJA1105_CGU_CLK_SRC_TX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;  /* Implicitly sets PD to 0 */
                 reg_data[SJA1105_CGU_MII_TX_CLK  ] |= SJA1105_CGU_AUTOBLOCK;  /* Prevent clock glitches */
 
                 /* Set CLKSRC of MII_RX_CLK_X to RX_CLK_X */
-                reg_data[SJA1105_CGU_MII_RX_CLK  ]  = SJA1105_CGU_CLK_SRC_RX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
+                reg_data[SJA1105_CGU_MII_RX_CLK  ]  = (uint32_t) SJA1105_CGU_CLK_SRC_RX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
                 reg_data[SJA1105_CGU_MII_RX_CLK  ] |= SJA1105_CGU_AUTOBLOCK;
 
                 /* Disable all other clock sinks */
@@ -90,25 +90,25 @@ SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8
                     case SJA1105_SPEED_10M: {
 
                         /* Enable IDIVX and divide by 10 */
-                        reg_data[0]  = (9 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
+                        reg_data[0]  = ((uint32_t) 9 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
                         reg_data[0] |= SJA1105_CGU_AUTOBLOCK;
                         status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_IDIV_C(port_num), reg_data, 1);
                         if (status != SJA1105_OK) return status;
 
                         /* Set CLKSRC of MII_TX_CLK_X to IDIVX */
-                        reg_data[SJA1105_CGU_MII_TX_CLK  ]  = SJA1105_CGU_CLK_SRC_IDIV(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
+                        reg_data[SJA1105_CGU_MII_TX_CLK  ]  = (uint32_t) SJA1105_CGU_CLK_SRC_IDIV(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
                         reg_data[SJA1105_CGU_MII_TX_CLK  ] |= SJA1105_CGU_AUTOBLOCK;
 
                         /* Set CLKSRC of MII_RX_CLK_X to RX_CLK_X */
-                        reg_data[SJA1105_CGU_MII_RX_CLK  ]  = SJA1105_CGU_CLK_SRC_RX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
+                        reg_data[SJA1105_CGU_MII_RX_CLK  ]  = (uint32_t) SJA1105_CGU_CLK_SRC_RX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
                         reg_data[SJA1105_CGU_MII_RX_CLK  ] |= SJA1105_CGU_AUTOBLOCK;
                         
                         /* Set CLKSRC of EXT_TX_CLK_X to IDIVX */
-                        reg_data[SJA1105_CGU_EXT_TX_CLK  ]  = SJA1105_CGU_CLK_SRC_IDIV(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
+                        reg_data[SJA1105_CGU_EXT_TX_CLK  ]  = (uint32_t) SJA1105_CGU_CLK_SRC_IDIV(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
                         reg_data[SJA1105_CGU_EXT_TX_CLK  ] |= SJA1105_CGU_AUTOBLOCK;
 
                         /* Set CLKSRC of EXT_RX_CLK_X to IDIVX */
-                        reg_data[SJA1105_CGU_EXT_RX_CLK  ]  = SJA1105_CGU_CLK_SRC_IDIV(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
+                        reg_data[SJA1105_CGU_EXT_RX_CLK  ]  = (uint32_t) SJA1105_CGU_CLK_SRC_IDIV(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
                         reg_data[SJA1105_CGU_EXT_RX_CLK  ] |= SJA1105_CGU_AUTOBLOCK;
 
                         /* Disable all other clock sinks */
@@ -145,11 +145,11 @@ SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8
                 if (status != SJA1105_OK) return status;
 
                 /* Set CLKSRC of RMII_REF_CLK_X to TX_CLK_X */
-                reg_data[SJA1105_CGU_RMII_REF_CLK]  = SJA1105_CGU_CLK_SRC_TX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
+                reg_data[SJA1105_CGU_RMII_REF_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_TX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
                 reg_data[SJA1105_CGU_RMII_REF_CLK] |= SJA1105_CGU_AUTOBLOCK;
 
                 /* Set CLKSRC of EXT_TX_CLK_X to PLL1 */
-                reg_data[SJA1105_CGU_EXT_TX_CLK  ]  = SJA1105_CGU_CLK_SRC_PLL1(dev->config->skew_clocks ? port_num: 0) << SJA1105_CGU_CLKSRC_SHIFT;
+                reg_data[SJA1105_CGU_EXT_TX_CLK  ]  = (uint32_t) SJA1105_CGU_CLK_SRC_PLL1(dev->config->skew_clocks ? port_num: 0) << SJA1105_CGU_CLKSRC_SHIFT;
                 reg_data[SJA1105_CGU_EXT_TX_CLK  ] |= SJA1105_CGU_AUTOBLOCK;
 
                 /* Disable all other clock sinks */
@@ -173,12 +173,12 @@ SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8
                 if (status != SJA1105_OK) return status;
 
                 /* Set CLKSRC of RMII_REF_CLK_X to TX_CLK_X */
-                reg_data[SJA1105_CGU_RMII_REF_CLK]  = SJA1105_CGU_CLK_SRC_TX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
+                reg_data[SJA1105_CGU_RMII_REF_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_TX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
                 reg_data[SJA1105_CGU_RMII_REF_CLK] |= SJA1105_CGU_AUTOBLOCK;
 
                 /* Set CLKSRC of EXT_TX_CLK_X to PLL1 */
                 if (port.output_rmii_refclk){
-                    reg_data[SJA1105_CGU_EXT_TX_CLK]  = SJA1105_CGU_CLK_SRC_PLL1(dev->config->skew_clocks ? port_num: 0) << SJA1105_CGU_CLKSRC_SHIFT;
+                    reg_data[SJA1105_CGU_EXT_TX_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_PLL1(dev->config->skew_clocks ? port_num: 0) << SJA1105_CGU_CLKSRC_SHIFT;
                     reg_data[SJA1105_CGU_EXT_TX_CLK] |= SJA1105_CGU_AUTOBLOCK;
                 } else {
                     reg_data[SJA1105_CGU_EXT_TX_CLK]  = SJA1105_CGU_PD;
@@ -207,13 +207,13 @@ SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8
                 case SJA1105_SPEED_10M: {
 
                     /* Enable IDIVX and divide by 10 */
-                    reg_data[0]  = (9 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
+                    reg_data[0]  = ((uint32_t) 9 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
                     reg_data[0] |= SJA1105_CGU_AUTOBLOCK;
                     status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_IDIV_C(port_num), reg_data, 1);
                     if (status != SJA1105_OK) return status;
 
                     /* Set CLKSRC of RGMII_TXC_X to IDIVX */
-                    reg_data[SJA1105_CGU_RGMII_TX_CLK]  = SJA1105_CGU_CLK_SRC_IDIV(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
+                    reg_data[SJA1105_CGU_RGMII_TX_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_IDIV(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
                     reg_data[SJA1105_CGU_RGMII_TX_CLK] |= SJA1105_CGU_AUTOBLOCK;
 
                     /* Disable all other clock sinks */
@@ -233,13 +233,13 @@ SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8
                 case SJA1105_SPEED_100M: {
 
                     /* Enable IDIVX and divide by 1 */
-                    reg_data[0]  = (0 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
+                    reg_data[0]  = ((uint32_t) 0 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
                     reg_data[0] |= SJA1105_CGU_AUTOBLOCK;
                     status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_IDIV_C(port_num), reg_data, 1);
                     if (status != SJA1105_OK) return status;
 
                     /* Set CLKSRC of RGMII_TXC_X to IDIVX */
-                    reg_data[SJA1105_CGU_RGMII_TX_CLK]  = SJA1105_CGU_CLK_SRC_IDIV(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
+                    reg_data[SJA1105_CGU_RGMII_TX_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_IDIV(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
                     reg_data[SJA1105_CGU_RGMII_TX_CLK] |= SJA1105_CGU_AUTOBLOCK;
 
                     /* Disable all other clock sinks */
@@ -264,7 +264,7 @@ SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8
                     if (status != SJA1105_OK) return status;
 
                     /* Set CLKSRC of RGMII_TXC_X to PLL0 */
-                    reg_data[SJA1105_CGU_RGMII_TX_CLK]  = SJA1105_CGU_CLK_SRC_PLL0(dev->config->skew_clocks ? port_num: 0) << SJA1105_CGU_CLKSRC_SHIFT;
+                    reg_data[SJA1105_CGU_RGMII_TX_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_PLL0(dev->config->skew_clocks ? port_num: 0) << SJA1105_CGU_CLKSRC_SHIFT;
                     reg_data[SJA1105_CGU_RGMII_TX_CLK] |= SJA1105_CGU_AUTOBLOCK;
 
                     /* Disable all other clock sinks */

@@ -42,7 +42,7 @@ int32_t nx_eth_phy_get_link_state(void){
     int32_t linkstate = ETH_PHY_STATUS_LINK_ERROR;
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
-    SJA1105_PortState_TypeDef port_state = SJA1105_PORT_STATE_DISCARDING;
+    bool port_state = false;
     
     status = SJA1105_PortGetState(&hsja1105, hsja1105.config->host_port, &port_state);
     if (status != SJA1105_OK) linkstate = ETH_PHY_STATUS_LINK_ERROR;

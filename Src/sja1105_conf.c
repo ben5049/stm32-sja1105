@@ -73,7 +73,6 @@ SJA1105_StatusTypeDef SJA1105_Init(
     if (config->spi_handle->Init.NSS         != SPI_NSS_SOFT      ) status = SJA1105_PARAMETER_ERROR;
     if (config->spi_handle->Init.FirstBit    != SPI_FIRSTBIT_MSB  ) status = SJA1105_PARAMETER_ERROR;
 
-
     /* If there are invalid parameters then return */
     if (status != SJA1105_OK) goto end;
 
@@ -93,6 +92,12 @@ SJA1105_StatusTypeDef SJA1105_Init(
     dev->events.words_read    = 0;
     dev->events.words_written = 0;
     dev->events.crc_errors    = 0;
+
+    /* Clear info about management routes */
+    for (uint_fast8_t i = 0; i < SJA1105_NUM_MGMT_SLOTS; i++){
+        dev->management_routes.slot_taken[i] = false;
+        dev->management_routes.timestamps[i] = 0;
+    }
 
     /* Set pins to a known state */
     HAL_GPIO_WritePin(dev->config->rst_port, dev->config->rst_pin, SET);
@@ -191,6 +196,12 @@ SJA1105_StatusTypeDef SJA1105_DeInit(SJA1105_HandleTypeDef *dev, bool hard){
     dev->events.words_read    = 0;
     dev->events.words_written = 0;
     dev->events.crc_errors    = 0;
+
+    /* Clear info about management routes */
+    for (uint_fast8_t i = 0; i < SJA1105_NUM_MGMT_SLOTS; i++){
+        dev->management_routes.slot_taken[i] = false;
+        dev->management_routes.timestamps[i] = 0;
+    }
 
     /* Set the device to uninitialised */
     dev->initialised = false;

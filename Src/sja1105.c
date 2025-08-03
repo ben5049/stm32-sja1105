@@ -5,11 +5,29 @@
  *      Author: bens1
  */
 
+#include "assert.h"
+
 #include "sja1105.h"
 #include "internal/sja1105_conf.h"
 #include "internal/sja1105_io.h"
 #include "internal/sja1105_regs.h"
 #include "internal/sja1105_tables.h"
+
+
+SJA1105_StatusTypeDef SJA1105_PortGetState(SJA1105_HandleTypeDef *dev, uint8_t port_num, bool *state){
+
+    SJA1105_StatusTypeDef status = SJA1105_NOT_IMPLEMENTED_ERROR;
+    
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
+    SJA1105_LOCK;
+
+    /* state = true if the port is forwarding, not inhibited, has no errors etc */
+    
+    /* Give the mutex and return */
+    SJA1105_UNLOCK;
+    return status;
+}
 
 
 SJA1105_StatusTypeDef SJA1105_PortGetSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef *speed){
@@ -342,13 +360,64 @@ SJA1105_StatusTypeDef SJA1105_PortWake(SJA1105_HandleTypeDef *dev, uint8_t port_
 }
 
 
-SJA1105_StatusTypeDef SJA1105_CreateManagementRoute(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_PortState_TypeDef *port_state){
+SJA1105_StatusTypeDef SJA1105_ManagementRouteCreate(SJA1105_HandleTypeDef *dev, const uint8_t dst_addr[MAC_ADDR_SIZE], uint8_t dst_ports, bool takets, bool tsreg, void *context){
 
     SJA1105_StatusTypeDef status = SJA1105_NOT_IMPLEMENTED_ERROR;
 
     /* Check the device is initialised and take the mutex */
     SJA1105_INIT_CHECK;
     SJA1105_LOCK;
+
+    /* Argument checking */
+    if (dst_ports >= 1 << SJA1105_NUM_PORTS) status = SJA1105_PARAMETER_ERROR;
+    if (status != SJA1105_OK) goto end;
+
+    /* Create variables */
+    uint32_t lut_entry[SJA1105_STATIC_CONF_L2ADDR_LU_ENTRY_SIZE];
+    uint32_t reg_data;
+    uint8_t  free_entry = SJA1105_NUM_MGMT_SLOTS;
+
+    /* Look for a free slot */
+    for (uint_fast8_t i = 0; (free_entry == SJA1105_NUM_MGMT_SLOTS) && (i < SJA1105_NUM_MGMT_SLOTS); i++){
+        if(!dev->management_routes.slot_taken[i]){
+            free_entry = i;
+            break;
+        }
+    }
+
+    /* No free slots. TODO evict an entry based on age, or return an error. keep track of timed out entries */
+    if (free_entry == SJA1105_NUM_MGMT_SLOTS){
+        assert(false);
+    }
+
+    /* Create the lookup table entry */
+    lut_entry[SJA1105_MGMT_MGMTVALID_OFFSET]  = SJA1105_MGMT_MGMTVALID_MASK;
+    lut_entry[SJA1105_MGMT_INDEX_OFFSET    ] |= ((uint32_t) free_entry << SJA1105_MGMT_INDEX_SHIFT    ) & SJA1105_MGMT_INDEX_MASK;
+    lut_entry[SJA1105_MGMT_DESTPORTS_OFFSET] |= ((uint32_t) dst_ports  << SJA1105_MGMT_DESTPORTS_SHIFT) & SJA1105_MGMT_DESTPORTS_MASK;
+    /* TODO Copy dst_addr in too */
+
+    /* TODO: Setup L2 Forwarding table reconfiguration register 0 (address 0x2C) */
+    /* TODO: Send lut_entry */
+
+    /* Update the device struct */
+    dev->management_routes.slot_taken[free_entry] = true;
+    dev->management_routes.timestamps[free_entry] = 0; // TODO take timestamp
+    dev->management_routes.contexts[free_entry]   = context;
+
+    /* Give the mutex and return */
+    end:
+    SJA1105_UNLOCK;
+    return status;
+}
+
+SJA1105_StatusTypeDef SJA1105_ManagementRouteFree(SJA1105_HandleTypeDef *dev){
+
+    SJA1105_StatusTypeDef status = SJA1105_NOT_IMPLEMENTED_ERROR;
+
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
+    SJA1105_LOCK;
+
 
 
     /* Give the mutex and return */
