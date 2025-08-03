@@ -9,10 +9,10 @@
 #include "stdlib.h"
 
 #include "sja1105.h"
-#include "sja1105_conf.h"
-#include "sja1105_io.h"
-#include "sja1105_regs.h"
-#include "sja1105_tables.h"
+#include "internal/sja1105_conf.h"
+#include "internal/sja1105_io.h"
+#include "internal/sja1105_regs.h"
+#include "internal/sja1105_tables.h"
 
 
 SJA1105_StatusTypeDef SJA1105_PortConfigure(SJA1105_PortTypeDef *ports, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_ModeTypeDef mode, bool output_rmii_refclk, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage){
@@ -162,6 +162,7 @@ SJA1105_StatusTypeDef SJA1105_DeInit(SJA1105_HandleTypeDef *dev){
     return status;
 }
 
+/* Note: If the switch is reset then STP must be restarted. If the PHY's links don't go down then it can take a long time for neighbouring switches to notices that this switch bas reset */
 SJA1105_StatusTypeDef SJA1105_ReInit(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;

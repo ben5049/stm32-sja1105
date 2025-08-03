@@ -6,10 +6,10 @@
  */
 
 #include "sja1105.h"
-#include "sja1105_conf.h"
-#include "sja1105_io.h"
-#include "sja1105_regs.h"
-#include "sja1105_tables.h"
+#include "internal/sja1105_conf.h"
+#include "internal/sja1105_io.h"
+#include "internal/sja1105_regs.h"
+#include "internal/sja1105_tables.h"
 
 
 SJA1105_StatusTypeDef SJA1105_PortGetSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef *speed){

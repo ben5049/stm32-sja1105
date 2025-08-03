@@ -8,8 +8,9 @@
 #include "memory.h"
 #include "stdlib.h"
 
-#include "sja1105_tables.h"
-#include "sja1105_regs.h"
+#include "sja1105.h"
+#include "internal/sja1105_tables.h"
+#include "internal/sja1105_regs.h"
 
 
 void SJA1105_FreeAllTableMemory(SJA1105_HandleTypeDef *dev){
@@ -105,13 +106,15 @@ SJA1105_StatusTypeDef SJA1105_GeneralParamsTableCheck(SJA1105_HandleTypeDef *dev
 }
 
 /*
- * 
- * XXXX  XXXX  XXXX  XXXX XXXX XXXX XXXX XXXX
- *    |       / |      /|      ||     |
- *     XXXXXX   |     | |     / |     /
- *              XXXXXX  |    |  |    |
- *                      XXXXXX  |    |
- *                              XXXXXX
+ * Extract 4x 6-byte MAC filters from the 32-bit table (array) that are not aligned.
+ *
+ * Word #:           4    5    6    7    8    9    10   11
+ * Table:        ... XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+ *                      |      /|     /|      ||     |
+ * MAC_FLT0:            XXXXXX  |    | |     / |     /
+ * MAC_FLT1:                    XXXXXX |    |  |    |
+ * MAC_FLTRES0:                        XXXXXX  |    |
+ * MAC_FLTRES1:                                XXXXXX
  */
 SJA1105_StatusTypeDef SJA1105_GeneralParamsTableGetMACFilters(const uint32_t *table, uint32_t size, SJA1105_MACFiltersTypeDef *mac_filters){
 

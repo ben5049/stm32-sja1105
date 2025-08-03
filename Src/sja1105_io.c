@@ -5,8 +5,9 @@
  *      Author: bens1
  */
 
-#include "sja1105_io.h"
-#include "sja1105_regs.h"
+#include "sja1105.h"
+#include "internal/sja1105_io.h"
+#include "internal/sja1105_regs.h"
 
 
 SJA1105_StatusTypeDef __SJA1105_ReadRegister(SJA1105_HandleTypeDef *dev, uint32_t addr, uint32_t *data, uint32_t size, bool integrity_check);

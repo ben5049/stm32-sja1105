@@ -6,9 +6,9 @@
  */
 
 #include "sja1105.h"
-#include "sja1105_conf.h"
-#include "sja1105_io.h"
-#include "sja1105_regs.h"
+#include "internal/sja1105_conf.h"
+#include "internal/sja1105_io.h"
+#include "internal/sja1105_regs.h"
 
 
 SJA1105_StatusTypeDef SJA1105_ConfigureACU(SJA1105_HandleTypeDef *dev){
