@@ -298,7 +298,7 @@ enum SJA1105_CGUReg_Enum{
 /* ---------------------------------------------------------------------------- */
 
 
-enum SJA1105_DynConf_Enum{
+enum SJA1105_DynConfReg_Enum{
     SJA1105_DYN_CONF_L2_LUT_REG_0   = 0x29,
     SJA1105_DYN_CONF_L2_LUT_REG_1   = 0x24,
     SJA1105_DYN_CONF_L2_LUT_REG_2   = 0x25,
@@ -334,6 +334,18 @@ enum SJA1105_DynConf_Enum{
 #define SJA1105_MGMT_DESTPORTS_OFFSET          (0)
 #define SJA1105_MGMT_DESTPORTS_SHIFT           (17)
 #define SJA1105_MGMT_DESTPORTS_MASK            (0x1f << SJA1105_MGMT_DESTPORTS_SHIFT)
+
+enum SJA1105_MgmtHostCmd{
+    SJA1105_MGMT_HOSTCMD_SEARCH            = 0x1,
+    SJA1105_MGMT_HOSTCMD_READ              = 0x2,
+    SJA1105_MGMT_HOSTCMD_WRITE             = 0x3,
+    SJA1105_MGMT_HOSTCMD_INVALIDATE_ENTRY  = 0x4
+};
+
+#define SJA1105_MGMT_HOSTCMD_SHIFT             (23)
+#define SJA1105_MGMT_HOSTCMD_MASK              (0x7 << SJA1105_MGMT_HOSTCMD_SHIFT)
+
+#define SJA1105_MGMT_L2ADDR_LU_ENTRY_SIZE      (3)
 
 #define SJA1105_DYN_CONF_MAC_CONF_VALID        (1 << 31)
 #define SJA1105_DYN_CONF_MAC_CONF_ERRORS       (1 << 30)

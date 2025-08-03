@@ -373,7 +373,7 @@ SJA1105_StatusTypeDef SJA1105_ManagementRouteCreate(SJA1105_HandleTypeDef *dev, 
     if (status != SJA1105_OK) goto end;
 
     /* Create variables */
-    uint32_t lut_entry[SJA1105_STATIC_CONF_L2ADDR_LU_ENTRY_SIZE];
+    uint32_t lut_entry[SJA1105_MGMT_L2ADDR_LU_ENTRY_SIZE];
     uint32_t reg_data;
     uint8_t  free_entry = SJA1105_NUM_MGMT_SLOTS;
 
@@ -396,8 +396,28 @@ SJA1105_StatusTypeDef SJA1105_ManagementRouteCreate(SJA1105_HandleTypeDef *dev, 
     lut_entry[SJA1105_MGMT_DESTPORTS_OFFSET] |= ((uint32_t) dst_ports  << SJA1105_MGMT_DESTPORTS_SHIFT) & SJA1105_MGMT_DESTPORTS_MASK;
     /* TODO Copy dst_addr in too */
 
-    /* TODO: Setup L2 Forwarding table reconfiguration register 0 (address 0x2C) */
+    /* Wait for VALID to be 0. */
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_L2_LUT_REG_0, SJA1105_DYN_CONF_L2_LUT_VALID, false);
+    if (status != SJA1105_OK) goto end;
+    
     /* TODO: Send lut_entry */
+    status = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_L2_LUT_REG_1, lut_entry, SJA1105_MGMT_L2ADDR_LU_ENTRY_SIZE);
+    if (status != SJA1105_OK) goto end;
+    
+    /* TODO: Setup L2 Forwarding table reconfiguration register 0 (address 0x2C) */
+    reg_data  = SJA1105_DYN_CONF_L2_LUT_VALID;
+    reg_data |= SJA1105_DYN_CONF_L2_LUT_RDRWSET;
+    reg_data |= SJA1105_DYN_CONF_L2_LUT_MGMTROUTE;
+    reg_data |= ((uint32_t) SJA1105_MGMT_HOSTCMD_WRITE << SJA1105_MGMT_HOSTCMD_SHIFT) & SJA1105_MGMT_HOSTCMD_MASK;
+    status = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_L2_LUT_REG_0, &reg_data, 1);
+    if (status != SJA1105_OK) goto end;
+
+    
+    /* TODO: Check ERRORS */
+
+    /* Wait for VALID to be 0. */
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_L2_LUT_REG_0, SJA1105_DYN_CONF_L2_LUT_VALID, false);
+    if (status != SJA1105_OK) goto end;
 
     /* Update the device struct */
     dev->management_routes.slot_taken[free_entry] = true;

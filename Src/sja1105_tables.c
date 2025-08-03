@@ -210,7 +210,7 @@ SJA1105_StatusTypeDef SJA1105_MACConfTableWrite(SJA1105_HandleTypeDef *dev, uint
     status = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, &reg_data, 1);
     if (status != SJA1105_OK) return status;
     
-    /* Wait for VALID to be 0 then check ERRORS */
+    /* Wait for VALID to be 0 then check ERRORS, TODO there is a wasted access here */
     status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_VALID, false);
     if (status != SJA1105_OK) return status;
     status = SJA1105_ReadFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_ERRORS, (bool *) &reg_data);
