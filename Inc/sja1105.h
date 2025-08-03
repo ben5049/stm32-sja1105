@@ -152,7 +152,7 @@ struct SJA1105_HandleTypeDef {
     SJA1105_MACFiltersTypeDef       filters;
     bool                            static_conf_loaded;
     uint32_t                        static_conf_crc32;
-    bool                            initialised;
+    atomic_bool                     initialised;
 
 };
 
@@ -163,7 +163,6 @@ struct SJA1105_HandleTypeDef {
 SJA1105_StatusTypeDef SJA1105_PortConfigure(SJA1105_PortTypeDef *ports, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_ModeTypeDef mode, bool output_rmii_refclk, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage);
 SJA1105_StatusTypeDef SJA1105_Init(SJA1105_HandleTypeDef *dev, const SJA1105_ConfigTypeDef *config, SJA1105_PortTypeDef *ports, const SJA1105_CallbacksTypeDef *callbacks, const uint32_t *static_conf, uint32_t static_conf_size);
 SJA1105_StatusTypeDef SJA1105_ReInit(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size);
-bool                  SJA1105_IsInitialised(SJA1105_HandleTypeDef *dev);
 
 /* User Functions */
 SJA1105_StatusTypeDef SJA1105_PortGetSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef *speed);

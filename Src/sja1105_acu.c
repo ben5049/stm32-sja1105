@@ -16,7 +16,7 @@ SJA1105_StatusTypeDef SJA1105_ConfigureACU(SJA1105_HandleTypeDef *dev){
     SJA1105_StatusTypeDef status = SJA1105_OK;
 
     /* Configure the ACU with each port's IO pad configuration */
-    for (uint8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
+    for (uint_fast8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
         status = SJA1105_ConfigureACUPort(dev, port_num);
         if (status != SJA1105_OK) return status;
     }

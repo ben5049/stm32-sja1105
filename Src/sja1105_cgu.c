@@ -35,7 +35,7 @@ SJA1105_StatusTypeDef SJA1105_ConfigureCGU(SJA1105_HandleTypeDef *dev){
     if (status != SJA1105_OK) return status;
 
     /* Configure each port */
-    for (uint8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
+    for (uint_fast8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
         status = SJA1105_ConfigureCGUPort(dev, port_num);
         if (status != SJA1105_OK) return status;
     }

@@ -26,8 +26,8 @@ int32_t nx_eth_phy_init(void){
 
     /* Poll the initialised flag and time out after 500ms */
     bool initialised = false;
-    for (uint8_t attempt = 0; !initialised && (attempt < 50); attempt++){
-        initialised = SJA1105_IsInitialised(&hsja1105);
+    for (uint_fast8_t attempt = 0; !initialised && (attempt < 50); attempt++){
+        initialised = hsja1105.initialised;
         if (!initialised) tx_thread_sleep((10 * TX_TIMER_TICKS_PER_SECOND) / 1000);
     }
 

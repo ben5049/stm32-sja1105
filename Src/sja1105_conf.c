@@ -106,7 +106,7 @@ SJA1105_StatusTypeDef SJA1105_Init(
 
     /* Step 2: STATIC CONFIGURATION (Try up to 3 times) */
     bool crc_success = false;
-    for (uint8_t attempt = 0; !crc_success && (attempt < 3); attempt++){
+    for (uint_fast8_t attempt = 0; !crc_success && (attempt < 3); attempt++){
 
         /* Write the configuration */
         status = SJA1105_WriteStaticConfig(dev, static_conf, static_conf_size);
@@ -247,13 +247,6 @@ SJA1105_StatusTypeDef SJA1105_CheckPartID(SJA1105_HandleTypeDef *dev){
     return status;
 }
 
-/* Atomically check whether a device struct has been initialised.
- * Note there is no setter function because the initialised flag is set in SJA1105_Init() while the mutex is held, which has memory access barriers.
- */
-bool SJA1105_IsInitialised(SJA1105_HandleTypeDef *dev){
-    return __atomic_load_n(&dev->initialised, __ATOMIC_ACQUIRE);
-}
-
 /* Write the static config to the chip 
  * 
  * Note this function allocates memory for the internal copies of certain tables.
@@ -343,7 +336,7 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
 
                 /* Check the general status 1 register for L2BUSYS (0 = initialised, 1 = not initialised). Try up to 10 times. */
                 bool ready = false;
-                for (uint8_t attempt = 0; !ready && (attempt < 10); attempt++){
+                for (uint_fast8_t attempt = 0; !ready && (attempt < 10); attempt++){
 
                     /* Read the flag */
                     status = SJA1105_ReadFlag(dev, SJA1105_REG_GENERAL_STATUS_1, SJA1105_L2BUSYS_MASK, &ready);

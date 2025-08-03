@@ -38,7 +38,7 @@ SJA1105_StatusTypeDef SJA1105_MACConfTableCheck(SJA1105_HandleTypeDef *dev, cons
     if (status != SJA1105_OK) return status;
 
     /* Check each port's speed */
-    for (uint8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
+    for (uint_fast8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
         SJA1105_MACConfTableGetSpeed(table, size, port_num, &speed);
         if (speed != dev->ports[port_num].speed) status = SJA1105_STATIC_CONF_ERROR;
         if (status != SJA1105_OK) return status;
@@ -147,7 +147,7 @@ SJA1105_StatusTypeDef SJA1105_xMIIModeTableCheck(SJA1105_HandleTypeDef *dev, con
     if (status != SJA1105_OK) return status;
 
     /* Check each port's mode and interface */
-    for (uint8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
+    for (uint_fast8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
 
         /* Check the mode */
         mode = (table[0] & SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_MASK(port_num)) >> SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_SHIFT(port_num);

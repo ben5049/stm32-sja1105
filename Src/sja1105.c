@@ -115,7 +115,7 @@ SJA1105_StatusTypeDef SJA1105_ReadTemperatureX10(SJA1105_HandleTypeDef *dev, int
     }
     
     /* Perform a binary search for the temperature.  */
-    for (uint8_t i = 0; i < 7; i++){
+    for (uint_fast8_t i = 0; i < 7; i++){
         
         /* Calculate the next guess by splitting the range in half.
         * If the guess is the same as the previous_guess then the guesses have converged on the answer. */
@@ -244,7 +244,7 @@ SJA1105_StatusTypeDef SJA1105_MACAddrTrapTest(SJA1105_HandleTypeDef *dev, const 
 
     /* Test against the first filter */
     *trapped = true;
-    for (uint8_t i = 0; i < MAC_ADDR_SIZE; i++){
+    for (uint_fast8_t i = 0; i < MAC_ADDR_SIZE; i++){
         if ((addr[i] & dev->filters.mac_flt0[i]) != dev->filters.mac_fltres0[i]){
             *trapped = false;
             break;
@@ -254,7 +254,7 @@ SJA1105_StatusTypeDef SJA1105_MACAddrTrapTest(SJA1105_HandleTypeDef *dev, const 
 
     /* Test against the second filter */
     *trapped = true;
-    for (uint8_t i = 0; i < MAC_ADDR_SIZE; i++){
+    for (uint_fast8_t i = 0; i < MAC_ADDR_SIZE; i++){
         if ((addr[i] & dev->filters.mac_flt1[i]) != dev->filters.mac_fltres1[i]){
             *trapped = false;
             break;
