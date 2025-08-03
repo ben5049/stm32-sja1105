@@ -5,10 +5,14 @@
  *      Author: bens1
  */
 
+#include "memory.h"
+#include "stdlib.h"
+
 #include "sja1105.h"
 #include "sja1105_conf.h"
 #include "sja1105_io.h"
 #include "sja1105_regs.h"
+#include "sja1105_tables.h"
 
 
 SJA1105_StatusTypeDef SJA1105_PortConfigure(SJA1105_PortTypeDef *ports, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_ModeTypeDef mode, bool output_rmii_refclk, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage){
@@ -33,9 +37,9 @@ SJA1105_StatusTypeDef SJA1105_PortConfigure(SJA1105_PortTypeDef *ports, uint8_t 
     ports[port_num].mode               = mode;
     ports[port_num].output_rmii_refclk = output_rmii_refclk;
     ports[port_num].speed              = speed;
-    ports[port_num].dyanamic_speed     = speed;
     ports[port_num].voltage            = voltage;
     ports[port_num].configured         = true;
+    ports[port_num].state              = SJA1105_PORT_STATE_DISCARDING;
 
     return status;
 }
@@ -50,45 +54,49 @@ SJA1105_StatusTypeDef SJA1105_Init(
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
 
+    /* Take the mutex */
+    SJA1105_LOCK;
+
     /* Check the device hasn't already been initialised. Note this may cause an unintended error if the struct uses non-zeroed memory. */
-    if (dev->initialised == true) status = SJA1105_ALREADY_CONFIGURED_ERROR;
-    if (status != SJA1105_OK) return status;
+    if (dev->initialised) status = SJA1105_ALREADY_CONFIGURED_ERROR;
+    if (status != SJA1105_OK) goto end;
+
+    /* Only the SJA1105Q has been implemented. TODO: Add more */
+    if (config->variant != VARIANT_SJA1105Q) status = SJA1105_NOT_IMPLEMENTED_ERROR;
+
+    /* Cehck config parameters */
+    if (config->switch_id >= 8) status = SJA1105_PARAMETER_ERROR;
+
+    /* Check SPI parameters */
+    if (config->spi_handle->Init.DataSize    != SPI_DATASIZE_32BIT) status = SJA1105_PARAMETER_ERROR;
+    if (config->spi_handle->Init.CLKPolarity != SPI_POLARITY_LOW  ) status = SJA1105_PARAMETER_ERROR;
+    if (config->spi_handle->Init.CLKPhase    != SPI_PHASE_1EDGE   ) status = SJA1105_PARAMETER_ERROR;
+    if (config->spi_handle->Init.NSS         != SPI_NSS_SOFT      ) status = SJA1105_PARAMETER_ERROR;
+    if (config->spi_handle->Init.FirstBit    != SPI_FIRSTBIT_MSB  ) status = SJA1105_PARAMETER_ERROR;
+
+
+    /* If there are invalid parameters then return */
+    if (status != SJA1105_OK) goto end;
 
     /* Assign the input arguments */
-    dev->config->variant    = config->variant;
-    dev->config->spi_handle = config->spi_handle;
-    dev->config->cs_port    = config->cs_port;
-    dev->config->cs_pin     = config->cs_pin;
-    dev->config->rst_port   = config->rst_port;
-    dev->config->rst_pin    = config->rst_pin;
-    dev->config->timeout    = config->timeout;
-    dev->config->host_port  = config->host_port;
-    dev->callbacks          = callbacks;
+    dev->config             = config;
     dev->ports              = ports;
+    dev->callbacks          = callbacks;
     dev->static_conf_loaded = false;
     dev->static_conf_crc32  = static_conf[static_conf_size-1];
     dev->initialised        = false;
-
-    /* Only the SJA1105Q has been implemented. TODO: Add more */
-    if (dev->config->variant != VARIANT_SJA1105Q) status = SJA1105_NOT_IMPLEMENTED_ERROR;
-
-    /* Check SPI parameters */
-    if (dev->config->spi_handle->Init.DataSize    != SPI_DATASIZE_32BIT) status = SJA1105_PARAMETER_ERROR;
-    if (dev->config->spi_handle->Init.CLKPolarity != SPI_POLARITY_LOW  ) status = SJA1105_PARAMETER_ERROR;
-    if (dev->config->spi_handle->Init.CLKPhase    != SPI_PHASE_1EDGE   ) status = SJA1105_PARAMETER_ERROR;
-    if (dev->config->spi_handle->Init.NSS         != SPI_NSS_SOFT      ) status = SJA1105_PARAMETER_ERROR;
-    if (dev->config->spi_handle->Init.FirstBit    != SPI_FIRSTBIT_MSB  ) status = SJA1105_PARAMETER_ERROR;
-
-    /* If there are invalid parameters then return */
-    if (status != SJA1105_OK) return status;
     
+    /* Set the table sizes to 0 */
+    dev->tables->mac_config_size     = 0;
+    dev->tables->general_params_size = 0;
+
     /* Set pins to a known state */
     HAL_GPIO_WritePin(dev->config->rst_port, dev->config->rst_pin, SET);
     HAL_GPIO_WritePin(dev->config->cs_port,  dev->config->cs_pin,  SET);
     
     /* Check the part number matches the specified variant */
     status = SJA1105_CheckPartID(dev);
-    if (status != SJA1105_OK) return status;
+    if (status != SJA1105_OK) goto end;
 
 
     /* Configure the SJA1105 */
@@ -105,39 +113,71 @@ SJA1105_StatusTypeDef SJA1105_Init(
 
         /* Check for CRC errors */
         if (status != SJA1105_OK) {
-            if (status != SJA1105_CRC_ERROR) return status;
+            if (status != SJA1105_CRC_ERROR) goto end;
         }
         else crc_success = true;
     }
-    if (status != SJA1105_OK) return status;
+    if (status != SJA1105_OK) goto end;
 
     /* Step 3: ACU REGISTER SETUP */
     status = SJA1105_ConfigureACU(dev);
-    if (status != SJA1105_OK) return status;
+    if (status != SJA1105_OK) goto end;
     
     /* Step 4: CGU REGISTER SETUP */
     status = SJA1105_ConfigureCGU(dev);
-    if (status != SJA1105_OK) return status;
+    if (status != SJA1105_OK) goto end;
 
     /* Step 5: SGMII PHY/PCS (optional) */
     
 
     /* Check the status registers */
     status = SJA1105_CheckStatusRegisters(dev);
-    if (status != SJA1105_OK) return status;
+    if (status != SJA1105_OK) goto end;
 
     dev->initialised = true;
 
+    /* Give the mutex and return */
+    end:
+    SJA1105_UNLOCK;
+    return status;
+}
+
+SJA1105_StatusTypeDef SJA1105_DeInit(SJA1105_HandleTypeDef *dev){
+
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+
+    /* Take the mutex */
+    SJA1105_LOCK;
+
+    if (dev->initialised) goto end;
+
+    /* Free table memory. Note this is also done when the static table is uploaded */
+    SJA1105_FreeAllTableMemory(dev);
+
+    dev->initialised = false;
+
+    /* Give the mutex and return */
+    end:
+    SJA1105_UNLOCK;
     return status;
 }
 
 SJA1105_StatusTypeDef SJA1105_ReInit(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
-    
-    dev->initialised = false;
-    status = SJA1105_Init(dev, dev->config, dev->ports, dev->callbacks, static_conf, static_conf_size);
 
+    /* Take the mutex */
+    SJA1105_LOCK;
+
+    status = SJA1105_DeInit(dev);
+    if (status != SJA1105_OK) goto end;
+    
+    status = SJA1105_Init(dev, dev->config, dev->ports, dev->callbacks, static_conf, static_conf_size);
+    if (status != SJA1105_OK) goto end;
+
+    /* Give the mutex and return */
+    end:
+    SJA1105_UNLOCK;
     return status;
 }
 
@@ -206,7 +246,17 @@ SJA1105_StatusTypeDef SJA1105_CheckPartID(SJA1105_HandleTypeDef *dev){
     return status;
 }
 
+/* Atomically check whether a device struct has been initialised.
+ * Note there is no setter function because the initialised flag is set in SJA1105_Init() while the mutex is held, which has memory access barriers.
+ */
+bool SJA1105_IsInitialised(SJA1105_HandleTypeDef *dev){
+    return __atomic_load_n(&dev->initialised, __ATOMIC_ACQUIRE);
+}
 
+/* Write the static config to the chip 
+ * 
+ * Note this function allocates memory for the internal copies of certain tables.
+ */
 SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size){
 
     SJA1105_StatusTypeDef status   = SJA1105_OK;
@@ -217,6 +267,9 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
         status = SJA1105_ALREADY_CONFIGURED_ERROR;
         return status;
     }
+
+    /* Free the table memory allocated by a previous call of this function */
+    SJA1105_FreeAllTableMemory(dev);
 
     /* Update the device struct. This is done here so that if a SJA1105_STATIC_CONF_ERROR is returned the program knows which config caused the error */
     dev->static_conf_crc32 = static_conf[static_conf_size - 1];
@@ -284,18 +337,8 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
         /* Pre-write options */
         switch (block_id) {
 
-            /* Check the MAC configuration table */
-            case SJA1105_STATIC_CONF_BLOCK_ID_MAC_CONF:
-                status = SJA1105_CheckMACConfTable(dev, &static_conf[block_index + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC], block_size);
-                break;
-            
-            /* Check the xMII mode parameters table */
-            case SJA1105_STATIC_CONF_BLOCK_ID_XMII_MODE:
-                status = SJA1105_CheckxMIIModeTable(dev, &static_conf[block_index + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC], block_size);
-                break;
-
             /* Check the L2BUSYS flag is set before writing the L2 address table */
-            case SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU:
+            case SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU: {
 
                 /* Check the general status 1 register for L2BUSYS (0 = initialised, 1 = not initialised). Try up to 10 times. */
                 bool ready = false;
@@ -306,10 +349,52 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
                     if (status != SJA1105_OK) return status;
                     
                     /* Delay and try again if not set */
-                    if (!ready) dev->callbacks->callback_delay_ms(dev->config->timeout / 10);
+                    SJA1105_DELAY_MS(dev->config->timeout / 10);
                 }
                 if (!ready) status = SJA1105_L2_BUSY_ERROR;
                 break;
+            }
+
+            /* Check the MAC configuration table and save a copy of it to the device struct */
+            case SJA1105_STATIC_CONF_BLOCK_ID_MAC_CONF: {
+                const uint32_t *mac_config_table = &static_conf[block_index + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC];
+
+                /* Check the table */
+                status = SJA1105_MACConfTableCheck(dev, mac_config_table, block_size);
+                if (status != SJA1105_OK) break;
+                
+                /* Allocate memory and save a copy */
+                if (dev->tables->mac_config_size > 0) {status = SJA1105_DYNAMIC_MEMORY_ERROR; break;}
+                dev->tables->mac_config = malloc(block_size * sizeof(uint32_t));
+                dev->tables->mac_config_size = block_size;
+                memcpy(dev->tables->mac_config, mac_config_table, block_size * sizeof(uint32_t));
+                break;
+            }
+            
+            /* Check the general parameters table */
+            case SJA1105_STATIC_CONF_BLOCK_ID_GENERAL_PARAMS: {
+                const uint32_t *general_params_table = &static_conf[block_index + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC];
+                
+                /* Check the table */
+                status = SJA1105_GeneralParamsTableCheck(dev, general_params_table, block_size);
+                if (status != SJA1105_OK) break;
+
+                /* Copy the MAC address filters for future use */
+                SJA1105_GeneralParamsTableGetMACFilters(general_params_table, block_size, &dev->filters);
+
+                /* Allocate memory and save a copy */
+                if (dev->tables->general_params_size > 0) {status = SJA1105_DYNAMIC_MEMORY_ERROR; break;}
+                dev->tables->general_params = malloc(block_size * sizeof(uint32_t));
+                dev->tables->general_params_size = block_size;
+                memcpy(dev->tables->general_params, general_params_table, block_size * sizeof(uint32_t));
+                break;
+            }
+
+            /* Check the xMII mode parameters table */
+            case SJA1105_STATIC_CONF_BLOCK_ID_XMII_MODE: {
+                status = SJA1105_xMIIModeTableCheck(dev, &static_conf[block_index + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC], block_size);
+                break;
+            }
 
             default:
                 break;
@@ -355,69 +440,6 @@ SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, cons
 
     /* Update the device struct */
     dev->static_conf_loaded = true;
-
-    return status;
-}
-
-SJA1105_StatusTypeDef SJA1105_CheckMACConfTable(SJA1105_HandleTypeDef *dev, const uint32_t *table, uint32_t size){
-    
-    SJA1105_StatusTypeDef status = SJA1105_OK;
-    SJA1105_SpeedTypeDef  speed;
-
-    /* Check the size is correct */
-    if (size != (SJA1105_NUM_PORTS * SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE)) status = SJA1105_STATIC_CONF_ERROR;
-    if (status != SJA1105_OK) return status;
-
-    /* Check each port's speed */
-    for (uint8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
-        speed = (table[SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, SJA1105_STATIC_CONF_MAC_CONF_SPEED_OFFSET)] & SJA1105_STATIC_CONF_MAC_CONF_SPEED_MASK) >> SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT;
-        if (speed != dev->ports[port_num].speed) status = SJA1105_STATIC_CONF_ERROR;
-        if (status != SJA1105_OK) return status;
-    }
-
-    return status;
-}
-
-SJA1105_StatusTypeDef SJA1105_CheckxMIIModeTable(SJA1105_HandleTypeDef *dev, const uint32_t *table, uint32_t size){
-    
-    SJA1105_StatusTypeDef    status = SJA1105_OK;
-    SJA1105_ModeTypeDef      mode;
-    SJA1105_InterfaceTypeDef interface;
-
-    /* Check the size is correct */
-    if (size != 1) status = SJA1105_STATIC_CONF_ERROR;
-    if (status != SJA1105_OK) return status;
-
-    /* Check each port's mode and interface */
-    for (uint8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
-
-        /* Check the mode */
-        mode = (table[0] & SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_MASK(port_num)) >> SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_SHIFT(port_num);
-        if (mode != dev->ports[port_num].mode){
-
-            /* Special case: The switch is acting as a PHY, but the MAC it is connected to cannot supply REFCLK.
-            *               In this case the switch port is actually configured as a MAC, but operates as a PHY.
-            */
-            if ((dev->ports[port_num].mode      == SJA1105_MODE_PHY      ) &&
-                (dev->ports[port_num].interface == SJA1105_INTERFACE_RMII) &&
-                 dev->ports[port_num].output_rmii_refclk) status = SJA1105_OK;
-
-            /* Otherwise its an error */
-            else status = SJA1105_STATIC_CONF_ERROR;
-        }
-        if (status != SJA1105_OK) return status;
-
-        /* Check the interface */
-        interface = (table[0] & SJA1105_STATIC_CONF_XMII_MODE_INTERFACE_MASK(port_num)) >> SJA1105_STATIC_CONF_XMII_MODE_INTERFACE_SHIFT(port_num);
-        if (interface != dev->ports[port_num].interface) status = SJA1105_STATIC_CONF_ERROR;
-        if (status != SJA1105_OK) return status;
-
-        /* Check SGMII is configured correctly */
-        if ((dev->ports[port_num].interface == SJA1105_INTERFACE_SGMII) && (mode != SJA1105_MODE_MAC)){
-            status = SJA1105_STATIC_CONF_ERROR;
-            return status;
-        }
-    }
 
     return status;
 }

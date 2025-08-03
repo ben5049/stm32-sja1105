@@ -251,6 +251,7 @@ enum SJA1105_CGUReg_Enum{
 
 #define SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU                  (0x05)
 #define SJA1105_STATIC_CONF_BLOCK_ID_MAC_CONF                   (0x09)
+#define SJA1105_STATIC_CONF_BLOCK_ID_GENERAL_PARAMS             (0x11)
 #define SJA1105_STATIC_CONF_BLOCK_ID_CGU                        (0x80)
 #define SJA1105_STATIC_CONF_BLOCK_ID_ACU                        (0x82)
 #define SJA1105_STATIC_CONF_BLOCK_ID_XMII_MODE                  (0x4e)
@@ -263,11 +264,26 @@ enum SJA1105_CGUReg_Enum{
 #define SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT                (1)  /* shifted up by 1 */
 #define SJA1105_STATIC_CONF_MAC_CONF_SPEED_MASK                 (0x3 << SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT)
 
+#define SJA1105_STATIC_CONF_GENERAL_PARAMS_SIZE                 (11)
+
+#define SJA1105_MAC_FLT_START_OFFSET_W                          (4) /* Starts at bit 152 therefore in the 5th word */
+#define SJA1105_MAC_FLT_START_OFFSET_B                          (3) /* Starts at bit 152 therefore offset 3 bytes from the nearest multiple of 32 bits (128 + 3 * 8 = 152) */
+
+#define SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_OFFSET     (4)  /* [144:142] therefore in the 5th word */
+#define SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_SHIFT      (14)  /* shifted up by 14 */
+#define SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_MASK       (0x7 << SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_SHIFT)
+
 #define SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_SHIFT(port_num)   (19 + ((port_num) * 3))
 #define SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_MASK(port_num)    (1 << SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_SHIFT(port_num))
 
 #define SJA1105_STATIC_CONF_XMII_MODE_INTERFACE_SHIFT(port_num) (17 + ((port_num) * 3))
 #define SJA1105_STATIC_CONF_XMII_MODE_INTERFACE_MASK(port_num)  (0x3 << SJA1105_STATIC_CONF_XMII_MODE_INTERFACE_SHIFT(port_num))
+
+/* ---------------------------------------------------------------------------- */
+/* Dynamic Reonfiguration */
+/* ---------------------------------------------------------------------------- */
+
+#define SJA1105_GENERAL_PARAMS
 
 
 #ifdef __cplusplus

@@ -17,14 +17,17 @@ extern "C" {
 #include "hal.h"
 #include "stdint.h"
 #include "stdbool.h"
+#include "stdatomic.h"
 
 
 /* Defines */
 
 #define SJA1105_NUM_PORTS (5)
+#define MAC_ADDR_SIZE     (6)
 
 
 /* Typedefs */
+typedef struct SJA1105_HandleTypeDef SJA1105_HandleTypeDef;
 
 typedef enum {
     SJA1105_OK      = HAL_OK,
@@ -41,6 +44,8 @@ typedef enum {
     SJA1105_CRC_ERROR,
     SJA1105_RAM_PARITY_ERROR,
     SJA1105_NOT_IMPLEMENTED_ERROR,
+    SJA1105_MUTEX_ERROR,               /* Serious mutex error, will normally just return SJA1105_BUSY if it tries to take a mutex held by another thread */
+    SJA1105_DYNAMIC_MEMORY_ERROR,
 } SJA1105_StatusTypeDef;
 
 typedef enum {
@@ -83,29 +88,22 @@ typedef enum {
     SJA1105_IO_INVALID_V           = 0x4   /* Dummmy value for argument checking */
 } SJA1105_IOVoltageTypeDef;
 
+typedef enum {
+    SJA1105_PORT_STATE_FORWARDING = 0x0,
+    SJA1105_PORT_STATE_DISCARDING = 0x1,
+    SJA1105_PORT_STATE_LEARNING   = 0x2
+} SJA1105_PortState_TypeDef;
+
 typedef struct {
-    uint8_t                  port_num;
-    SJA1105_SpeedTypeDef     speed;
-    SJA1105_SpeedTypeDef     dyanamic_speed;      /* When speed = SJA1105_SPEED_DYNAMIC, this value specifies the currently configured speed */
-    SJA1105_InterfaceTypeDef interface;
-    SJA1105_ModeTypeDef      mode;
-    bool                     output_rmii_refclk;  /* Only used when interface = SJA1105_INTERFACE_RMII and mode = SJA1105_MODE_PHY */
-    SJA1105_IOVoltageTypeDef voltage;
-    bool                     configured;
+    uint8_t                   port_num;
+    SJA1105_SpeedTypeDef      speed;
+    SJA1105_InterfaceTypeDef  interface;
+    SJA1105_ModeTypeDef       mode;
+    bool                      output_rmii_refclk;  /* Only used when interface = SJA1105_INTERFACE_RMII and mode = SJA1105_MODE_PHY */
+    SJA1105_IOVoltageTypeDef  voltage;
+    bool                      configured;
+    SJA1105_PortState_TypeDef state;
 } SJA1105_PortTypeDef;
-
-
-typedef void                  (*SJA1105_CallbackDelayMSTypeDef)   (uint32_t ms);
-typedef void                  (*SJA1105_CallbackDelayNSTypeDef)   (uint32_t ns);
-typedef SJA1105_StatusTypeDef (*SJA1105_CallbackTakeMutexTypeDef) (uint32_t timeout);
-typedef SJA1105_StatusTypeDef (*SJA1105_CallbackGiveMutexTypeDef) (void);
-
-typedef struct {
-    SJA1105_CallbackDelayMSTypeDef   callback_delay_ms;  /* Non-blocking delay in ms */
-    SJA1105_CallbackDelayNSTypeDef   callback_delay_ns;  /* Blocking delay in ns */
-    SJA1105_CallbackTakeMutexTypeDef callback_take_mutex;
-    SJA1105_CallbackGiveMutexTypeDef callback_give_mutex;
-} SJA1105_CallbacksTypeDef;
 
 typedef struct {
     SJA1105_VariantTypeDef  variant;
@@ -117,16 +115,46 @@ typedef struct {
     uint32_t                timeout;      /* Timeout in ms for doing anything with a timeout (read, write, take mutex etc) */
     uint8_t                 host_port;
     bool                    skew_clocks;  /* Make xMII clocks use different phases (where possible) to improve EMC performance */
+    uint8_t                 switch_id;    /* Used to identify the switch that trapped a frame */
 } SJA1105_ConfigTypeDef;
 
 typedef struct {
-    SJA1105_ConfigTypeDef          *config;
+    uint32_t *mac_config;
+    uint32_t  mac_config_size;  /* Number of uint32_t in mac_config */
+    uint32_t *general_params;
+    uint32_t  general_params_size;
+} SJA1105_TablesTypeDef;
+
+typedef struct {
+    uint8_t mac_fltres0[MAC_ADDR_SIZE];
+    uint8_t mac_flt0[MAC_ADDR_SIZE];
+    uint8_t mac_fltres1[MAC_ADDR_SIZE];
+    uint8_t mac_flt1[MAC_ADDR_SIZE];
+} SJA1105_MACFiltersTypeDef;
+
+typedef void                  (*SJA1105_CallbackDelayMSTypeDef)   (SJA1105_HandleTypeDef *dev, uint32_t ms);
+typedef void                  (*SJA1105_CallbackDelayNSTypeDef)   (SJA1105_HandleTypeDef *dev, uint32_t ns);
+typedef SJA1105_StatusTypeDef (*SJA1105_CallbackTakeMutexTypeDef) (SJA1105_HandleTypeDef *dev, uint32_t timeout);
+typedef SJA1105_StatusTypeDef (*SJA1105_CallbackGiveMutexTypeDef) (SJA1105_HandleTypeDef *dev);
+
+typedef struct {
+    SJA1105_CallbackDelayMSTypeDef   callback_delay_ms;  /* Non-blocking delay in ms */
+    SJA1105_CallbackDelayNSTypeDef   callback_delay_ns;  /* Blocking delay in ns */
+    SJA1105_CallbackTakeMutexTypeDef callback_take_mutex;
+    SJA1105_CallbackGiveMutexTypeDef callback_give_mutex;
+} SJA1105_CallbacksTypeDef;
+
+struct SJA1105_HandleTypeDef {
+    const SJA1105_ConfigTypeDef    *config;
     SJA1105_PortTypeDef            *ports;
     const SJA1105_CallbacksTypeDef *callbacks;
+    SJA1105_TablesTypeDef          *tables;
+    SJA1105_MACFiltersTypeDef       filters;
     bool                            static_conf_loaded;
     uint32_t                        static_conf_crc32;
     bool                            initialised;
-} SJA1105_HandleTypeDef;
+
+};
 
 
 /* Functions */
@@ -135,15 +163,18 @@ typedef struct {
 SJA1105_StatusTypeDef SJA1105_PortConfigure(SJA1105_PortTypeDef *ports, uint8_t port_num, SJA1105_InterfaceTypeDef interface, SJA1105_ModeTypeDef mode, bool output_rmii_refclk, SJA1105_SpeedTypeDef speed, SJA1105_IOVoltageTypeDef voltage);
 SJA1105_StatusTypeDef SJA1105_Init(SJA1105_HandleTypeDef *dev, const SJA1105_ConfigTypeDef *config, SJA1105_PortTypeDef *ports, const SJA1105_CallbacksTypeDef *callbacks, const uint32_t *static_conf, uint32_t static_conf_size);
 SJA1105_StatusTypeDef SJA1105_ReInit(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size);
+bool                  SJA1105_IsInitialised(SJA1105_HandleTypeDef *dev);
 
 /* User Functions */
-SJA1105_StatusTypeDef SJA1105_PortUpdateSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef speed);
+SJA1105_StatusTypeDef SJA1105_PortGetSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef *speed);
+SJA1105_StatusTypeDef SJA1105_PortSetSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef speed);
+SJA1105_StatusTypeDef SJA1105_PortGetState(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_PortState_TypeDef *port_state);
 SJA1105_StatusTypeDef SJA1105_PortSleep(SJA1105_HandleTypeDef *dev, uint8_t port_num);
 SJA1105_StatusTypeDef SJA1105_PortWake(SJA1105_HandleTypeDef *dev, uint8_t port_num);
 
 SJA1105_StatusTypeDef SJA1105_ReadTemperatureX10(SJA1105_HandleTypeDef *dev, int16_t *temp);
 SJA1105_StatusTypeDef SJA1105_CheckStatusRegisters(SJA1105_HandleTypeDef *dev);
-
+SJA1105_StatusTypeDef SJA1105_MACAddrTrapTest(SJA1105_HandleTypeDef *dev, const uint8_t *addr, bool *trapped);
 
 
 #ifdef __cplusplus
