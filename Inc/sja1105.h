@@ -103,7 +103,6 @@ typedef struct {
     bool                      output_rmii_refclk;  /* Only used when interface = SJA1105_INTERFACE_RMII and mode = SJA1105_MODE_PHY */
     SJA1105_IOVoltageTypeDef  voltage;
     bool                      configured;
-    SJA1105_PortState_TypeDef state;
 } SJA1105_PortTypeDef;
 
 typedef struct {
@@ -168,7 +167,8 @@ SJA1105_StatusTypeDef SJA1105_ReInit(SJA1105_HandleTypeDef *dev, const uint32_t 
 /* User Functions */
 SJA1105_StatusTypeDef SJA1105_PortGetSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef *speed);
 SJA1105_StatusTypeDef SJA1105_PortSetSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef speed);
-SJA1105_StatusTypeDef SJA1105_PortGetState(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_PortState_TypeDef *port_state);
+SJA1105_StatusTypeDef SJA1105_PortSetLearning(SJA1105_HandleTypeDef *dev, uint8_t port_num, bool enable);
+SJA1105_StatusTypeDef SJA1105_PortSetForwarding(SJA1105_HandleTypeDef *dev, uint8_t port_num, bool enable);
 SJA1105_StatusTypeDef SJA1105_PortSleep(SJA1105_HandleTypeDef *dev, uint8_t port_num);
 SJA1105_StatusTypeDef SJA1105_PortWake(SJA1105_HandleTypeDef *dev, uint8_t port_num);
 

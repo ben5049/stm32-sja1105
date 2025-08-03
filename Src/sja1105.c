@@ -69,11 +69,11 @@ SJA1105_StatusTypeDef __SJA1105_PortSetSpeed(SJA1105_HandleTypeDef *dev, uint8_t
     /* Set MII, RMII or RGMII port speed (AH1704 section 6.1) */
     else {
 
-        /* Update the MAC Configuration table */
+        /* Update the internal MAC Configuration table */
         status = SJA1105_MACConfTableSetSpeed(dev->tables.mac_config, dev->tables.mac_config_size, port_num, new_speed);
         if (status != SJA1105_OK) goto end;  /* No need to revert here because nothing has been changed if this fails */
 
-        /* Write the MAC Configuration table */
+        /* Write the internal MAC Configuration table to the device */
         status = SJA1105_MACConfTableWrite(dev, port_num);
         if (status != SJA1105_OK) {
             revert = true;
@@ -111,6 +111,105 @@ SJA1105_StatusTypeDef __SJA1105_PortSetSpeed(SJA1105_HandleTypeDef *dev, uint8_t
 /* Allow one layer of recursion so the speed can be reverted if the new value is invalid */
 SJA1105_StatusTypeDef SJA1105_PortSetSpeed(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_SpeedTypeDef new_speed){
     return __SJA1105_PortSetSpeed(dev, port_num, new_speed, true);
+}
+
+
+SJA1105_StatusTypeDef SJA1105_PortSetLearning(SJA1105_HandleTypeDef *dev, uint8_t port_num, bool enable){
+
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+    
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
+    SJA1105_LOCK;
+
+    SJA1105_StatusTypeDef revert_status = SJA1105_OK;
+    bool learning = false;
+
+    /* Get the current port learning status */
+    status = SJA1105_MACConfTableGetDynLearn(dev->tables.general_params, dev->tables.general_params_size, port_num, &learning);
+    if (status != SJA1105_OK) goto end;
+    
+    /* New setting is different */
+    if (learning != enable){
+
+        /* Update the internal MAC Configuration table */
+        status = SJA1105_MACConfTableSetDynLearn(dev->tables.general_params, dev->tables.general_params_size, port_num, enable);
+        if (status != SJA1105_OK) goto end;
+
+        /* Write the internal MAC Configuration table to the device */
+        status = SJA1105_MACConfTableWrite(dev, port_num);
+
+        /* If an error occured revert the table */
+        if (status != SJA1105_OK) {
+            revert_status = SJA1105_MACConfTableSetDynLearn(dev->tables.general_params, dev->tables.general_params_size, port_num, learning);
+            if (revert_status != SJA1105_OK) status = SJA1105_NEEDS_RESET;
+            goto end;
+        }
+    }
+
+    /* Give the mutex and return */
+    end:
+    SJA1105_UNLOCK;
+    return status;
+}
+
+
+SJA1105_StatusTypeDef SJA1105_PortSetForwarding(SJA1105_HandleTypeDef *dev, uint8_t port_num, bool enable){
+
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+    
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
+    SJA1105_LOCK;
+
+    SJA1105_StatusTypeDef revert_status = SJA1105_OK;
+    bool revert = false;
+    bool ingress = false;
+    bool egress  = false;
+
+    /* Get the current port ingress and egress status */
+    status = SJA1105_MACConfTableGetIngress(dev->tables.general_params, dev->tables.general_params_size, port_num, &ingress);
+    if (status != SJA1105_OK) goto end;
+    status = SJA1105_MACConfTableGetEgress(dev->tables.general_params, dev->tables.general_params_size, port_num, &egress);
+    if (status != SJA1105_OK) goto end;
+    
+    /* New settings are different */
+    if ((ingress != enable) || (egress != enable)){
+
+        /* Update the internal MAC Configuration table */
+        status = SJA1105_MACConfTableSetIngress(dev->tables.general_params, dev->tables.general_params_size, port_num, enable);
+        if (status != SJA1105_OK) goto end;
+        status = SJA1105_MACConfTableSetEgress(dev->tables.general_params, dev->tables.general_params_size, port_num, enable);
+        if (status != SJA1105_OK) {
+            revert = true;
+            goto end;
+        }
+
+        /* Write the internal MAC Configuration table to the device */
+        status = SJA1105_MACConfTableWrite(dev, port_num);
+        if (status != SJA1105_OK) {
+            revert = true;
+            goto end;
+        }
+    }
+
+    end:
+
+    /* If an error occured then revert */
+    if (revert){
+        revert_status = SJA1105_MACConfTableSetIngress(dev->tables.general_params, dev->tables.general_params_size, port_num, ingress);
+        if (revert_status != SJA1105_OK) {
+            status = SJA1105_NEEDS_RESET;
+        }
+        revert_status = SJA1105_MACConfTableSetEgress(dev->tables.general_params, dev->tables.general_params_size, port_num, egress);
+        if (revert_status != SJA1105_OK) {
+            status = SJA1105_NEEDS_RESET;
+        }
+    }
+
+    /* Give the mutex and return */
+    SJA1105_UNLOCK;
+    return status;
 }
 
 
@@ -206,21 +305,6 @@ SJA1105_StatusTypeDef SJA1105_CheckStatusRegisters(SJA1105_HandleTypeDef *dev){
 
     /* Give the mutex and return */
     end:
-    SJA1105_UNLOCK;
-    return status;
-}
-
-
-SJA1105_StatusTypeDef SJA1105_PortGetState(SJA1105_HandleTypeDef *dev, uint8_t port_num, SJA1105_PortState_TypeDef *port_state){
-
-    SJA1105_StatusTypeDef status = SJA1105_NOT_IMPLEMENTED_ERROR;
-
-    /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
-    SJA1105_LOCK;
-
-
-    /* Give the mutex and return */
     SJA1105_UNLOCK;
     return status;
 }

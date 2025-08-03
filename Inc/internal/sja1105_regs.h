@@ -260,6 +260,18 @@ enum SJA1105_CGUReg_Enum{
 #define SJA1105_STATIC_CONF_MAC_CONF_BASE(port_num)             ((port_num) * SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE)
 #define SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, word)       (SJA1105_STATIC_CONF_MAC_CONF_BASE(port_num) + (word))
 
+#define SJA1105_STATIC_CONF_MAC_CONF_INGRESS_OFFSET             (0)  /* bit 31 therefore in the 1st word */
+#define SJA1105_STATIC_CONF_MAC_CONF_INGRESS_SHIFT              (31)  /* shifted up by 31 */
+#define SJA1105_STATIC_CONF_MAC_CONF_INGRESS_MASK               (0x1 << SJA1105_STATIC_CONF_MAC_CONF_INGRESS_SHIFT)
+
+#define SJA1105_STATIC_CONF_MAC_CONF_EGRESS_OFFSET              (1)  /* bit 32 therefore in the 2nd word */
+#define SJA1105_STATIC_CONF_MAC_CONF_EGRESS_SHIFT               (0)  /* shifted up by 0 */
+#define SJA1105_STATIC_CONF_MAC_CONF_EGRESS_MASK                (0x1 << SJA1105_STATIC_CONF_MAC_CONF_EGRESS_SHIFT)
+
+#define SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_OFFSET           (1)  /* bit 33 therefore in the 2nd word */
+#define SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_SHIFT            (1)  /* shifted up by 1 */
+#define SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_MASK             (0x1 << SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_SHIFT)
+
 #define SJA1105_STATIC_CONF_MAC_CONF_SPEED_OFFSET               (3)  /* [98:97] therefore in the 4th word */
 #define SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT                (1)  /* shifted up by 1 */
 #define SJA1105_STATIC_CONF_MAC_CONF_SPEED_MASK                 (0x3 << SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT)

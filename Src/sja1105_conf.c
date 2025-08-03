@@ -39,7 +39,6 @@ SJA1105_StatusTypeDef SJA1105_PortConfigure(SJA1105_PortTypeDef *ports, uint8_t 
     ports[port_num].speed              = speed;
     ports[port_num].voltage            = voltage;
     ports[port_num].configured         = true;
-    ports[port_num].state              = SJA1105_PORT_STATE_DISCARDING;
 
     return status;
 }

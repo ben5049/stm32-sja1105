@@ -7,6 +7,7 @@
 
 #include "memory.h"
 #include "stdlib.h"
+#include "assert.h"
 
 #include "sja1105.h"
 #include "internal/sja1105_tables.h"
@@ -48,6 +49,106 @@ SJA1105_StatusTypeDef SJA1105_MACConfTableCheck(SJA1105_HandleTypeDef *dev, cons
     return status;
 }
 
+
+SJA1105_StatusTypeDef SJA1105_MACConfTableGetIngress(const uint32_t *table, uint32_t size, uint8_t port_num, bool *ingress){
+
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+    uint8_t index = SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, SJA1105_STATIC_CONF_MAC_CONF_INGRESS_OFFSET);
+
+    if (index >= size) status = SJA1105_PARAMETER_ERROR;
+    if (status != SJA1105_OK) return status;
+
+    *ingress = (table[index] & SJA1105_STATIC_CONF_MAC_CONF_INGRESS_MASK) != 0;
+
+    return status;
+}
+
+
+SJA1105_StatusTypeDef SJA1105_MACConfTableSetIngress(uint32_t *table, uint32_t size, uint8_t port_num, bool ingress){
+
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+    uint8_t index = SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, SJA1105_STATIC_CONF_MAC_CONF_INGRESS_OFFSET);
+
+    if (index >= size) status = SJA1105_PARAMETER_ERROR;
+    if (status != SJA1105_OK) return status;
+
+    if (ingress){
+        table[index] |= SJA1105_STATIC_CONF_MAC_CONF_INGRESS_MASK;
+    }
+    else {
+        table[index] &= ~SJA1105_STATIC_CONF_MAC_CONF_INGRESS_MASK;
+    }
+
+    return status;
+}
+
+
+SJA1105_StatusTypeDef SJA1105_MACConfTableGetEgress(const uint32_t *table, uint32_t size, uint8_t port_num, bool *egress){
+
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+    uint8_t index = SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, SJA1105_STATIC_CONF_MAC_CONF_EGRESS_OFFSET);
+
+    if (index >= size) status = SJA1105_PARAMETER_ERROR;
+    if (status != SJA1105_OK) return status;
+
+    *egress = (table[index] & SJA1105_STATIC_CONF_MAC_CONF_EGRESS_MASK) != 0;
+
+    return status;
+}
+
+
+SJA1105_StatusTypeDef SJA1105_MACConfTableSetEgress(uint32_t *table, uint32_t size, uint8_t port_num, bool egress){
+
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+    uint8_t index = SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, SJA1105_STATIC_CONF_MAC_CONF_EGRESS_OFFSET);
+
+    if (index >= size) status = SJA1105_PARAMETER_ERROR;
+    if (status != SJA1105_OK) return status;
+
+    if (egress){
+        table[index] |= SJA1105_STATIC_CONF_MAC_CONF_EGRESS_MASK;
+    }
+    else {
+        table[index] &= ~SJA1105_STATIC_CONF_MAC_CONF_EGRESS_MASK;
+    }
+
+    return status;
+}
+
+
+SJA1105_StatusTypeDef SJA1105_MACConfTableGetDynLearn(const uint32_t *table, uint32_t size, uint8_t port_num, bool *dyn_learn){
+
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+    uint8_t index = SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_OFFSET);
+
+    if (index >= size) status = SJA1105_PARAMETER_ERROR;
+    if (status != SJA1105_OK) return status;
+
+    *dyn_learn = (table[index] & SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_MASK) != 0;
+
+    return status;
+}
+
+
+SJA1105_StatusTypeDef SJA1105_MACConfTableSetDynLearn(uint32_t *table, uint32_t size, uint8_t port_num, bool dyn_learn){
+
+    SJA1105_StatusTypeDef status = SJA1105_OK;
+    uint8_t index = SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_OFFSET);
+
+    if (index >= size) status = SJA1105_PARAMETER_ERROR;
+    if (status != SJA1105_OK) return status;
+
+    if (dyn_learn){
+        table[index] |= SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_MASK;
+    }
+    else {
+        table[index] &= ~SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_MASK;
+    }
+
+    return status;
+}
+
+
 SJA1105_StatusTypeDef SJA1105_MACConfTableGetSpeed(const uint32_t *table, uint32_t size, uint8_t port_num, SJA1105_SpeedTypeDef *speed){
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
@@ -60,6 +161,7 @@ SJA1105_StatusTypeDef SJA1105_MACConfTableGetSpeed(const uint32_t *table, uint32
 
     return status;
 }
+
 
 SJA1105_StatusTypeDef SJA1105_MACConfTableSetSpeed(uint32_t *table, uint32_t size, uint8_t port_num, SJA1105_SpeedTypeDef speed){
 
@@ -81,6 +183,7 @@ SJA1105_StatusTypeDef SJA1105_MACConfTableWrite(SJA1105_HandleTypeDef *dev, uint
 
     SJA1105_StatusTypeDef status = SJA1105_OK;
     uint32_t reg_data;
+    uint8_t index = SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, 0);
 
     /* Wait for VALID to be 0.
      *
@@ -91,11 +194,12 @@ SJA1105_StatusTypeDef SJA1105_MACConfTableWrite(SJA1105_HandleTypeDef *dev, uint
     if (status != SJA1105_OK) return status;
 
     /* Parameter and bounds checking */
-    if (dev->tables.mac_config_size != (SJA1105_DYN_CONF_MAC_CONF_REG_8 - SJA1105_DYN_CONF_MAC_CONF_REG_1 + 1)) status = SJA1105_PARAMETER_ERROR;
+    assert(SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE == (SJA1105_DYN_CONF_MAC_CONF_REG_8 - SJA1105_DYN_CONF_MAC_CONF_REG_1 + 1));
+    if ((index + SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE) > dev->tables.mac_config_size) status = SJA1105_PARAMETER_ERROR;
     if (status != SJA1105_OK) return status;
     
     /* Write the table */
-    status = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_MAC_CONF_REG_1, dev->tables.mac_config, dev->tables.mac_config_size);
+    status = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_MAC_CONF_REG_1, &dev->tables.mac_config[index], SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE);
     if (status != SJA1105_OK) return status;
     
     /* Apply the table */
