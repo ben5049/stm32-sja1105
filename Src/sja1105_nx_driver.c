@@ -8,42 +8,42 @@
  *
  */
 
-
-#ifdef SJA1105_ENABLE_NX_DRIVER  /* Should be defined as a compiler flag to enable */
+#ifdef SJA1105_ENABLE_NX_DRIVER /* Should be defined as a compiler flag to enable */
 
 #include "tx_api.h"
-#include "nx_stm32_phy_driver.h"
 #include "nx_stm32_eth_config.h"
+#include "nx_stm32_phy_driver.h"
 
 #include "sja1105.h"
 
-extern SJA1105_HandleTypeDef hsja1105;
+
+extern sja1105_handle_t hsja1105;
 
 
-int32_t nx_eth_phy_init(void){
+int32_t nx_eth_phy_init(void) {
 
     int32_t ret = ETH_PHY_STATUS_OK;
 
     /* Poll the initialised flag and time out after 500ms */
     bool initialised = false;
-    for (uint_fast8_t attempt = 0; !initialised && (attempt < 50); attempt++){
+    for (uint_fast8_t attempt = 0; !initialised && (attempt < 50); attempt++) {
         initialised = hsja1105.initialised;
         if (!initialised) tx_thread_sleep((10 * TX_TIMER_TICKS_PER_SECOND) / 1000);
     }
 
     /* Return an error if not initialised */
-    if (!initialised) ret = ETH_PHY_STATUS_ERROR;
+    if (!initialised)
+        ret = ETH_PHY_STATUS_ERROR;
 
     return ret;
 }
 
-int32_t nx_eth_phy_get_link_state(void){
+int32_t nx_eth_phy_get_link_state(void) {
 
-    int32_t linkstate = ETH_PHY_STATUS_LINK_ERROR;
+    int32_t          linkstate  = ETH_PHY_STATUS_LINK_ERROR;
+    sja1105_status_t status     = SJA1105_OK;
+    bool             port_state = false;
 
-    SJA1105_StatusTypeDef status = SJA1105_OK;
-    bool port_state = false;
-    
     status = SJA1105_PortGetState(&hsja1105, hsja1105.config->host_port, &port_state);
     if (status != SJA1105_OK) linkstate = ETH_PHY_STATUS_LINK_ERROR;
 
@@ -52,7 +52,7 @@ int32_t nx_eth_phy_get_link_state(void){
     return linkstate;
 }
 
-nx_eth_phy_handle_t nx_eth_phy_get_handle(void){
+nx_eth_phy_handle_t nx_eth_phy_get_handle(void) {
 
     nx_eth_phy_handle_t handle = &hsja1105;
 

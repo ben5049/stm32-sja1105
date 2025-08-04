@@ -16,15 +16,15 @@ extern "C" {
 #include "sja1105.h"
 
 
-SJA1105_StatusTypeDef SJA1105_CheckPartID(SJA1105_HandleTypeDef *dev);
+sja1105_status_t SJA1105_CheckPartID(sja1105_handle_t *dev);
 
-SJA1105_StatusTypeDef SJA1105_ConfigureACU(SJA1105_HandleTypeDef *dev);
-SJA1105_StatusTypeDef SJA1105_ConfigureACUPort(SJA1105_HandleTypeDef *dev, uint8_t port_num);
+sja1105_status_t SJA1105_ConfigureACU(sja1105_handle_t *dev);
+sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_num);
 
-SJA1105_StatusTypeDef SJA1105_ConfigureCGU(SJA1105_HandleTypeDef *dev);
-SJA1105_StatusTypeDef SJA1105_ConfigureCGUPort(SJA1105_HandleTypeDef *dev, uint8_t port_num);
+sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev);
+sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_num);
 
-SJA1105_StatusTypeDef SJA1105_WriteStaticConfig(SJA1105_HandleTypeDef *dev, const uint32_t *static_conf, uint32_t static_conf_size);
+sja1105_status_t SJA1105_WriteStaticConfig(sja1105_handle_t *dev, const uint32_t *static_conf, uint32_t static_conf_size);
 
 
 #ifdef __cplusplus

@@ -11,12 +11,12 @@
 #include "internal/sja1105_regs.h"
 
 
-SJA1105_StatusTypeDef SJA1105_ConfigureACU(SJA1105_HandleTypeDef *dev){
+sja1105_status_t SJA1105_ConfigureACU(sja1105_handle_t *dev) {
 
-    SJA1105_StatusTypeDef status = SJA1105_OK;
+    sja1105_status_t status = SJA1105_OK;
 
     /* Configure the ACU with each port's IO pad configuration */
-    for (uint_fast8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++){
+    for (uint_fast8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++) {
         status = SJA1105_ConfigureACUPort(dev, port_num);
         if (status != SJA1105_OK) return status;
     }
@@ -28,16 +28,16 @@ SJA1105_StatusTypeDef SJA1105_ConfigureACU(SJA1105_HandleTypeDef *dev){
     return status;
 }
 
-SJA1105_StatusTypeDef SJA1105_ConfigureACUPort(SJA1105_HandleTypeDef *dev, uint8_t port_num){
+sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_num) {
 
-    SJA1105_StatusTypeDef status = SJA1105_OK;
-    SJA1105_PortTypeDef port = dev->ports[port_num];
+    sja1105_status_t status = SJA1105_OK;
+    sja1105_port_t   port   = dev->ports[port_num];
 
     /* Skip port 4 in variants that don't have one */
     if (((dev->config->variant == VARIANT_SJA1105R) || (dev->config->variant == VARIANT_SJA1105S)) && (port_num == 4)) return status;
 
     /* Don't continue if no configuration is supplied. This isn't an error since a default register values will be used instead. */
-    if (port.configured == false){
+    if (port.configured == false) {
         status = SJA1105_OK;
         return status;
     }
@@ -52,8 +52,7 @@ SJA1105_StatusTypeDef SJA1105_ConfigureACUPort(SJA1105_HandleTypeDef *dev, uint8
     reg_data[SJA1105_ACU_PAD_CFG_RX] = 0;
 
     /* Set slew rates */
-    switch (port.interface)
-    {
+    switch (port.interface) {
         case SJA1105_INTERFACE_MII:
 
             /* Low speed */
@@ -87,12 +86,12 @@ SJA1105_StatusTypeDef SJA1105_ConfigureACUPort(SJA1105_HandleTypeDef *dev, uint8
                     /* Fast speed */
                     reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_OS_HIGH;
                     break;
-                }
-                break;
-
-                default:
-                break;
             }
+            break;
+
+        default:
+            break;
+    }
 
     /* Disable internal TX pull downs */
     reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_IPUD_PI;
@@ -115,4 +114,3 @@ SJA1105_StatusTypeDef SJA1105_ConfigureACUPort(SJA1105_HandleTypeDef *dev, uint8
 
     return status;
 }
-

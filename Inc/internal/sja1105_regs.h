@@ -21,7 +21,7 @@ extern "C" {
 /* Ethernet Switch Core */
 /* ---------------------------------------------------------------------------- */
 
-enum SJA1105_GeneralReg_Enum{
+enum SJA1105_GeneralReg_Enum {
     SJA1105_REG_DEVICE_ID         = 0x00000000,
     SJA1105_REG_STATIC_CONF_FLAGS = 0x00000001,
     SJA1105_REG_VL_PART_STATUS    = 0x00000002,
@@ -34,36 +34,36 @@ enum SJA1105_GeneralReg_Enum{
     SJA1105_REG_GENERAL_STATUS_7  = 0x00000009,
     SJA1105_REG_GENERAL_STATUS_8  = 0x0000000a,
     SJA1105_REG_GENERAL_STATUS_9  = 0x0000000b,
-    SJA1105_REG_GENERAL_STATUS_10 = 0x0000000c,  /* RAM Parity error register (lower) */
-    SJA1105_REG_GENERAL_STATUS_11 = 0x0000000d,  /* RAM Parity error register (upper) */
+    SJA1105_REG_GENERAL_STATUS_10 = 0x0000000c, /* RAM Parity error register (lower) */
+    SJA1105_REG_GENERAL_STATUS_11 = 0x0000000d, /* RAM Parity error register (upper) */
 };
 
-enum SJA1105_DeviceID_Enum{
+enum SJA1105_DeviceID_Enum {
     SJA1105ET_DEVICE_ID = 0x9f00030e,
     SJA1105PR_DEVICE_ID = 0xaf00030e,
     SJA1105QS_DEVICE_ID = 0xae00030e,
 };
 
-#define SJA1105_CONFIGS_SHIFT         (31)
-#define SJA1105_CONFIGS_MASK          (0x1 << SJA1105_CONFIGS_SHIFT)
-#define SJA1105_CRCCHKL_SHIFT         (30)                            /* Local CRC check */
-#define SJA1105_CRCCHKL_MASK          (0x1 << SJA1105_CRCCHKL_SHIFT)  /* Local CRC check */
-#define SJA1105_IDS_SHIFT             (29)
-#define SJA1105_IDS_MASK              (0x1 << SJA1105_IDS_SHIFT)
-#define SJA1105_CRCCHKG_SHIFT         (28)                            /* Global CRC check */
-#define SJA1105_CRCCHKG_MASK          (0x1 << SJA1105_CRCCHKG_SHIFT)  /* Global CRC check */
+#define SJA1105_CONFIGS_SHIFT      (31)
+#define SJA1105_CONFIGS_MASK       (0x1 << SJA1105_CONFIGS_SHIFT)
+#define SJA1105_CRCCHKL_SHIFT      (30)                           /* Local CRC check */
+#define SJA1105_CRCCHKL_MASK       (0x1 << SJA1105_CRCCHKL_SHIFT) /* Local CRC check */
+#define SJA1105_IDS_SHIFT          (29)
+#define SJA1105_IDS_MASK           (0x1 << SJA1105_IDS_SHIFT)
+#define SJA1105_CRCCHKG_SHIFT      (28)                           /* Global CRC check */
+#define SJA1105_CRCCHKG_MASK       (0x1 << SJA1105_CRCCHKG_SHIFT) /* Global CRC check */
 
-#define SJA1105_REGULAR_CHECK_ADDR    (SJA1105_REG_VL_PART_STATUS)
-#define SJA1105_REGULAR_CHECK_SIZE    (SJA1105_REG_GENERAL_STATUS_11 - SJA1105_REGULAR_CHECK_ADDR + 1)
+#define SJA1105_REGULAR_CHECK_ADDR (SJA1105_REG_VL_PART_STATUS)
+#define SJA1105_REGULAR_CHECK_SIZE (SJA1105_REG_GENERAL_STATUS_11 - SJA1105_REGULAR_CHECK_ADDR + 1)
 
-#define SJA1105_L2BUSYS_SHIFT         (0)
-#define SJA1105_L2BUSYS_MASK          (0x1 << SJA1105_L2BUSYS_SHIFT)
+#define SJA1105_L2BUSYS_SHIFT      (0)
+#define SJA1105_L2BUSYS_MASK       (0x1 << SJA1105_L2BUSYS_SHIFT)
 
 /* ---------------------------------------------------------------------------- */
 /* Auxiliary Configuration Unit */
 /* ---------------------------------------------------------------------------- */
 
-enum SJA1105_ACUReg_Enum{
+enum SJA1105_ACUReg_Enum {
     SJA1105_ACU_REG_CFG_PAD_MIIX_BASE = 0x100800,
     SJA1105_ACU_REG_CFG_PAD_MISC      = 0x100840,
     SJA1105_ACU_REG_CFG_PAD_SPI       = 0x100880,
@@ -75,8 +75,8 @@ enum SJA1105_ACUReg_Enum{
     SJA1105_ACU_REG_PORT_STATUS_MII4  = 0x100904,
 };
 
-#define SJA1105_ACU_REG_CFG_PAD_MIIX_TX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE +  2 * (port_num))
-#define SJA1105_ACU_REG_CFG_PAD_MIIX_RX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE +  2 * (port_num) + 1)
+#define SJA1105_ACU_REG_CFG_PAD_MIIX_TX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE + 2 * (port_num))
+#define SJA1105_ACU_REG_CFG_PAD_MIIX_RX(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE + 2 * (port_num) + 1)
 #define SJA1105_ACU_REG_CFG_PAD_MIIX_ID(port_num)  (SJA1105_ACU_REG_CFG_PAD_MIIX_BASE + 16 + (port_num))
 
 #define SJA1105_ACU_REG_PORT_STATUS_MIIX(port_num) (SJA1105_ACU_REG_PORT_STATUS_MII0 + (port_num))
@@ -108,10 +108,10 @@ enum SJA1105_ACUReg_Enum{
 #define SJA1105_D32_OS_FAST                        (2 << 27)
 #define SJA1105_D32_OS_HIGH                        (3 << 27)
 
-#define SJA1105_OS_LOW                             (SJA1105_CLK_OS_LOW    | SJA1105_CTRL_OS_LOW    | SJA1105_D10_OS_LOW    | SJA1105_D32_OS_LOW   )
+#define SJA1105_OS_LOW                             (SJA1105_CLK_OS_LOW | SJA1105_CTRL_OS_LOW | SJA1105_D10_OS_LOW | SJA1105_D32_OS_LOW)
 #define SJA1105_OS_MEDIUM                          (SJA1105_CLK_OS_MEDIUM | SJA1105_CTRL_OS_MEDIUM | SJA1105_D10_OS_MEDIUM | SJA1105_D32_OS_MEDIUM)
-#define SJA1105_OS_FAST                            (SJA1105_CLK_OS_FAST   | SJA1105_CTRL_OS_FAST   | SJA1105_D10_OS_FAST   | SJA1105_D32_OS_FAST  )
-#define SJA1105_OS_HIGH                            (SJA1105_CLK_OS_HIGH   | SJA1105_CTRL_OS_HIGH   | SJA1105_D10_OS_HIGH   | SJA1105_D32_OS_HIGH  )
+#define SJA1105_OS_FAST                            (SJA1105_CLK_OS_FAST | SJA1105_CTRL_OS_FAST | SJA1105_D10_OS_FAST | SJA1105_D32_OS_FAST)
+#define SJA1105_OS_HIGH                            (SJA1105_CLK_OS_HIGH | SJA1105_CTRL_OS_HIGH | SJA1105_D10_OS_HIGH | SJA1105_D32_OS_HIGH)
 
 #define SJA1105_CLK_IPUD_PU                        (0 << 0)
 #define SJA1105_CLK_IPUD_R                         (1 << 0)
@@ -131,7 +131,7 @@ enum SJA1105_ACUReg_Enum{
 #define SJA1105_D32_IPUD_PD                        (3 << 24)
 
 #define SJA1105_IPUD_PU                            (SJA1105_CLK_IPUD_PU | SJA1105_CTRL_IPUD_PU | SJA1105_D10_IPUD_PU | SJA1105_D32_IPUD_PU)
-#define SJA1105_IPUD_R                             (SJA1105_CLK_IPUD_R  | SJA1105_CTRL_IPUD_R  | SJA1105_D10_IPUD_R  | SJA1105_D32_IPUD_R )
+#define SJA1105_IPUD_R                             (SJA1105_CLK_IPUD_R | SJA1105_CTRL_IPUD_R | SJA1105_D10_IPUD_R | SJA1105_D32_IPUD_R)
 #define SJA1105_IPUD_PI                            (SJA1105_CLK_IPUD_PI | SJA1105_CTRL_IPUD_PI | SJA1105_D10_IPUD_PI | SJA1105_D32_IPUD_PI)
 #define SJA1105_IPUD_PD                            (SJA1105_CLK_IPUD_PD | SJA1105_CTRL_IPUD_PD | SJA1105_D10_IPUD_PD | SJA1105_D32_IPUD_PD)
 
@@ -144,13 +144,13 @@ enum SJA1105_ACUReg_Enum{
 #define SJA1105_D32_IH_SCHMITT                     (0 << 26)
 #define SJA1105_D32_IH_NON_SCHMITT                 (1 << 26)
 
-#define SJA1105_IH_SCHMITT                         (SJA1105_CLK_IH_SCHMITT     | SJA1105_CTRL_IH_SCHMITT     | SJA1105_D10_IH_SCHMITT     | SJA1105_D32_IH_SCHMITT)
+#define SJA1105_IH_SCHMITT                         (SJA1105_CLK_IH_SCHMITT | SJA1105_CTRL_IH_SCHMITT | SJA1105_D10_IH_SCHMITT | SJA1105_D32_IH_SCHMITT)
 #define SJA1105_IH_NON_SCHMITT                     (SJA1105_CLK_IH_NON_SCHMITT | SJA1105_CTRL_IH_NON_SCHMITT | SJA1105_D10_IH_NON_SCHMITT | SJA1105_D32_IH_NON_SCHMITT)
 
 #define SJA1105_PART_NR_OFFSET                     (4)
 #define SJA1105_PART_NR_MASK                       (0xffff << SJA1105_PART_NR_OFFSET)
 
-enum SJA1105_PartNR_Enum{
+enum SJA1105_PartNR_Enum {
     PART_NR_SJA1105ET = 0x9a82,
     PART_NR_SJA1105P  = 0x9a84,
     PART_NR_SJA1105Q  = 0x9a85,
@@ -158,26 +158,26 @@ enum SJA1105_PartNR_Enum{
     PART_NR_SJA1105S  = 0x9a87
 };
 
-#define SJA1105_TS_PD                              (1 << 6)
-#define SJA1105_TS_THRESHOLD_MASK                  (0x3f)
-#define SJA1105_TS_EXCEEDED                        (1)
+#define SJA1105_TS_PD             (1 << 6)
+#define SJA1105_TS_THRESHOLD_MASK (0x3f)
+#define SJA1105_TS_EXCEEDED       (1)
 
-#define SJA1105_TS_LUT_SIZE                        (40)
+#define SJA1105_TS_LUT_SIZE       (40)
 static const int16_t SJA1105_TS_LUT[SJA1105_TS_LUT_SIZE] = {
     INT16_MIN, -457, -417, -375, -330, -284, -235, -183,
-         -114,  -61,  -21,   21,   65,  110,  157,  206,
-          256,  309,  364,  420,  461,  502,  545,  588,
-          633,  679,  726,  774,  824,  875,  928,  982,
-         1025, 1069, 1114, 1160, 1207, 1255, 1305, 1355};
+    -114, -61, -21, 21, 65, 110, 157, 206,
+    256, 309, 364, 420, 461, 502, 545, 588,
+    633, 679, 726, 774, 824, 875, 928, 982,
+    1025, 1069, 1114, 1160, 1207, 1255, 1305, 1355};
 
 /* ---------------------------------------------------------------------------- */
 /* Clock Generation Unit */
 /* ---------------------------------------------------------------------------- */
 
-enum SJA1105_CGUReg_Enum{
+enum SJA1105_CGUReg_Enum {
     SJA1105_CGU_REG_RFRQ           = 0x100006,
-    SJA1105_CGU_REG_XO66M_0_C      = 0x100006,  /* C = Control */
-    SJA1105_CGU_REG_PLL_0_S        = 0x100007,  /* S = Status */
+    SJA1105_CGU_REG_XO66M_0_C      = 0x100006, /* C = Control */
+    SJA1105_CGU_REG_PLL_0_S        = 0x100007, /* S = Status */
     SJA1105_CGU_REG_PLL_0_C        = 0x100008,
     SJA1105_CGU_REG_PLL_1_S        = 0x100009,
     SJA1105_CGU_REG_PLL_1_C        = 0x10000a,
@@ -224,8 +224,8 @@ enum SJA1105_CGUReg_Enum{
 #define SJA1105_CGU_IDIV_MASK                (0xff << SJA1105_CGU_IDIV_SHIFT)
 
 #define SJA1105_CGU_CLK_SRC_XO66M_0          (0xa)
-#define SJA1105_CGU_CLK_SRC_PLL0(port_num)   (0xb + ((port_num) % 3))  /* Use different phase for each port to improve EMC */
-#define SJA1105_CGU_CLK_SRC_PLL1(port_num)   (0xe + ((port_num) % 3))  /* Use different phase for each port to improve EMC */
+#define SJA1105_CGU_CLK_SRC_PLL0(port_num)   (0xb + ((port_num) % 3)) /* Use different phase for each port to improve EMC */
+#define SJA1105_CGU_CLK_SRC_PLL1(port_num)   (0xe + ((port_num) % 3)) /* Use different phase for each port to improve EMC */
 #define SJA1105_CGU_CLK_SRC_IDIV(port_num)   (0x11 + (port_num))
 #define SJA1105_CGU_CLK_SRC_TX_CLK(port_num) (2 * (port_num))
 #define SJA1105_CGU_CLK_SRC_RX_CLK(port_num) ((2 * (port_num)) + 1)
@@ -240,7 +240,7 @@ enum SJA1105_CGUReg_Enum{
 #define SJA1105_STATIC_CONF_BLOCK_HEADER_CRC                    (1)
 #define SJA1105_STATIC_CONF_BLOCK_DATA_CRC                      (1)
 #define SJA1105_STATIC_CONF_BLOCK_FIRST_OFFSET                  (1)
-#define SJA1105_STATIC_CONF_BLOCK_LAST_SIZE                     (3)  /* Last block contains two empty words and the global CRC */
+#define SJA1105_STATIC_CONF_BLOCK_LAST_SIZE                     (3) /* Last block contains two empty words and the global CRC */
 
 #define SJA1105_STATIC_CONF_BLOCK_ID_OFFSET                     (0)
 #define SJA1105_STATIC_CONF_BLOCK_ID_SHIFT                      (24)
@@ -263,28 +263,28 @@ enum SJA1105_CGUReg_Enum{
 #define SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, word)       (SJA1105_STATIC_CONF_MAC_CONF_BASE(port_num) + (word))
 
 #define SJA1105_STATIC_CONF_MAC_CONF_INGRESS_OFFSET             (0)  /* bit 31 therefore in the 1st word */
-#define SJA1105_STATIC_CONF_MAC_CONF_INGRESS_SHIFT              (31)  /* shifted up by 31 */
+#define SJA1105_STATIC_CONF_MAC_CONF_INGRESS_SHIFT              (31) /* shifted up by 31 */
 #define SJA1105_STATIC_CONF_MAC_CONF_INGRESS_MASK               (0x1 << SJA1105_STATIC_CONF_MAC_CONF_INGRESS_SHIFT)
 
-#define SJA1105_STATIC_CONF_MAC_CONF_EGRESS_OFFSET              (1)  /* bit 32 therefore in the 2nd word */
-#define SJA1105_STATIC_CONF_MAC_CONF_EGRESS_SHIFT               (0)  /* shifted up by 0 */
+#define SJA1105_STATIC_CONF_MAC_CONF_EGRESS_OFFSET              (1) /* bit 32 therefore in the 2nd word */
+#define SJA1105_STATIC_CONF_MAC_CONF_EGRESS_SHIFT               (0) /* shifted up by 0 */
 #define SJA1105_STATIC_CONF_MAC_CONF_EGRESS_MASK                (0x1 << SJA1105_STATIC_CONF_MAC_CONF_EGRESS_SHIFT)
 
-#define SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_OFFSET           (1)  /* bit 33 therefore in the 2nd word */
-#define SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_SHIFT            (1)  /* shifted up by 1 */
+#define SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_OFFSET           (1) /* bit 33 therefore in the 2nd word */
+#define SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_SHIFT            (1) /* shifted up by 1 */
 #define SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_MASK             (0x1 << SJA1105_STATIC_CONF_MAC_CONF_DYN_LEARN_SHIFT)
 
-#define SJA1105_STATIC_CONF_MAC_CONF_SPEED_OFFSET               (3)  /* [98:97] therefore in the 4th word */
-#define SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT                (1)  /* shifted up by 1 */
+#define SJA1105_STATIC_CONF_MAC_CONF_SPEED_OFFSET               (3) /* [98:97] therefore in the 4th word */
+#define SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT                (1) /* shifted up by 1 */
 #define SJA1105_STATIC_CONF_MAC_CONF_SPEED_MASK                 (0x3 << SJA1105_STATIC_CONF_MAC_CONF_SPEED_SHIFT)
 
 #define SJA1105_STATIC_CONF_GENERAL_PARAMS_SIZE                 (11)
 
-#define SJA1105_MAC_FLT_START_OFFSET_W                          (4) /* Starts at bit 152 therefore in the 5th word */
-#define SJA1105_MAC_FLT_START_OFFSET_B                          (3) /* Starts at bit 152 therefore offset 3 bytes from the nearest multiple of 32 bits (128 + 3 * 8 = 152) */
+#define SJA1105_MAC_FLT_START_OFFSET_W                          (4)  /* Starts at bit 152 therefore in the 5th word */
+#define SJA1105_MAC_FLT_START_OFFSET_B                          (3)  /* Starts at bit 152 therefore offset 3 bytes from the nearest multiple of 32 bits (128 + 3 * 8 = 152) */
 
 #define SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_OFFSET     (4)  /* [144:142] therefore in the 5th word */
-#define SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_SHIFT      (14)  /* shifted up by 14 */
+#define SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_SHIFT      (14) /* shifted up by 14 */
 #define SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_MASK       (0x7 << SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_SHIFT)
 
 #define SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_SHIFT(port_num)   (19 + ((port_num) * 3))
@@ -298,14 +298,13 @@ enum SJA1105_CGUReg_Enum{
 /* ---------------------------------------------------------------------------- */
 
 
-enum SJA1105_DynConfReg_Enum{
+enum SJA1105_DynConfReg_Enum {
     SJA1105_DYN_CONF_L2_LUT_REG_0   = 0x29,
     SJA1105_DYN_CONF_L2_LUT_REG_1   = 0x24,
     SJA1105_DYN_CONF_L2_LUT_REG_2   = 0x25,
     SJA1105_DYN_CONF_L2_LUT_REG_3   = 0x26,
     SJA1105_DYN_CONF_L2_LUT_REG_4   = 0x27,
     SJA1105_DYN_CONF_L2_LUT_REG_5   = 0x28,
-
     SJA1105_DYN_CONF_MAC_CONF_REG_0 = 0x53,
     SJA1105_DYN_CONF_MAC_CONF_REG_1 = 0x4b,
     SJA1105_DYN_CONF_MAC_CONF_REG_2 = 0x4c,
@@ -317,29 +316,29 @@ enum SJA1105_DynConfReg_Enum{
     SJA1105_DYN_CONF_MAC_CONF_REG_8 = 0x52,
 };
 
-#define SJA1105_DYN_CONF_L2_LUT_VALID          (1 << 31)
-#define SJA1105_DYN_CONF_L2_LUT_RDRWSET        (1 << 30)
-#define SJA1105_DYN_CONF_L2_LUT_ERRORS         (1 << 29)
-#define SJA1105_DYN_CONF_L2_LUT_LOCKEDS        (1 << 28)
-#define SJA1105_DYN_CONF_L2_LUT_VALIDENT       (1 << 27)
-#define SJA1105_DYN_CONF_L2_LUT_MGMTROUTE      (1 << 26)
+#define SJA1105_DYN_CONF_L2_LUT_VALID     (1 << 31)
+#define SJA1105_DYN_CONF_L2_LUT_RDRWSET   (1 << 30)
+#define SJA1105_DYN_CONF_L2_LUT_ERRORS    (1 << 29)
+#define SJA1105_DYN_CONF_L2_LUT_LOCKEDS   (1 << 28)
+#define SJA1105_DYN_CONF_L2_LUT_VALIDENT  (1 << 27)
+#define SJA1105_DYN_CONF_L2_LUT_MGMTROUTE (1 << 26)
 
-#define SJA1105_MGMT_INDEX_OFFSET              (0)
-#define SJA1105_MGMT_INDEX_SHIFT               (6)
-#define SJA1105_MGMT_INDEX_MASK                (0x3 << SJA1105_MGMT_INDEX_SHIFT)
+#define SJA1105_MGMT_INDEX_OFFSET         (0)
+#define SJA1105_MGMT_INDEX_SHIFT          (6)
+#define SJA1105_MGMT_INDEX_MASK           (0x3 << SJA1105_MGMT_INDEX_SHIFT)
 
-#define SJA1105_MGMT_MGMTVALID_OFFSET          (0)
-#define SJA1105_MGMT_MGMTVALID_MASK            (1 << 16)
+#define SJA1105_MGMT_MGMTVALID_OFFSET     (0)
+#define SJA1105_MGMT_MGMTVALID_MASK       (1 << 16)
 
-#define SJA1105_MGMT_DESTPORTS_OFFSET          (0)
-#define SJA1105_MGMT_DESTPORTS_SHIFT           (17)
-#define SJA1105_MGMT_DESTPORTS_MASK            (0x1f << SJA1105_MGMT_DESTPORTS_SHIFT)
+#define SJA1105_MGMT_DESTPORTS_OFFSET     (0)
+#define SJA1105_MGMT_DESTPORTS_SHIFT      (17)
+#define SJA1105_MGMT_DESTPORTS_MASK       (0x1f << SJA1105_MGMT_DESTPORTS_SHIFT)
 
-enum SJA1105_MgmtHostCmd{
-    SJA1105_MGMT_HOSTCMD_SEARCH            = 0x1,
-    SJA1105_MGMT_HOSTCMD_READ              = 0x2,
-    SJA1105_MGMT_HOSTCMD_WRITE             = 0x3,
-    SJA1105_MGMT_HOSTCMD_INVALIDATE_ENTRY  = 0x4
+enum SJA1105_MgmtHostCmd {
+    SJA1105_MGMT_HOSTCMD_SEARCH           = 0x1,
+    SJA1105_MGMT_HOSTCMD_READ             = 0x2,
+    SJA1105_MGMT_HOSTCMD_WRITE            = 0x3,
+    SJA1105_MGMT_HOSTCMD_INVALIDATE_ENTRY = 0x4
 };
 
 #define SJA1105_MGMT_HOSTCMD_SHIFT             (23)
