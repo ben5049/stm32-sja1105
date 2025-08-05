@@ -189,8 +189,78 @@ sja1105_status_t SJA1105_WriteRegister(sja1105_handle_t *dev, uint32_t addr, con
 
     } while (dwords_remaining > 0);
 
-/* Give the mutex and return */
 end:
+
+    /* Give the mutex and return */
+    SJA1105_UNLOCK;
+    return status;
+}
+
+
+/* Invalidate a range of L2 look up table indexes. This operation includes both end indexes.
+ *
+ * This function is esimated to take at least 12us to invalidate one entry. (Assuming VALID is
+ * never set when checked and Fspi = 25MHz with negligible CPU overhead).
+ *
+ * TODO: This function could be sped up by using DMA transfers and grouping the invalidates into
+ *       blocks. However this would require the CS pin to be synchronised, meaning the SPI
+ *       peripheral would have to be reconfigured.
+ */
+sja1105_status_t SJA1105_L2LUTInvalidateRange(sja1105_handle_t *dev, uint16_t low_i, uint16_t high_i) {
+
+    sja1105_status_t status = SJA1105_OK;
+
+    /* Take the mutex */
+    SJA1105_LOCK;
+
+    /* Argument checking */
+    if (low_i > high_i) status = SJA1105_PARAMETER_ERROR;
+    if (high_i >= SJA1105_L2ADDR_LU_NUM_ENTRIES) status = SJA1105_PARAMETER_ERROR;
+    if (status != SJA1105_OK) goto end;
+
+    /* Initialise the empty register data array: 1 command word + 5 entry words + 1 write entry command */
+    static const uint8_t size = 1 + SJA1105_L2ADDR_LU_ENTRY_SIZE + 1;
+    uint32_t             reg_data[1 + SJA1105_L2ADDR_LU_ENTRY_SIZE + 1] = {0,0,0,0,0,0,0};
+
+    /* Setup the command word for a write to L2 Address Lookup table reconfiguration register 1 */
+    reg_data[0]  = SJA1105_SPI_WRITE_FRAME;
+    reg_data[0] |= (SJA1105_DYN_CONF_L2_LUT_REG_1 & SJA1105_SPI_ADDR_MASK) << SJA1105_SPI_ADDR_POSITION;
+
+    /* Setup the L2 Address Lookup table reconfiguration register 0 with the invalidate command */
+    reg_data[size - 1]  = SJA1105_DYN_CONF_L2_LUT_VALID;
+    reg_data[size - 1] |= SJA1105_DYN_CONF_L2_LUT_RDRWSET;
+    reg_data[size - 1] |= ((uint32_t) SJA1105_L2_LUT_HOSTCMD_INVALIDATE_ENTRY << SJA1105_L2_LUT_HOSTCMD_SHIFT) & SJA1105_L2_LUT_HOSTCMD_MASK;
+
+    /* Iterate through all entries to be invalidated */
+    for (uint_fast16_t i = low_i; i <= high_i; i++) {
+
+        /* Set the entry index */
+        reg_data[1 + SJA1105_L2_LUT_INDEX_OFFSET] = ((uint32_t) i << SJA1105_L2_LUT_INDEX_SHIFT) && SJA1105_L2_LUT_INDEX_MASK;
+
+        /* Wait for VALID to be 0. */
+        status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_L2_LUT_REG_0, SJA1105_DYN_CONF_L2_LUT_VALID, false);
+        if (status != SJA1105_OK) goto end;
+
+        /* Start the transaction after a delay (ensures successive transactions meet timing requirements) */
+        SJA1105_DELAY_NS(SJA1105_T_SPI_WR);
+        HAL_GPIO_WritePin(dev->config->cs_port, dev->config->cs_pin, RESET);
+        SJA1105_DELAY_NS(SJA1105_T_SPI_LEAD);
+
+        /* Write the invalidate command */
+        if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) reg_data, size, dev->config->timeout) != HAL_OK) {
+            status = SJA1105_SPI_ERROR;
+            goto end;
+        }
+        dev->events.words_written += size;
+
+        /* End the transaction */
+        SJA1105_DELAY_NS(SJA1105_T_SPI_LAG);
+        HAL_GPIO_WritePin(dev->config->cs_port, dev->config->cs_pin, SET);
+    }
+
+end:
+
+    /* Give the mutex and return */
     SJA1105_UNLOCK;
     return status;
 }

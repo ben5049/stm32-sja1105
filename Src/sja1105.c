@@ -71,10 +71,10 @@ sja1105_status_t __SJA1105_PortSetSpeed(sja1105_handle_t *dev, uint8_t port_num,
     SJA1105_PortGetSpeed(dev, port_num, &current_speed);
 
     /* Check the speed argument */
-    if (new_speed == current_speed) {
+    if (new_speed == current_speed) { /* New speed should be different */
         status = SJA1105_OK;
         goto end;
-    };                                                                         /* New speed should be different */
+    };
     if (port.speed != SJA1105_SPEED_DYNAMIC) status = SJA1105_PARAMETER_ERROR; /* Only ports configured as dynamic can have their speed changed */
     if (new_speed == SJA1105_SPEED_DYNAMIC) status = SJA1105_PARAMETER_ERROR;  /* Speed shouldn't be set to dynamic after the initial configuration */
     if (new_speed >= SJA1105_SPEED_INVALID) status = SJA1105_PARAMETER_ERROR;  /* Invalid speed */
@@ -120,7 +120,7 @@ end:
     /* If the configuration failed midway then try to revert it */
     if (revert) {
         revert_status = __SJA1105_PortSetSpeed(dev, port_num, current_speed, false);
-        if (revert_status != SJA1105_OK) status = SJA1105_NEEDS_RESET; /* Error while fixing an error! */
+        if (revert_status != SJA1105_OK) status = SJA1105_REVERT_ERROR; /* Error while fixing an error! */
     }
 
     /* Give the mutex and return */
@@ -163,7 +163,7 @@ sja1105_status_t SJA1105_PortSetLearning(sja1105_handle_t *dev, uint8_t port_num
         /* If an error occured revert the table */
         if (status != SJA1105_OK) {
             revert_status = SJA1105_MACConfTableSetDynLearn(dev->tables.general_params, dev->tables.general_params_size, port_num, learning);
-            if (revert_status != SJA1105_OK) status = SJA1105_NEEDS_RESET;
+            if (revert_status != SJA1105_OK) status = SJA1105_REVERT_ERROR;
             goto end;
         }
     }
@@ -220,11 +220,11 @@ end:
     if (revert) {
         revert_status = SJA1105_MACConfTableSetIngress(dev->tables.general_params, dev->tables.general_params_size, port_num, ingress);
         if (revert_status != SJA1105_OK) {
-            status = SJA1105_NEEDS_RESET;
+            status = SJA1105_REVERT_ERROR;
         }
         revert_status = SJA1105_MACConfTableSetEgress(dev->tables.general_params, dev->tables.general_params_size, port_num, egress);
         if (revert_status != SJA1105_OK) {
-            status = SJA1105_NEEDS_RESET;
+            status = SJA1105_REVERT_ERROR;
         }
     }
 
@@ -363,9 +363,62 @@ sja1105_status_t SJA1105_PortWake(sja1105_handle_t *dev, uint8_t port_num) {
 }
 
 
-sja1105_status_t SJA1105_ManagementRouteCreate(sja1105_handle_t *dev, const uint8_t dst_addr[MAC_ADDR_SIZE], uint8_t dst_ports, bool takets, bool tsreg, void *context) {
+sja1105_status_t SJA1105_L2EntryReadByIndex(sja1105_handle_t *dev, uint16_t index, bool managment, uint32_t entry[SJA1105_L2ADDR_LU_ENTRY_SIZE]) {
 
     sja1105_status_t status = SJA1105_NOT_IMPLEMENTED_ERROR;
+
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
+    SJA1105_LOCK;
+
+    /* Argument checking */
+    if (managment && (index >= SJA1105_NUM_MGMT_SLOTS)) status = SJA1105_PARAMETER_ERROR;
+    if (!managment && (index >= SJA1105_L2ADDR_LU_NUM_ENTRIES)) status = SJA1105_PARAMETER_ERROR;
+    if (status != SJA1105_OK) goto end;
+
+    /* Initialise variables */
+    uint32_t reg_data[SJA1105_L2ADDR_LU_ENTRY_SIZE] = {0, 0, 0, 0, 0};
+
+    /* Wait for VALID to be 0. */
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_L2_LUT_REG_0, SJA1105_DYN_CONF_L2_LUT_VALID, false);
+    if (status != SJA1105_OK) goto end;
+
+    /* Write the index to be read */
+    if (managment) {
+        reg_data[SJA1105_MGMT_INDEX_OFFSET] = ((uint32_t) index << SJA1105_MGMT_INDEX_SHIFT) & SJA1105_MGMT_INDEX_MASK;
+    } else {
+        reg_data[SJA1105_L2_LUT_INDEX_OFFSET] = ((uint32_t) index << SJA1105_L2_LUT_INDEX_SHIFT) & SJA1105_L2_LUT_INDEX_MASK;
+    }
+    status = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_L2_LUT_REG_1, reg_data, SJA1105_L2ADDR_LU_ENTRY_SIZE);
+    if (status != SJA1105_OK) goto end;
+
+    /* Write the read command */
+    reg_data[0]  = 0; /* Ensures RDRWSET is set to 0 (read) */
+    reg_data[0] |= SJA1105_DYN_CONF_L2_LUT_VALID;
+    if (managment) reg_data[0] |= SJA1105_DYN_CONF_L2_LUT_MGMTROUTE;
+    reg_data[0] |= ((uint32_t) SJA1105_L2_LUT_HOSTCMD_READ << SJA1105_L2_LUT_HOSTCMD_SHIFT) & SJA1105_L2_LUT_HOSTCMD_MASK;
+    status       = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_L2_LUT_REG_0, reg_data, 1);
+    if (status != SJA1105_OK) goto end;
+
+    /* Wait for VALID to be 0. */
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_L2_LUT_REG_0, SJA1105_DYN_CONF_L2_LUT_VALID, false);
+    if (status != SJA1105_OK) goto end;
+
+    /* Read the entry */
+    status = SJA1105_ReadRegister(dev, SJA1105_DYN_CONF_L2_LUT_REG_1, entry, SJA1105_L2ADDR_LU_ENTRY_SIZE);
+    if (status != SJA1105_OK) goto end;
+
+end:
+
+    /* Give the mutex and return */
+    SJA1105_UNLOCK;
+    return status;
+}
+
+
+sja1105_status_t SJA1105_ManagementRouteCreate(sja1105_handle_t *dev, const uint8_t dst_addr[MAC_ADDR_SIZE], uint8_t dst_ports, bool takets, bool tsreg, void *context) {
+
+    sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
     SJA1105_INIT_CHECK;
@@ -376,47 +429,85 @@ sja1105_status_t SJA1105_ManagementRouteCreate(sja1105_handle_t *dev, const uint
     if (status != SJA1105_OK) goto end;
 
     /* Create variables */
-    uint32_t lut_entry[SJA1105_MGMT_L2ADDR_LU_ENTRY_SIZE];
+    uint32_t lut_entry[SJA1105_L2ADDR_LU_ENTRY_SIZE] = {0, 0, 0, 0, 0};
     uint32_t reg_data;
-    uint8_t  free_entry = SJA1105_NUM_MGMT_SLOTS;
+    uint8_t  free_entry   = SJA1105_NUM_MGMT_SLOTS;
+    uint32_t current_time = dev->callbacks->callback_get_time_ms(dev);
 
     /* Look for a free slot */
-    for (uint_fast8_t i = 0; (free_entry == SJA1105_NUM_MGMT_SLOTS) && (i < SJA1105_NUM_MGMT_SLOTS); i++) {
+    for (uint_fast8_t i = 0; i < SJA1105_NUM_MGMT_SLOTS; i++) {
         if (!dev->management_routes.slot_taken[i]) {
             free_entry = i;
             break;
         }
     }
 
-    /* No free slots. TODO evict an entry based on age, or return an error. keep track of timed out entries */
+    /* No free slots: attempt free any slots that have been used up and try again */
     if (free_entry == SJA1105_NUM_MGMT_SLOTS) {
-        assert(false);
+
+        status = SJA1105_ManagementRouteFree(dev);
+        if (status != SJA1105_OK) goto end;
+
+        for (uint_fast8_t i = 0; i < SJA1105_NUM_MGMT_SLOTS; i++) {
+            if (!dev->management_routes.slot_taken[i]) {
+                free_entry = i;
+                break;
+            }
+        }
+    }
+
+    /* Still no free slots: attempt to evict an entry based on age */
+    if (free_entry == SJA1105_NUM_MGMT_SLOTS) {
+        for (uint_fast8_t i = 0; i < SJA1105_NUM_MGMT_SLOTS; i++) {
+            if (current_time - dev->management_routes.timestamps[i] > dev->config->mgmt_timeout) {
+                dev->management_routes.slot_taken[i] = false;
+                dev->events.mgmt_entries_dropped++;
+                free_entry = i;
+                break;
+            }
+        }
+    }
+
+    /* Still no free slots, return an error */
+    if (free_entry == SJA1105_NUM_MGMT_SLOTS) {
+        status = SJA1105_NO_FREE_MGMT_ROUTES_ERROR;
+        goto end;
     }
 
     /* Create the lookup table entry */
     lut_entry[SJA1105_MGMT_MGMTVALID_OFFSET]  = SJA1105_MGMT_MGMTVALID_MASK;
     lut_entry[SJA1105_MGMT_INDEX_OFFSET]     |= ((uint32_t) free_entry << SJA1105_MGMT_INDEX_SHIFT) & SJA1105_MGMT_INDEX_MASK;
     lut_entry[SJA1105_MGMT_DESTPORTS_OFFSET] |= ((uint32_t) dst_ports << SJA1105_MGMT_DESTPORTS_SHIFT) & SJA1105_MGMT_DESTPORTS_MASK;
-    /* TODO Copy dst_addr in too */
+    if (takets) lut_entry[SJA1105_MGMT_TAKETS_MASK] |= SJA1105_MGMT_TAKETS_MASK;
+    if (tsreg) lut_entry[SJA1105_MGMT_TSREG_OFFSET] |= SJA1105_MGMT_TSREG_MASK;
+
+    /* Copy the destination MAC address into ENTRY[69:22]. TODO: Check this logic */
+    lut_entry[0] |= (uint32_t) dst_addr[0] << 22; /* [29:22] */
+    lut_entry[0] |= (uint32_t) dst_addr[1] << 30; /* [31:30] */
+    lut_entry[1] |= (uint32_t) dst_addr[1] >> 2;  /* [37:32] */
+    lut_entry[1] |= (uint32_t) dst_addr[2] << 6;  /* [45:38] */
+    lut_entry[1] |= (uint32_t) dst_addr[3] << 14; /* [53:46] */
+    lut_entry[1] |= (uint32_t) dst_addr[4] << 22; /* [61:54] */
+    lut_entry[1] |= (uint32_t) dst_addr[5] << 30; /* [63:62] */
+    lut_entry[2] |= (uint32_t) dst_addr[5] >> 2;  /* [69:64] */
 
     /* Wait for VALID to be 0. */
     status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_L2_LUT_REG_0, SJA1105_DYN_CONF_L2_LUT_VALID, false);
     if (status != SJA1105_OK) goto end;
 
-    /* TODO: Send lut_entry */
-    status = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_L2_LUT_REG_1, lut_entry, SJA1105_MGMT_L2ADDR_LU_ENTRY_SIZE);
+    /* Write the entry */
+    status = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_L2_LUT_REG_1, lut_entry, SJA1105_L2ADDR_LU_ENTRY_SIZE);
     if (status != SJA1105_OK) goto end;
 
-    /* TODO: Setup L2 Forwarding table reconfiguration register 0 (address 0x2C) */
+    /* Apply the entry */
     reg_data  = SJA1105_DYN_CONF_L2_LUT_VALID;
     reg_data |= SJA1105_DYN_CONF_L2_LUT_RDRWSET;
     reg_data |= SJA1105_DYN_CONF_L2_LUT_MGMTROUTE;
-    reg_data |= ((uint32_t) SJA1105_MGMT_HOSTCMD_WRITE << SJA1105_MGMT_HOSTCMD_SHIFT) & SJA1105_MGMT_HOSTCMD_MASK;
+    reg_data |= ((uint32_t) SJA1105_L2_LUT_HOSTCMD_WRITE << SJA1105_L2_LUT_HOSTCMD_SHIFT) & SJA1105_L2_LUT_HOSTCMD_MASK;
     status    = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_L2_LUT_REG_0, &reg_data, 1);
     if (status != SJA1105_OK) goto end;
 
-
-    /* TODO: Check ERRORS */
+    /* TODO: Possibly check ERRORS. It should only be set if VALID was 1 when the write started, which this function made sure it wasn't. */
 
     /* Wait for VALID to be 0. */
     status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_L2_LUT_REG_0, SJA1105_DYN_CONF_L2_LUT_VALID, false);
@@ -424,14 +515,16 @@ sja1105_status_t SJA1105_ManagementRouteCreate(sja1105_handle_t *dev, const uint
 
     /* Update the device struct */
     dev->management_routes.slot_taken[free_entry] = true;
-    dev->management_routes.timestamps[free_entry] = 0; // TODO take timestamp
+    dev->management_routes.timestamps[free_entry] = current_time;
     dev->management_routes.contexts[free_entry]   = context;
 
-/* Give the mutex and return */
 end:
+
+    /* Give the mutex and return */
     SJA1105_UNLOCK;
     return status;
 }
+
 
 sja1105_status_t SJA1105_ManagementRouteFree(sja1105_handle_t *dev) {
 
@@ -441,11 +534,72 @@ sja1105_status_t SJA1105_ManagementRouteFree(sja1105_handle_t *dev) {
     SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
+    /* Initialise variables */
+    uint32_t entry[SJA1105_L2ADDR_LU_ENTRY_SIZE] = {0, 0, 0, 0, 0};
+
+    /* Iterate through all management routes */
+    for (uint_fast8_t i = 0; i < SJA1105_NUM_MGMT_SLOTS; i++) {
+
+        /* If the slot is full then check whether it has been used */
+        if (dev->management_routes.slot_taken[i]) {
+
+            /* Read the entry from the L2 LUT */
+            status = SJA1105_L2EntryReadByIndex(dev, i, true, entry);
+            if (status != SJA1105_OK) goto end;
+
+            /* If the entry has been used then free it */
+            if (entry[SJA1105_MGMT_MGMTVALID_OFFSET] & SJA1105_MGMT_MGMTVALID_MASK) {
+                dev->events.mgmt_frames_sent++;
+                dev->management_routes.slot_taken[i] = false;
+            }
+        }
+    }
+
+end:
 
     /* Give the mutex and return */
     SJA1105_UNLOCK;
     return status;
 }
+
+
+/* Invalidates all entries in the TCAM (L2 lookup table, sometimes also called the MAC address
+ * table, the address translation unit (ATU) or forwarding database (FDB)).
+ *
+ * Note: This function can take a while to complete (at least 13ms under optimal circumstances)
+ */
+sja1105_status_t SJA1105_FlushTCAM(sja1105_handle_t *dev) {
+
+    sja1105_status_t status = SJA1105_OK;
+
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
+    SJA1105_LOCK;
+
+    /* Invalidate all entries */
+    status = SJA1105_L2LUTInvalidateRange(dev, 0, SJA1105_L2ADDR_LU_NUM_ENTRIES - 1);
+
+    /* Give the mutex and return */
+    SJA1105_UNLOCK;
+    return status;
+}
+
+
+sja1105_status_t SJA1105_FlushTCAMPort(sja1105_handle_t *dev, uint8_t port_num) {
+
+    sja1105_status_t status = SJA1105_NOT_IMPLEMENTED_ERROR;
+
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
+    SJA1105_LOCK;
+
+    /* TODO: Seach then invalidate all entries for a certain port */
+
+    /* Give the mutex and return */
+    SJA1105_UNLOCK;
+    return status;
+}
+
 
 sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *addr, bool *trapped) {
 

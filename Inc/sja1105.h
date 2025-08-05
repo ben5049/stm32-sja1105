@@ -21,11 +21,12 @@ extern "C" {
 
 
 /* Defines */
-#define MAC_ADDR_SIZE          (6)
-#define SJA1105_NUM_PORTS      (5)
-#define SJA1105_NUM_MGMT_SLOTS (4)
-#define SJA1105_MAX_ATTEMPTS   (10) /* Maximum number of attempts to try anything. E.g. polling a flag with timeout = 100ms will result in 10 reads 10ms apart. Must be > 0 */
-
+#define MAC_ADDR_SIZE                 (6)
+#define SJA1105_NUM_PORTS             (5)
+#define SJA1105_NUM_MGMT_SLOTS        (4)
+#define SJA1105_MAX_ATTEMPTS          (10) /* Maximum number of attempts to try anything. E.g. polling a flag with timeout = 100ms will result in 10 reads 10ms apart. Must be > 0 */
+#define SJA1105_L2ADDR_LU_ENTRY_SIZE  (5)
+#define SJA1105_L2ADDR_LU_NUM_ENTRIES (1024)
 
 /* Typedefs */
 
@@ -45,10 +46,11 @@ typedef enum {
     SJA1105_CRC_ERROR,
     SJA1105_RAM_PARITY_ERROR,
     SJA1105_NOT_IMPLEMENTED_ERROR,
-    SJA1105_MUTEX_ERROR, /* Serious mutex error, will normally just return SJA1105_BUSY if it tries to take a mutex held by another thread */
-    SJA1105_DYNAMIC_MEMORY_ERROR,
-    SJA1105_DYNAMIC_RECONFIG_ERROR,
-    SJA1105_NEEDS_RESET, /* Catastrophic error has occured such as an error while fixing another error */
+    SJA1105_MUTEX_ERROR,            /* Serious mutex error, will normally just return SJA1105_BUSY if it tries to take a mutex held by another thread */
+    SJA1105_DYNAMIC_MEMORY_ERROR,   /* Attempted to re-allocate without free, or free after free */
+    SJA1105_DYNAMIC_RECONFIG_ERROR, /* VALID bit not set after performing a dynamic reconfiguration */
+    SJA1105_REVERT_ERROR,           /* Catastrophic error has occured such as an error while fixing another error */
+    SJA1105_NO_FREE_MGMT_ROUTES_ERROR,
 } sja1105_status_t;
 
 typedef enum {
@@ -108,10 +110,11 @@ typedef struct {
     uint16_t           cs_pin;
     GPIO_TypeDef      *rst_port;
     uint16_t           rst_pin;
-    uint32_t           timeout;     /* Timeout in ms for doing anything with a timeout (read, write, take mutex etc) */
+    uint32_t           timeout;      /* Timeout in ms for doing anything with a timeout (read, write, take mutex etc) */
+    uint32_t           mgmt_timeout; /* Time in ms after creating a manamegement route that it can be overwriten if it hasn't been used */
     uint8_t            host_port;
-    bool               skew_clocks; /* Make xMII clocks use different phases (where possible) to improve EMC performance */
-    uint8_t            switch_id;   /* Used to identify the switch that trapped a frame */
+    bool               skew_clocks;  /* Make xMII clocks use different phases (where possible) to improve EMC performance */
+    uint8_t            switch_id;    /* Used to identify the switch that trapped a frame */
 } sja1105_config_t;
 
 typedef struct {
@@ -133,6 +136,8 @@ typedef struct {
     uint32_t words_read;
     uint32_t words_written;
     uint32_t crc_errors;
+    uint32_t mgmt_frames_sent;
+    uint32_t mgmt_entries_dropped;
 } sja1105_event_counters_t;
 
 /* Stores information about management routes */
@@ -142,16 +147,19 @@ typedef struct {
     void    *contexts[SJA1105_NUM_MGMT_SLOTS];   /* Context set by SJA1105_ManagementRouteCreate() caller so they can tell if their entry has been evicted. */
 } sja1105_mgmt_routes_t;
 
+
+typedef uint32_t (*sja1105_callback_get_time_ms_t)(sja1105_handle_t *dev);
 typedef void (*sja1105_callback_delay_ms_t)(sja1105_handle_t *dev, uint32_t ms);
 typedef void (*sja1105_callback_delay_ns_t)(sja1105_handle_t *dev, uint32_t ns);
 typedef sja1105_status_t (*sja1105_callback_take_mutex_t)(sja1105_handle_t *dev, uint32_t timeout);
 typedef sja1105_status_t (*sja1105_callback_give_mutex_t)(sja1105_handle_t *dev);
 
 typedef struct {
-    sja1105_callback_delay_ms_t   callback_delay_ms; /* Non-blocking delay in ms */
-    sja1105_callback_delay_ns_t   callback_delay_ns; /* Blocking delay in ns */
-    sja1105_callback_take_mutex_t callback_take_mutex;
-    sja1105_callback_give_mutex_t callback_give_mutex;
+    sja1105_callback_get_time_ms_t callback_get_time_ms; /* Get time in ms */
+    sja1105_callback_delay_ms_t    callback_delay_ms;    /* Non-blocking delay in ms */
+    sja1105_callback_delay_ns_t    callback_delay_ns;    /* Blocking delay in ns */
+    sja1105_callback_take_mutex_t  callback_take_mutex;
+    sja1105_callback_give_mutex_t  callback_give_mutex;
 } sja1105_callbacks_t;
 
 struct sja1105_handle_t {
@@ -188,9 +196,10 @@ sja1105_status_t SJA1105_ReadTemperatureX10(sja1105_handle_t *dev, int16_t *temp
 sja1105_status_t SJA1105_CheckStatusRegisters(sja1105_handle_t *dev);
 sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *addr, bool *trapped);
 
+sja1105_status_t SJA1105_L2EntryReadByIndex(sja1105_handle_t *dev, uint16_t index, bool managment, uint32_t entry[SJA1105_L2ADDR_LU_ENTRY_SIZE]);
 sja1105_status_t SJA1105_ManagementRouteCreate(sja1105_handle_t *dev, const uint8_t dst_addr[MAC_ADDR_SIZE], uint8_t dst_ports, bool takets, bool tsreg, void *context);
 sja1105_status_t SJA1105_ManagementRouteFree(sja1105_handle_t *dev);
-
+sja1105_status_t SJA1105_FlushTCAM(sja1105_handle_t *dev);
 
 #ifdef __cplusplus
 }

@@ -60,6 +60,8 @@ sja1105_status_t SJA1105_WriteRegister(sja1105_handle_t *dev, uint32_t addr, con
 sja1105_status_t SJA1105_ReadFlag(sja1105_handle_t *dev, uint32_t addr, uint32_t mask, bool *result);
 sja1105_status_t SJA1105_PollFlag(sja1105_handle_t *dev, uint32_t addr, uint32_t mask, bool polarity);
 
+sja1105_status_t SJA1105_L2LUTInvalidateRange(sja1105_handle_t *dev, uint16_t low_i, uint16_t high_i);
+
 void SJA1105_Reset(sja1105_handle_t *dev);
 
 #ifdef __cplusplus
