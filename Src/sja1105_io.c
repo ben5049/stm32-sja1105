@@ -8,6 +8,7 @@
 #include "sja1105.h"
 #include "internal/sja1105_io.h"
 #include "internal/sja1105_regs.h"
+#include "internal/sja1105_conf.h"
 
 
 sja1105_status_t __SJA1105_ReadRegister(sja1105_handle_t *dev, uint32_t addr, uint32_t *data, uint32_t size, bool integrity_check) {
@@ -219,8 +220,8 @@ sja1105_status_t SJA1105_L2LUTInvalidateRange(sja1105_handle_t *dev, uint16_t lo
     if (status != SJA1105_OK) goto end;
 
     /* Initialise the empty register data array: 1 command word + 5 entry words + 1 write entry command */
-    static const uint8_t size = 1 + SJA1105_L2ADDR_LU_ENTRY_SIZE + 1;
-    uint32_t             reg_data[1 + SJA1105_L2ADDR_LU_ENTRY_SIZE + 1] = {0,0,0,0,0,0,0};
+    static const uint8_t size                                           = 1 + SJA1105_L2ADDR_LU_ENTRY_SIZE + 1;
+    uint32_t             reg_data[1 + SJA1105_L2ADDR_LU_ENTRY_SIZE + 1] = {0, 0, 0, 0, 0, 0, 0};
 
     /* Setup the command word for a write to L2 Address Lookup table reconfiguration register 1 */
     reg_data[0]  = SJA1105_SPI_WRITE_FRAME;

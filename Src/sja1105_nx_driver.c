@@ -20,6 +20,7 @@
 extern sja1105_handle_t hsja1105;
 
 
+/* TODO: Rethink this, should it be the PHYs or the switch being initialised? */
 int32_t nx_eth_phy_init(void) {
 
     int32_t ret = ETH_PHY_STATUS_OK;

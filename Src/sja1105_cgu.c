@@ -12,7 +12,7 @@
 
 
 sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev) {
-
+    /* TODO: ADD NEW TABLE LOGIC*/
     sja1105_status_t status = SJA1105_OK;
     uint32_t         reg_data;
 
@@ -44,19 +44,19 @@ sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev) {
 }
 
 sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_num) {
-
-    sja1105_status_t status = SJA1105_OK;
-    sja1105_port_t   port   = dev->ports[port_num];
-    uint32_t         reg_data[SJA1105_CGU_REG_CLK_NUM];
+    /* TODO: ADD NEW TABLE LOGIC*/
+    sja1105_status_t      status = SJA1105_OK;
+    const sja1105_port_t *port   = &dev->config->ports[port_num];
+    uint32_t              reg_data[SJA1105_CGU_REG_CLK_NUM];
 
     /* Skip port 4 in variants that don't have one */
     if (((dev->config->variant == VARIANT_SJA1105R) || (dev->config->variant == VARIANT_SJA1105S)) && (port_num == 4)) return status;
 
-    switch (port.interface) {
+    switch (port->interface) {
         case SJA1105_INTERFACE_MII:
 
             /* MII MAC */
-            if (port.mode == SJA1105_MODE_MAC) {
+            if (port->mode == SJA1105_MODE_MAC) {
 
                 /* Disable IDIVX */
                 reg_data[0] = SJA1105_CGU_PD;
@@ -84,7 +84,7 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
 
             /* MII PHY */
             else {
-                switch (port.speed) {
+                switch (port->speed) {
 
                     /* 10M MII PHY */
                     case SJA1105_SPEED_10M: {
@@ -137,7 +137,7 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
         case SJA1105_INTERFACE_RMII:
 
             /* RMII MAC */
-            if (port.mode == SJA1105_MODE_MAC) {
+            if (port->mode == SJA1105_MODE_MAC) {
 
                 /* Disable IDIVX */
                 reg_data[0] = SJA1105_CGU_PD;
@@ -177,7 +177,7 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
                 reg_data[SJA1105_CGU_RMII_REF_CLK] |= SJA1105_CGU_AUTOBLOCK;
 
                 /* Set CLKSRC of EXT_TX_CLK_X to PLL1 */
-                if (port.output_rmii_refclk) {
+                if (port->output_rmii_refclk) {
                     reg_data[SJA1105_CGU_EXT_TX_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_PLL1(dev->config->skew_clocks ? port_num : 0) << SJA1105_CGU_CLKSRC_SHIFT;
                     reg_data[SJA1105_CGU_EXT_TX_CLK] |= SJA1105_CGU_AUTOBLOCK;
                 } else {
@@ -200,7 +200,7 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
         case SJA1105_INTERFACE_RGMII:
 
             /* RGMII */
-            switch (port.speed) {
+            switch (port->speed) {
 
                 /* 10M RGMII MAC */
                 case SJA1105_SPEED_10M: {

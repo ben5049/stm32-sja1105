@@ -234,27 +234,54 @@ enum SJA1105_CGUReg_Enum {
 /* Static Configuration */
 /* ---------------------------------------------------------------------------- */
 
-#define SJA1105_STATIC_CONF_ADDR                                (0x20000)
+#define SJA1105_STATIC_CONF_ADDR               (0x20000)
 
-#define SJA1105_STATIC_CONF_BLOCK_HEADER                        (2)
-#define SJA1105_STATIC_CONF_BLOCK_HEADER_CRC                    (1)
-#define SJA1105_STATIC_CONF_BLOCK_DATA_CRC                      (1)
-#define SJA1105_STATIC_CONF_BLOCK_FIRST_OFFSET                  (1)
-#define SJA1105_STATIC_CONF_BLOCK_LAST_SIZE                     (3) /* Last block contains two empty words and the global CRC */
+#define SJA1105_STATIC_CONF_BLOCK_ID           (1)
+#define SJA1105_STATIC_CONF_BLOCK_SIZE         (1)
+#define SJA1105_STATIC_CONF_BLOCK_HEADER       (SJA1105_STATIC_CONF_BLOCK_ID + SJA1105_STATIC_CONF_BLOCK_SIZE)
+#define SJA1105_STATIC_CONF_BLOCK_HEADER_CRC   (1)
+#define SJA1105_STATIC_CONF_BLOCK_DATA_CRC     (1)
+#define SJA1105_STATIC_CONF_BLOCK_FIRST_OFFSET (1)
+#define SJA1105_STATIC_CONF_BLOCK_LAST_SIZE    (3) /* Last block contains two empty words and the global CRC */
+#define SJA1105_STATIC_CONF_MIN_NUM_BLOCKS     (6) /* Number of required config tables */
+#define SJA1105_STATIC_CONF_MIN_SIZE           (SJA1105_STATIC_CONF_BLOCK_FIRST_OFFSET + SJA1105_STATIC_CONF_BLOCK_LAST_SIZE + (SJA1105_STATIC_CONF_MIN_NUM_BLOCKS * (SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC + SJA1105_STATIC_CONF_BLOCK_DATA_CRC)) + (SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE * SJA1105_NUM_PORTS) + SJA1105_STATIC_CONF_GENERAL_PARAMS_SIZE + SJA1105_STATIC_CONF_XMII_MODE_SIZE + SJA1105_STATIC_CONF_L2_FORWARDING_PARAMS_SIZE + SJA1105_STATIC_CONF_L2_FORWARDING_SIZE + SJA1105_STATIC_CONF_L2_POLICING_ENTRY_SIZE)
 
-#define SJA1105_STATIC_CONF_BLOCK_ID_OFFSET                     (0)
-#define SJA1105_STATIC_CONF_BLOCK_ID_SHIFT                      (24)
-#define SJA1105_STATIC_CONF_BLOCK_ID_MASK                       (0xff << SJA1105_STATIC_CONF_BLOCK_ID_SHIFT)
-#define SJA1105_STATIC_CONF_BLOCK_SIZE_OFFSET                   (1)
-#define SJA1105_STATIC_CONF_BLOCK_SIZE_SHIFT                    (0)
-#define SJA1105_STATIC_CONF_BLOCK_SIZE_MASK                     (0xffffff)
+#define SJA1105_STATIC_CONF_BLOCK_ID_OFFSET    (0)
+#define SJA1105_STATIC_CONF_BLOCK_ID_SHIFT     (24)
+#define SJA1105_STATIC_CONF_BLOCK_ID_MASK      (0xff << SJA1105_STATIC_CONF_BLOCK_ID_SHIFT)
+#define SJA1105_STATIC_CONF_BLOCK_SIZE_OFFSET  (1)
+#define SJA1105_STATIC_CONF_HEADER_CRC_OFFSET  (2)
+#define SJA1105_STATIC_CONF_DATA_OFFSET        (3)
+#define SJA1105_STATIC_CONF_BLOCK_SIZE_SHIFT   (0)
+#define SJA1105_STATIC_CONF_BLOCK_SIZE_MASK    (0xffffff)
 
-#define SJA1105_STATIC_CONF_BLOCK_ID_L2ADDR_LU                  (0x05)
-#define SJA1105_STATIC_CONF_BLOCK_ID_MAC_CONF                   (0x09)
-#define SJA1105_STATIC_CONF_BLOCK_ID_GENERAL_PARAMS             (0x11)
-#define SJA1105_STATIC_CONF_BLOCK_ID_CGU                        (0x80)
-#define SJA1105_STATIC_CONF_BLOCK_ID_ACU                        (0x82)
-#define SJA1105_STATIC_CONF_BLOCK_ID_XMII_MODE                  (0x4e)
+enum SJA1105_BlockID_Enum {
+    SJA1105_BLOCK_ID_SCHEDULE                     = 0x00,
+    SJA1105_BLOCK_ID_SCHEDULE_ENTRY_POINTS        = 0x01,
+    SJA1105_BLOCK_ID_VL_LOOKUP                    = 0x02,
+    SJA1105_BLOCK_ID_VL_POLICING                  = 0x03,
+    SJA1105_BLOCK_ID_VL_FORWARDING                = 0x04,
+    SJA1105_BLOCK_ID_L2_ADDR_LOOKUP               = 0x05,
+    SJA1105_BLOCK_ID_L2_POLICING                  = 0x06,
+    SJA1105_BLOCK_ID_VLAN_LOOKUP                  = 0x07,
+    SJA1105_BLOCK_ID_L2_FORWARDING                = 0x08,
+    SJA1105_BLOCK_ID_MAC_CONF                     = 0x09,
+    SJA1105_BLOCK_ID_SCHEDULE_PARAMS              = 0x0a,
+    SJA1105_BLOCK_ID_SCHEDULE_ENTRY_POINTS_PARAMS = 0x0b,
+    SJA1105_BLOCK_ID_VL_FORWARDING_PARAMS         = 0x0c,
+    SJA1105_BLOCK_ID_L2_LOOKUP_PARAMS             = 0x0d,
+    SJA1105_BLOCK_ID_L2_FORWARDING_PARAMS         = 0x0e,
+    SJA1105_BLOCK_ID_CLK_SYNC_PARAMS              = 0x0f,
+    SJA1105_BLOCK_ID_AVB_PARAMS                   = 0x10,
+    SJA1105_BLOCK_ID_GENERAL_PARAMS               = 0x11,
+    SJA1105_BLOCK_ID_RETAGGING                    = 0x12,
+    SJA1105_BLOCK_ID_CBS                          = 0x13,
+    SJA1105_BLOCK_ID_XMII_MODE                    = 0x4e,
+    SJA1105_BLOCK_ID_CGU                          = 0x80,
+    SJA1105_BLOCK_ID_RGU                          = 0x81,
+    SJA1105_BLOCK_ID_ACU                          = 0x82,
+    SJA1105_BLOCK_ID_SGMII_CONF                   = 0xc8,
+};
 
 #define SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE                 (8)
 #define SJA1105_STATIC_CONF_MAC_CONF_BASE(port_num)             ((port_num) * SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE)
@@ -278,12 +305,22 @@ enum SJA1105_CGUReg_Enum {
 
 #define SJA1105_STATIC_CONF_GENERAL_PARAMS_SIZE                 (11)
 
+#define SJA1105_STATIC_CONF_L2_FORWARDING_ENTRY_SIZE            (2)
+#define SJA1105_STATIC_CONF_L2_FORWARDING_NUM_ENTRIES           (13)
+#define SJA1105_STATIC_CONF_L2_FORWARDING_SIZE                  (SJA1105_STATIC_CONF_L2_FORWARDING_ENTRY_SIZE * SJA1105_STATIC_CONF_L2_FORWARDING_NUM_ENTRIES)
+
+#define SJA1105_STATIC_CONF_L2_FORWARDING_PARAMS_SIZE           (3)
+
+#define SJA1105_STATIC_CONF_L2_POLICING_ENTRY_SIZE              (2)
+
 #define SJA1105_MAC_FLT_START_OFFSET_W                          (4)  /* Starts at bit 152 therefore in the 5th word */
 #define SJA1105_MAC_FLT_START_OFFSET_B                          (3)  /* Starts at bit 152 therefore offset 3 bytes from the nearest multiple of 32 bits (128 + 3 * 8 = 152) */
 
 #define SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_OFFSET     (4)  /* [144:142] therefore in the 5th word */
 #define SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_SHIFT      (14) /* shifted up by 14 */
 #define SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_MASK       (0x7 << SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_SHIFT)
+
+#define SJA1105_STATIC_CONF_XMII_MODE_SIZE                      (1)
 
 #define SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_SHIFT(port_num)   (19 + ((port_num) * 3))
 #define SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_MASK(port_num)    (1 << SJA1105_STATIC_CONF_XMII_MODE_PHY_MAC_SHIFT(port_num))

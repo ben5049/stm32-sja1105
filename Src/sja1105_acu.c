@@ -12,7 +12,7 @@
 
 
 sja1105_status_t SJA1105_ConfigureACU(sja1105_handle_t *dev) {
-
+    /* TODO: ADD NEW TABLE LOGIC*/
     sja1105_status_t status = SJA1105_OK;
 
     /* Configure the ACU with each port's IO pad configuration */
@@ -29,21 +29,21 @@ sja1105_status_t SJA1105_ConfigureACU(sja1105_handle_t *dev) {
 }
 
 sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_num) {
-
-    sja1105_status_t status = SJA1105_OK;
-    sja1105_port_t   port   = dev->ports[port_num];
+    /* TODO: ADD NEW TABLE LOGIC*/
+    sja1105_status_t      status = SJA1105_OK;
+    const sja1105_port_t *port   = &dev->config->ports[port_num];
 
     /* Skip port 4 in variants that don't have one */
     if (((dev->config->variant == VARIANT_SJA1105R) || (dev->config->variant == VARIANT_SJA1105S)) && (port_num == 4)) return status;
 
     /* Don't continue if no configuration is supplied. This isn't an error since a default register values will be used instead. */
-    if (port.configured == false) {
+    if (port->configured == false) {
         status = SJA1105_OK;
         return status;
     }
 
     /* Check port numbers match */
-    if (port.port_num != port_num) status = SJA1105_PARAMETER_ERROR;
+    if (port->port_num != port_num) status = SJA1105_PARAMETER_ERROR;
     if (status != SJA1105_OK) return status;
 
     /* Create and clear buffer */
@@ -52,7 +52,7 @@ sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_nu
     reg_data[SJA1105_ACU_PAD_CFG_RX] = 0;
 
     /* Set slew rates */
-    switch (port.interface) {
+    switch (port->interface) {
         case SJA1105_INTERFACE_MII:
 
             /* Low speed */
@@ -62,7 +62,7 @@ sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_nu
         case SJA1105_INTERFACE_RMII:
 
             /* 1V8 RMII not supported */
-            if (port.voltage == SJA1105_IO_1V8) status = SJA1105_PARAMETER_ERROR;
+            if (port->voltage == SJA1105_IO_1V8) status = SJA1105_PARAMETER_ERROR;
             if (status != SJA1105_OK) return status;
 
             /* Low speed */
@@ -71,7 +71,7 @@ sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_nu
 
         case SJA1105_INTERFACE_RGMII:
 
-            switch (port.voltage) {
+            switch (port->voltage) {
 
                 case SJA1105_IO_2V5:
                 case SJA1105_IO_3V3:

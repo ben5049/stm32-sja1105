@@ -18,22 +18,6 @@ extern "C" {
 
 #define CONSTRAIN(amt, low, high) ((amt) < (low) ? (low) : ((amt) > (high) ? (high) : (amt)))
 
-#define SJA1105_INIT_CHECK                                            \
-    do {                                                              \
-        if (!dev->initialised) status = SJA1105_NOT_CONFIGURED_ERROR; \
-        if (status != SJA1105_OK) return status;                      \
-    } while (0)
-
-#define SJA1105_LOCK                                                             \
-    do {                                                                         \
-        status = dev->callbacks->callback_take_mutex(dev, dev->config->timeout); \
-        if (status != SJA1105_OK) return status;                                 \
-    } while (0)
-
-#define SJA1105_UNLOCK       dev->callbacks->callback_give_mutex(dev)
-#define SJA1105_DELAY_NS(ns) dev->callbacks->callback_delay_ms(dev, (ns))
-#define SJA1105_DELAY_MS(ms) dev->callbacks->callback_delay_ns(dev, (ms))
-
 
 /* Control frame */
 #define SJA1105_SPI_WRITE_FRAME         (1 << 31)    /* 1 in the most significant bit signifies a write */
