@@ -180,15 +180,15 @@ sja1105_status_t SJA1105_AllocateVariableLengthTable(sja1105_handle_t *dev, cons
     }
 
     /* Allocate the memory */
-    status = dev->callbacks->callback_allocate(dev, (uint32_t *) table->id, SJA1105_STATIC_CONF_BLOCK_ID);
+    status = dev->callbacks->callback_allocate(dev, (uint32_t **) &table->id, SJA1105_STATIC_CONF_BLOCK_ID);
     if (status != SJA1105_OK) return status;
-    status = dev->callbacks->callback_allocate(dev, table->size, SJA1105_STATIC_CONF_BLOCK_SIZE);
+    status = dev->callbacks->callback_allocate(dev, &table->size, SJA1105_STATIC_CONF_BLOCK_SIZE);
     if (status != SJA1105_OK) return status;
-    status = dev->callbacks->callback_allocate(dev, table->header_crc, SJA1105_STATIC_CONF_BLOCK_HEADER_CRC);
+    status = dev->callbacks->callback_allocate(dev, &table->header_crc, SJA1105_STATIC_CONF_BLOCK_HEADER_CRC);
     if (status != SJA1105_OK) return status;
-    status = dev->callbacks->callback_allocate(dev, table->data, size);
+    status = dev->callbacks->callback_allocate(dev, &table->data, size);
     if (status != SJA1105_OK) return status;
-    status = dev->callbacks->callback_allocate(dev, table->data_crc, SJA1105_STATIC_CONF_BLOCK_DATA_CRC);
+    status = dev->callbacks->callback_allocate(dev, &table->data_crc, SJA1105_STATIC_CONF_BLOCK_DATA_CRC);
     if (status != SJA1105_OK) return status;
 
     /* Copy in the values */

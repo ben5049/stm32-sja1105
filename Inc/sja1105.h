@@ -209,7 +209,7 @@ typedef void (*sja1105_callback_delay_ms_t)(sja1105_handle_t *dev, uint32_t ms);
 typedef void (*sja1105_callback_delay_ns_t)(sja1105_handle_t *dev, uint32_t ns);
 typedef sja1105_status_t (*sja1105_callback_take_mutex_t)(sja1105_handle_t *dev, uint32_t timeout);
 typedef sja1105_status_t (*sja1105_callback_give_mutex_t)(sja1105_handle_t *dev);
-typedef sja1105_status_t (*sja1105_callback_allocate_t)(sja1105_handle_t *dev, uint32_t *memory_ptr, uint32_t size);
+typedef sja1105_status_t (*sja1105_callback_allocate_t)(sja1105_handle_t *dev, uint32_t **memory_ptr, uint32_t size);
 typedef sja1105_status_t (*sja1105_callback_free_t)(sja1105_handle_t *dev, uint32_t *memory_ptr);
 typedef sja1105_status_t (*sja1105_callback_free_all_t)(sja1105_handle_t *dev);
 typedef sja1105_status_t (*sja1105_callback_crc_reset_t)(sja1105_handle_t *dev);
