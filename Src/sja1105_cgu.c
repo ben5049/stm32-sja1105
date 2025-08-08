@@ -310,8 +310,9 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
             }
             break;
 
+        /* Nothing to do for SGMII since it's clocks are hardwired */
         case SJA1105_INTERFACE_SGMII:
-            status = SJA1105_NOT_IMPLEMENTED_ERROR;
+            status = SJA1105_OK;
             break;
 
         default:

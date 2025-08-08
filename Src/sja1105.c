@@ -175,6 +175,33 @@ end:
 }
 
 
+sja1105_status_t SJA1105_PortGetForwarding(sja1105_handle_t *dev, uint8_t port_num, bool *forwarding) {
+
+    sja1105_status_t status = SJA1105_OK;
+
+    /* Check the device is initialised and take the mutex */
+    SJA1105_INIT_CHECK;
+    SJA1105_LOCK;
+
+    bool ingress;
+    bool egress;
+
+    /* Get the current port ingress and egress status */
+    status = SJA1105_MACConfTableGetIngress(dev->tables.general_parameters.data, *dev->tables.general_parameters.size, port_num, &ingress);
+    if (status != SJA1105_OK) goto end;
+    status = SJA1105_MACConfTableGetEgress(dev->tables.general_parameters.data, *dev->tables.general_parameters.size, port_num, &egress);
+    if (status != SJA1105_OK) goto end;
+
+    /* Get the result */
+    if (ingress && egress) *forwarding = true;
+
+    /* Give the mutex and return */
+end:
+    SJA1105_UNLOCK;
+    return status;
+}
+
+
 sja1105_status_t SJA1105_PortSetForwarding(sja1105_handle_t *dev, uint8_t port_num, bool enable) {
 
     sja1105_status_t status = SJA1105_OK;
@@ -481,7 +508,7 @@ sja1105_status_t SJA1105_ManagementRouteCreate(sja1105_handle_t *dev, const uint
     if (takets) lut_entry[SJA1105_MGMT_TAKETS_MASK] |= SJA1105_MGMT_TAKETS_MASK;
     if (tsreg) lut_entry[SJA1105_MGMT_TSREG_OFFSET] |= SJA1105_MGMT_TSREG_MASK;
 
-    /* Copy the destination MAC address into ENTRY[69:22]. TODO: Check this logic */
+    /* Copy the destination MAC address into ENTRY[69:22] */
     lut_entry[0] |= (uint32_t) dst_addr[0] << 22; /* [29:22] */
     lut_entry[0] |= (uint32_t) dst_addr[1] << 30; /* [31:30] */
     lut_entry[1] |= (uint32_t) dst_addr[1] >> 2;  /* [37:32] */
@@ -571,8 +598,6 @@ end:
 
 /* Invalidates all entries in the TCAM (L2 lookup table, sometimes also called the MAC address
  * table, the address translation unit (ATU) or forwarding database (FDB)).
- *
- * Note: This function can take a while to complete (at least 13ms under optimal circumstances)
  */
 sja1105_status_t SJA1105_FlushTCAM(sja1105_handle_t *dev) {
 
@@ -582,6 +607,7 @@ sja1105_status_t SJA1105_FlushTCAM(sja1105_handle_t *dev) {
     SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
+    /* Re-writing the static config flushes the TCAM */
     status = SJA1105_SyncStaticConfig(dev);
 
     /* TODO: only invalidate LUT entries if its faster than a reconfig */

@@ -249,6 +249,7 @@ sja1105_status_t SJA1105_PortGetState(sja1105_handle_t *dev, uint8_t port_num, b
 sja1105_status_t SJA1105_PortGetSpeed(sja1105_handle_t *dev, uint8_t port_num, sja1105_speed_t *speed);
 sja1105_status_t SJA1105_PortSetSpeed(sja1105_handle_t *dev, uint8_t port_num, sja1105_speed_t speed);
 sja1105_status_t SJA1105_PortSetLearning(sja1105_handle_t *dev, uint8_t port_num, bool enable);
+sja1105_status_t SJA1105_PortGetForwarding(sja1105_handle_t *dev, uint8_t port_num, bool *forwarding);
 sja1105_status_t SJA1105_PortSetForwarding(sja1105_handle_t *dev, uint8_t port_num, bool enable);
 sja1105_status_t SJA1105_PortSleep(sja1105_handle_t *dev, uint8_t port_num);
 sja1105_status_t SJA1105_PortWake(sja1105_handle_t *dev, uint8_t port_num);

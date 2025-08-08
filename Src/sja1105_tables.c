@@ -264,7 +264,7 @@ sja1105_status_t SJA1105_ResetMACConfTable(sja1105_handle_t *dev, bool write) {
         SJA1105_MACConfTableSetDynLearn(dev->tables.mac_configuration.data, *dev->tables.mac_configuration.size, i, false);
     }
 
-    /* Write the table if required */
+    /* Write the configs if required */
     if (write) {
         for (uint_fast8_t i = 0; i < SJA1105_NUM_PORTS; i++) {
             status = SJA1105_MACConfTableWrite(dev, i);
@@ -277,7 +277,7 @@ sja1105_status_t SJA1105_ResetMACConfTable(sja1105_handle_t *dev, bool write) {
 
 
 sja1105_status_t SJA1105_MACConfTableWrite(sja1105_handle_t *dev, uint8_t port_num) {
-    /* TODO: ADD NEW TABLE LOGIC*/
+
     sja1105_status_t status = SJA1105_OK;
     uint32_t         reg_data;
     uint8_t          index = SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, 0);
@@ -322,7 +322,7 @@ sja1105_status_t SJA1105_MACConfTableWrite(sja1105_handle_t *dev, uint8_t port_n
 
 
 sja1105_status_t SJA1105_GeneralParamsTableCheck(sja1105_handle_t *dev, const uint32_t *table, uint32_t size) {
-    /* TODO: ADD NEW TABLE LOGIC*/
+
     sja1105_status_t status = SJA1105_OK;
     uint8_t          index;
     uint8_t          host_port;
@@ -382,7 +382,7 @@ sja1105_status_t SJA1105_GetMACFilters(sja1105_handle_t *dev, sja1105_mac_filter
 }
 
 sja1105_status_t SJA1105_xMIIModeTableCheck(sja1105_handle_t *dev, const uint32_t *table, uint32_t size) {
-    /* TODO: ADD NEW TABLE LOGIC*/
+
     sja1105_status_t    status = SJA1105_OK;
     sja1105_mode_t      mode;
     sja1105_interface_t interface;

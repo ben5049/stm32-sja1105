@@ -25,30 +25,68 @@ int32_t nx_eth_phy_init(void) {
 
     int32_t ret = ETH_PHY_STATUS_OK;
 
-    /* Poll the initialised flag and time out after 500ms */
+    /* Poll the initialised flag and time out after 5s */
     bool initialised = false;
-    for (uint_fast8_t attempt = 0; !initialised && (attempt < 50); attempt++) {
+    for (uint_fast8_t attempt = 0; !initialised && (attempt < 100); attempt++) {
         initialised = hsja1105.initialised;
-        if (!initialised) tx_thread_sleep((10 * TX_TIMER_TICKS_PER_SECOND) / 1000);
+        if (!initialised) tx_thread_sleep((50 * TX_TIMER_TICKS_PER_SECOND) / 1000);
     }
 
     /* Return an error if not initialised */
-    if (!initialised)
-        ret = ETH_PHY_STATUS_ERROR;
+    if (!initialised) ret = ETH_PHY_STATUS_ERROR;
 
     return ret;
 }
 
 int32_t nx_eth_phy_get_link_state(void) {
 
-    int32_t          linkstate  = ETH_PHY_STATUS_LINK_ERROR;
-    sja1105_status_t status     = SJA1105_OK;
-    bool             port_state = false;
+    int32_t          linkstate = ETH_PHY_STATUS_LINK_ERROR;
+    sja1105_status_t status    = SJA1105_OK;
+    sja1105_speed_t  speed;
+    bool             forwarding;
 
-    status = SJA1105_PortGetState(&hsja1105, hsja1105.config->host_port, &port_state);
-    if (status != SJA1105_OK) linkstate = ETH_PHY_STATUS_LINK_ERROR;
+    /* If SJA1105 isn't initialised return link down */
+    if (!hsja1105.initialised) {
+        int32_t linkstate = ETH_PHY_STATUS_LINK_DOWN;
+        return linkstate;
+    }
 
-    // TODO: Finish this function, should return speed and duplex
+    /* Check the forwarding state */
+    status = SJA1105_PortGetForwarding(&hsja1105, hsja1105.config->host_port, &forwarding);
+    if (status != SJA1105_OK) {
+        linkstate = ETH_PHY_STATUS_LINK_ERROR;
+        return linkstate;
+    } else if (!forwarding) {
+        linkstate = ETH_PHY_STATUS_LINK_DOWN;
+        return linkstate;
+    }
+
+    /* Otherwise get the speed */
+    status = SJA1105_PortGetSpeed(&hsja1105, hsja1105.config->host_port, &speed);
+    if (status != SJA1105_OK) {
+        linkstate = ETH_PHY_STATUS_LINK_ERROR;
+        return linkstate;
+    }
+
+    switch (speed) {
+        case SJA1105_SPEED_10M:
+            linkstate = ETH_PHY_STATUS_10MBITS_FULLDUPLEX;
+            break;
+
+        case SJA1105_SPEED_100M:
+            linkstate = ETH_PHY_STATUS_100MBITS_FULLDUPLEX;
+            break;
+
+#if defined(ETH_PHY_1000MBITS_SUPPORTED)
+        case SJA1105_SPEED_1G:
+            linkstate = ETH_PHY_STATUS_1000MBITS_FULLDUPLEX;
+            break;
+#endif
+
+        default:
+            linkstate = ETH_PHY_STATUS_LINK_ERROR;
+            break;
+    }
 
     return linkstate;
 }

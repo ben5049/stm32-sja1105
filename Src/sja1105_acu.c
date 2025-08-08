@@ -154,7 +154,7 @@ sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_nu
     /* TODO: Update the internal delay (ID) register (SJA1105_ACU_REG_CFG_PAD_MIIX_ID) if internal RGMII
      *       CLK delays are needed. Many PHYs also implement this and it is only needed once per TX or RX
      *       channel. Since the SJA1105's ID implementation uses phase (not time) delays and requires
-     *       managing frequency transitions, the PHY implementation is preferred.
+     *       managing frequency transitions, the PHY implementation is usually preferred.
      */
 
     return status;

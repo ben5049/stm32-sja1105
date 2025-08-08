@@ -117,6 +117,8 @@ sja1105_status_t SJA1105_Init(
     status = SJA1105_LoadStaticConfig(dev, static_conf, static_conf_size);
     if (status != SJA1105_OK) goto end;
 
+    /* TODO: Configure SGMII PHY/PCS (optional) */
+
 
     /* Configure the SJA1105 */
 
@@ -133,8 +135,6 @@ sja1105_status_t SJA1105_Init(
         status = SJA1105_WriteStaticConfig(dev, true);
     }
     if (status != SJA1105_OK) goto end;
-
-    /* TODO: Configure SGMII PHY/PCS (optional) */
 
     /* Check the status registers */
     status = SJA1105_CheckStatusRegisters(dev);
