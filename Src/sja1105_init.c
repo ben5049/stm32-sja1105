@@ -120,29 +120,21 @@ sja1105_status_t SJA1105_Init(
 
     /* Configure the SJA1105 */
 
-    /* Step 1: RESET */
+    /* Reset */
     SJA1105_FullReset(dev);
 
     /* Check the part number matches the specified variant */
     status = SJA1105_CheckPartID(dev);
     if (status != SJA1105_OK) goto end;
 
-    /* Step 2: STATIC CONFIGURATION (Try up to 3 times in case of CRC errors) */
-    bool crc_success = false;
-    for (uint_fast8_t attempt = 0; !crc_success && (attempt < 3); attempt++) {
-
-        /* Write the configuration */
-        status = SJA1105_WriteStaticConfig(dev);
-
-        /* Check for CRC errors */
-        if (status != SJA1105_OK) {
-            if (status != SJA1105_CRC_ERROR) goto end;
-        } else
-            crc_success = true;
+    /* Write the configuration and try again in safe mode if it fails */
+    status = SJA1105_WriteStaticConfig(dev, false);
+    if (status == SJA1105_CRC_ERROR) {
+        status = SJA1105_WriteStaticConfig(dev, true);
     }
     if (status != SJA1105_OK) goto end;
 
-    /* TODO: SGMII PHY/PCS (optional) */
+    /* TODO: Configure SGMII PHY/PCS (optional) */
 
     /* Check the status registers */
     status = SJA1105_CheckStatusRegisters(dev);
@@ -239,8 +231,6 @@ void SJA1105_ResetTables(sja1105_handle_t *dev, uint32_t fixed_length_table_buff
         dev->tables.by_index[i].data_crc       = NULL;
         dev->tables.by_index[i].data_crc_valid = false;
     }
-    dev->tables.loaded  = false;
-    dev->tables.written = false;
 
     /* Reset the static config global CRC */
     dev->tables.global_crc       = 0;

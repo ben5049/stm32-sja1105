@@ -46,7 +46,7 @@ sja1105_status_t SJA1105_ConfigureACU(sja1105_handle_t *dev, bool write) {
 
     /* Add the table if it isn't there already */
     if (!dev->tables.acu_config_parameters.in_use) {
-        SJA1105_AllocateFixedLengthTable(dev, &sja1105_acu_block_default, SJA1105_ACU_BLOCK_SIZE);
+        SJA1105_AllocateFixedLengthTable(dev, sja1105_acu_block_default, SJA1105_ACU_BLOCK_SIZE);
     }
 
     /* Configure the ACU with each port's IO pad configuration */

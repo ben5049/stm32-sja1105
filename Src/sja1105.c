@@ -101,14 +101,14 @@ sja1105_status_t __SJA1105_PortSetSpeed(sja1105_handle_t *dev, uint8_t port_num,
             goto end;
         }
         /* Configure the ACU with new options */
-        status = SJA1105_ConfigureACUPort(dev, port_num);
+        status = SJA1105_ConfigureACUPort(dev, port_num, true);
         if (status != SJA1105_OK) {
             revert = true;
             goto end;
         }
 
         /* Configure the CGU with new options */
-        status = SJA1105_ConfigureCGUPort(dev, port_num);
+        status = SJA1105_ConfigureCGUPort(dev, port_num, true);
         if (status != SJA1105_OK) {
             revert = true;
             goto end;
@@ -445,7 +445,7 @@ sja1105_status_t SJA1105_ManagementRouteCreate(sja1105_handle_t *dev, const uint
     /* No free slots: attempt free any slots that have been used up and try again */
     if (free_entry == SJA1105_NUM_MGMT_SLOTS) {
 
-        status = SJA1105_ManagementRouteFree(dev);
+        status = SJA1105_ManagementRouteFree(dev, false);
         if (status != SJA1105_OK) goto end;
 
         for (uint_fast8_t i = 0; i < SJA1105_NUM_MGMT_SLOTS; i++) {

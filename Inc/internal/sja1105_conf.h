@@ -47,7 +47,7 @@ sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev, bool write);
 sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_num, bool write);
 
 sja1105_status_t SJA1105_LoadStaticConfig(sja1105_handle_t *dev, const uint32_t *static_conf, uint32_t static_conf_size);
-sja1105_status_t SJA1105_WriteStaticConfig(sja1105_handle_t *dev);
+sja1105_status_t SJA1105_WriteStaticConfig(sja1105_handle_t *dev, bool safe);
 sja1105_status_t SJA1105_SyncStaticConfig(sja1105_handle_t *dev);
 sja1105_status_t SJA1105_CheckRequiredTables(sja1105_handle_t *dev);
 

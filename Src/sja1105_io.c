@@ -17,9 +17,9 @@ sja1105_status_t __SJA1105_ReadRegister(sja1105_handle_t *dev, uint32_t addr, ui
     static const uint32_t dummy_payload = 0xcccc5555; /* When size = 1 and integrity_check = true, send this payload as we are reading data to confirm everything is working. */
 
     /* Check the parameters */
-    if (size == 0) status = SJA1105_PARAMETER_ERROR;                              /* Empty check */
-    if (addr & ~SJA1105_SPI_ADDR_MASK) status = SJA1105_PARAMETER_ERROR;          /* Start address check */
-    if ((addr + size) & ~SJA1105_SPI_ADDR_MASK) status = SJA1105_PARAMETER_ERROR; /* End address check */
+    if (size == 0) status = SJA1105_PARAMETER_ERROR;                                  /* Empty check */
+    if (addr & ~SJA1105_SPI_ADDR_MASK) status = SJA1105_PARAMETER_ERROR;              /* Start address check */
+    if ((addr + size - 1) & ~SJA1105_SPI_ADDR_MASK) status = SJA1105_PARAMETER_ERROR; /* End address check */
     if (status != SJA1105_OK) return status;
 
     /* Initialise counter for the number of double words remaining to receive */
@@ -32,8 +32,8 @@ sja1105_status_t __SJA1105_ReadRegister(sja1105_handle_t *dev, uint32_t addr, ui
 
         /* Create the command frame */
         command_frame  = SJA1105_SPI_READ_FRAME;
-        command_frame |= ((addr + size - dwords_remaining) & SJA1105_SPI_ADDR_MASK) << SJA1105_SPI_ADDR_POSITION;
-        command_frame |= (CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_RX_PAYLOAD_SIZE) & SJA1105_SPI_SIZE_MASK) << SJA1105_SPI_SIZE_POSITION; /* Note that if the read size = SPI_MAX_PAYLOAD_SIZE it will wrap to 0 as intended */
+        command_frame |= ((uint32_t) ((addr + size - dwords_remaining) & SJA1105_SPI_ADDR_MASK)) << SJA1105_SPI_ADDR_POSITION;
+        command_frame |= ((uint32_t) (CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_RX_PAYLOAD_SIZE) & SJA1105_SPI_SIZE_MASK)) << SJA1105_SPI_SIZE_POSITION; /* Note that if the read size = SPI_MAX_PAYLOAD_SIZE it will wrap to 0 as intended */
 
         /* Start the transaction after a delay (ensures successive transactions meet timing requirements) */
         SJA1105_DELAY_NS(SJA1105_T_SPI_WR);
@@ -138,9 +138,9 @@ sja1105_status_t SJA1105_WriteRegister(sja1105_handle_t *dev, uint32_t addr, con
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the parameters */
-    if (size == 0) status = SJA1105_PARAMETER_ERROR;                              /* Empty check */
-    if (addr & ~SJA1105_SPI_ADDR_MASK) status = SJA1105_PARAMETER_ERROR;          /* Start address check */
-    if ((addr + size) & ~SJA1105_SPI_ADDR_MASK) status = SJA1105_PARAMETER_ERROR; /* End address check */
+    if (size == 0) status = SJA1105_PARAMETER_ERROR;                                  /* Empty check */
+    if (addr & ~SJA1105_SPI_ADDR_MASK) status = SJA1105_PARAMETER_ERROR;              /* Start address check */
+    if ((addr + size - 1) & ~SJA1105_SPI_ADDR_MASK) status = SJA1105_PARAMETER_ERROR; /* End address check */
     if (status != SJA1105_OK) return status;
 
     /* Initialise counter for the number of double words remaining to transmit */
@@ -153,7 +153,7 @@ sja1105_status_t SJA1105_WriteRegister(sja1105_handle_t *dev, uint32_t addr, con
 
         /* Create the command frame */
         command_frame  = SJA1105_SPI_WRITE_FRAME;
-        command_frame |= ((addr + size - dwords_remaining) & SJA1105_SPI_ADDR_MASK) << SJA1105_SPI_ADDR_POSITION;
+        command_frame |= ((uint32_t) ((addr + size - dwords_remaining) & SJA1105_SPI_ADDR_MASK)) << SJA1105_SPI_ADDR_POSITION;
 
         /* Start the transaction after a delay (ensures successive transactions meet timing requirements) */
         SJA1105_DELAY_NS(SJA1105_T_SPI_WR);
@@ -190,6 +190,102 @@ end:
 }
 
 
+/* Write a table to the chip */
+sja1105_status_t SJA1105_WriteTable(sja1105_handle_t *dev, uint32_t addr, sja1105_table_t *table, bool safe) {
+
+    sja1105_status_t status = SJA1105_OK;
+    uint32_t         header[SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC];
+    uint32_t         command_frame = 0;
+    uint32_t         size          = SJA1105_STATIC_CONF_BLOCK_OVERHEAD + *table->size;
+    uint32_t         crc_value = 0;
+    bool             crc_error = false;
+
+    /* Check the parameters */
+    if (!table->data_crc_valid) status = SJA1105_CRC_ERROR;                           /* CRC must be pre-computed */
+    if (addr & ~SJA1105_SPI_ADDR_MASK) status = SJA1105_PARAMETER_ERROR;              /* Start address check */
+    if ((addr + size - 1) & ~SJA1105_SPI_ADDR_MASK) status = SJA1105_PARAMETER_ERROR; /* End address check */
+    if (status != SJA1105_OK) return status;
+
+    /* Create the command frame */
+    command_frame  = SJA1105_SPI_WRITE_FRAME;
+    command_frame |= ((uint32_t) (addr & SJA1105_SPI_ADDR_MASK)) << SJA1105_SPI_ADDR_POSITION;
+
+    /* Create the header */
+    header[0] = ((uint32_t) *table->id) << 24;
+    header[1] = *table->size & SJA1105_STATIC_CONF_BLOCK_SIZE_MASK;
+    header[2] = *table->header_crc;
+
+    /* Start the transaction after a delay (ensures successive transactions meet timing requirements) */
+    SJA1105_DELAY_NS(SJA1105_T_SPI_WR);
+    HAL_GPIO_WritePin(dev->config->cs_port, dev->config->cs_pin, RESET);
+    SJA1105_DELAY_NS(SJA1105_T_SPI_LEAD);
+
+    /* Send command frame */
+    if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) &command_frame, 1, dev->config->timeout) != HAL_OK) {
+        status = SJA1105_SPI_ERROR;
+        goto end;
+    }
+    dev->events.words_written++;
+
+    /* Send the header */
+    if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) header, SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC, dev->config->timeout) != HAL_OK) {
+        status = SJA1105_SPI_ERROR;
+        goto end;
+    }
+    dev->events.words_written += SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC;
+
+    /* Send the data */
+    if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) table->data, *table->size, dev->config->timeout) != HAL_OK) {
+        status = SJA1105_SPI_ERROR;
+        goto end;
+    }
+    dev->events.words_written += *table->size;
+
+    /* Send the data CRC */
+    if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) table->data_crc, 1, dev->config->timeout) != HAL_OK) {
+        status = SJA1105_SPI_ERROR;
+        goto end;
+    }
+    dev->events.words_written++;
+
+    /* End the transaction */
+    SJA1105_DELAY_NS(SJA1105_T_SPI_LAG);
+    HAL_GPIO_WritePin(dev->config->cs_port, dev->config->cs_pin, SET);
+
+    /* Check the block had no CRC errors if required to */
+    if (safe) {
+        status = SJA1105_ReadFlag(dev, SJA1105_REG_STATIC_CONF_FLAGS, SJA1105_CRCCHKL_MASK, &crc_error);
+        if (status != SJA1105_OK) goto end;
+
+        /* If there is a CRC error then report it */
+        if (crc_error) {
+            status = SJA1105_CRC_ERROR;
+            dev->events.crc_errors++;
+            goto end;
+        }
+    }
+
+    /* Only bother computing the CRC if the global crc isn't valid */
+    if (!dev->tables.global_crc_valid) {
+
+        /* Add the header to the CRC */
+        status = dev->callbacks->callback_crc_accumulate(dev, header, SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC, &crc_value);
+        if (status != SJA1105_OK) goto end;
+
+        /* Add the data to the CRC */
+        status = dev->callbacks->callback_crc_accumulate(dev, table->data, *table->size, &crc_value);
+        if (status != SJA1105_OK) goto end;
+
+        /* Add the data CRC to the CRC */
+        status = dev->callbacks->callback_crc_accumulate(dev, table->data_crc, 1, &crc_value);
+        if (status != SJA1105_OK) goto end;
+    }
+end:
+
+    return status;
+}
+
+
 /* Invalidate a range of L2 look up table indexes. This operation includes both end indexes.
  *
  * This function is esimated to take at least 12us to invalidate one entry. (Assuming VALID is
@@ -214,7 +310,7 @@ sja1105_status_t SJA1105_L2LUTInvalidateRange(sja1105_handle_t *dev, uint16_t lo
 
     /* Setup the command word for a write to L2 Address Lookup table reconfiguration register 1 */
     reg_data[0]  = SJA1105_SPI_WRITE_FRAME;
-    reg_data[0] |= (SJA1105_DYN_CONF_L2_LUT_REG_1 & SJA1105_SPI_ADDR_MASK) << SJA1105_SPI_ADDR_POSITION;
+    reg_data[0] |= ((uint32_t) (SJA1105_DYN_CONF_L2_LUT_REG_1 & SJA1105_SPI_ADDR_MASK)) << SJA1105_SPI_ADDR_POSITION;
 
     /* Setup the L2 Address Lookup table reconfiguration register 0 with the invalidate command */
     reg_data[size - 1]  = SJA1105_DYN_CONF_L2_LUT_VALID;
@@ -258,8 +354,9 @@ void SJA1105_FullReset(sja1105_handle_t *dev) {
     HAL_GPIO_WritePin(dev->config->rst_port, dev->config->rst_pin, RESET);
     SJA1105_DELAY_NS(SJA1105_T_RST); /* 5us delay */
     HAL_GPIO_WritePin(dev->config->rst_port, dev->config->rst_pin, SET);
-    SJA1105_DELAY_MS(1);             /* 329us minimum until SPI commands can be written. Use a 1ms non-blocking delay so the RTOS can do other work */
+    SJA1105_DELAY_MS(1);             /* 329us minimum until SPI commands can be written (SJA1105_T_RST_STARTUP_HW). Use a 1ms non-blocking delay so the RTOS can do other work */
 }
+
 
 sja1105_status_t SJA1105_CfgReset(sja1105_handle_t *dev) {
 
@@ -267,6 +364,10 @@ sja1105_status_t SJA1105_CfgReset(sja1105_handle_t *dev) {
     uint32_t         reg_data = SJA1105_RGU_CFG_RST;
 
     status = SJA1105_WriteRegister(dev, SJA1105_RGU_REG_RESET_CTRL, &reg_data, 1);
+    if (status != SJA1105_OK) return status;
+
+    /* Delay to wait for startup */
+    SJA1105_DELAY_NS(SJA1105_T_RST_STARTUP_SW);
 
     return status;
 }

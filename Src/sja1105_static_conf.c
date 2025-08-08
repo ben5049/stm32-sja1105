@@ -64,8 +64,6 @@ sja1105_status_t SJA1105_FreeAllTableMemory(sja1105_handle_t *dev) {
     /* Reset the fixed length table array */
     dev->tables.first_free = dev->tables.fixed_length_buffer + 1; /* Leave one space for the device ID */
 
-    dev->tables.loaded           = false;
-    dev->tables.written          = false;
     dev->tables.global_crc_valid = false;
 
     return status;
@@ -89,7 +87,7 @@ sja1105_status_t SJA1105_AllocateFixedLengthTable(sja1105_handle_t *dev, const u
 
     /* Check size argument */
     size = (block[SJA1105_STATIC_CONF_BLOCK_SIZE_OFFSET] & SJA1105_STATIC_CONF_BLOCK_SIZE_MASK) >> SJA1105_STATIC_CONF_BLOCK_SIZE_SHIFT;
-    if (block_size != (size + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC + SJA1105_STATIC_CONF_BLOCK_DATA_CRC)) status = SJA1105_STATIC_CONF_ERROR;
+    if (block_size != (size + SJA1105_STATIC_CONF_BLOCK_OVERHEAD)) status = SJA1105_STATIC_CONF_ERROR;
     if (status != SJA1105_OK) return status;
 
     /* Check header CRC */
@@ -159,7 +157,7 @@ sja1105_status_t SJA1105_AllocateVariableLengthTable(sja1105_handle_t *dev, cons
 
     /* Check size argument */
     size = (block[SJA1105_STATIC_CONF_BLOCK_SIZE_OFFSET] & SJA1105_STATIC_CONF_BLOCK_SIZE_MASK) >> SJA1105_STATIC_CONF_BLOCK_SIZE_SHIFT;
-    if (block_size != (size + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC + SJA1105_STATIC_CONF_BLOCK_DATA_CRC)) status = SJA1105_STATIC_CONF_ERROR;
+    if (block_size != (size + SJA1105_STATIC_CONF_BLOCK_OVERHEAD)) status = SJA1105_STATIC_CONF_ERROR;
     if (status != SJA1105_OK) return status;
 
     /* Check header CRC */
@@ -244,7 +242,7 @@ sja1105_status_t SJA1105_LoadStaticConfig(sja1105_handle_t *dev, const uint32_t 
 
         /* Get the actual block size (with headers and CRCs) */
         if (block_size != 0) {
-            block_size_actual = block_size + SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC + SJA1105_STATIC_CONF_BLOCK_DATA_CRC;
+            block_size_actual = block_size + SJA1105_STATIC_CONF_BLOCK_OVERHEAD;
             block_index_next  = block_index + block_size_actual;
             if ((block_index_next) >= static_conf_size) status = SJA1105_STATIC_CONF_ERROR;
             if (status != SJA1105_OK) return status;
@@ -293,87 +291,144 @@ sja1105_status_t SJA1105_LoadStaticConfig(sja1105_handle_t *dev, const uint32_t 
     status = SJA1105_CheckRequiredTables(dev);
     if (status != SJA1105_OK) return status;
 
-    /* TODO: Add the CGU config */
+    /* Add the CGU config */
+    status = SJA1105_ConfigureCGU(dev, false);
+    if (status != SJA1105_OK) return status;
+
+    /* Add the ACU config */
     status = SJA1105_ConfigureACU(dev, false);
     if (status != SJA1105_OK) return status;
 
-    /* TODO: Add the ACU config */
-
-    /* TODO: Disable ingress, egress and learning in MAC config table */
-
-    dev->tables.loaded = true;
+    /* Disable ingress, egress and learning in MAC config table */
+    status = SJA1105_ResetMACConfTable(dev, false);
+    if (status != SJA1105_OK) return status;
 
     return status;
 }
 
 
 /* Write the static config to the chip */
-sja1105_status_t SJA1105_WriteStaticConfig(sja1105_handle_t *dev) {
+sja1105_status_t SJA1105_WriteStaticConfig(sja1105_handle_t *dev, bool safe) {
 
     sja1105_status_t status = SJA1105_NOT_IMPLEMENTED_ERROR;
+    sja1105_table_t *table;
+    uint32_t         crc_value;
+    uint32_t         reg_data;
+    uint32_t         offset; /* Number of words written so far */
+    uint32_t         end_block[SJA1105_STATIC_CONF_BLOCK_LAST_SIZE] = {0, 0, dev->tables.global_crc};
 
-    /* Steps:
-     *
-     * 1. Check all tables to write have CRCs calculated
-     * 2. Calculate any table CRCs that are missing
-     * 3. Send ID + all fixed length tables in one block (while accumulating CRC)
-     * 4. Send all variable length tables (while accumulating CRC)
-     * 5. Send last block with global CRC
-     * 6. Check name, CRC and valid flags
-     *
-     * Optional: "safe" flag that makes it check whether individual table CRCs are valid after write
-     */
+    /* Don't rely on a pre-computed CRC in safe mode */
+    if (safe) {
+        dev->tables.global_crc_valid = false;
+    }
 
-    // /* Write the device ID */
-    // status = SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR, static_conf, SJA1105_STATIC_CONF_BLOCK_FIRST_OFFSET);
-    // if (status != SJA1105_OK) return status;
+    /* Calculate all missing data CRCs */
+    for (uint_fast8_t table_i = 0; table_i < SJA1105_NUM_TABLES; table_i++) {
 
-    // /* Check the device ID was accepted */
-    // status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
-    // if (status != SJA1105_OK) return status;
-    // if ((reg_data & SJA1105_IDS_MASK) != 0) {
-    //     status = SJA1105_ID_ERROR;
-    //     return status;
-    // }
+        table = &dev->tables.by_index[table_i];
 
+        /* Calculate the CRC */
+        if (table->in_use && !table->data_crc_valid) {
+            dev->tables.global_crc_valid = false;
+            status                       = dev->callbacks->callback_crc_reset(dev);
+            if (status != SJA1105_OK) return status;
+            status = dev->callbacks->callback_crc_accumulate(dev, table->data, *table->size, &crc_value);
+            if (status != SJA1105_OK) return status;
+            *table->data_crc      = crc_value;
+            table->data_crc_valid = true;
+        }
+    }
 
-    // /* Write the block */
-    // status = SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR + block_index, &static_conf[block_index], block_size_actual);
-    // if (status != SJA1105_OK) return status;
+    /* Write the device ID */
+    status = SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR, dev->tables.device_id, 1);
+    if (status != SJA1105_OK) return status;
+    offset = 1;
 
-    // /* Check the block had no CRC errors */
-    // if (!last_block) {
-    //     status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
-    //     if (status != SJA1105_OK) return status;
+    /* Check the device ID was accepted */
+    status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
+    if (status != SJA1105_OK) return status;
+    if ((reg_data & SJA1105_IDS_MASK) != 0) {
+        status = SJA1105_ID_ERROR;
+        return status;
+    }
 
-    //     /* If there is a CRC error then report it */
-    //     if ((reg_data & SJA1105_CRCCHKL_MASK) != 0) {
-    //         status = SJA1105_CRC_ERROR;
-    //         dev->events.crc_errors++;
-    //         return status;
-    //     }
-    // }
+    /* Reset the CRC and accumulate the device ID */
+    if (!dev->tables.global_crc_valid) {
+        status = dev->callbacks->callback_crc_reset(dev);
+        if (status != SJA1105_OK) return status;
+        status = dev->callbacks->callback_crc_accumulate(dev, dev->tables.device_id, 1, &crc_value);
+        if (status != SJA1105_OK) return status;
+    }
 
+    /* Safe means tables are written one by one and the CRC error flag is checked after each write */
+    if (safe) {
+        for (uint_fast8_t i = 0; i < SJA1105_NUM_TABLES; i++) {
 
-    // /* Read the intial config flags register */
-    // status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
-    // if (status != SJA1105_OK) return status;
+            table = &dev->tables.by_index[i];
 
-    // /* Check for global CRC errors */
-    // if ((reg_data & SJA1105_CRCCHKG_MASK) != 0) {
-    //     status = SJA1105_CRC_ERROR;
-    //     dev->events.crc_errors++;
-    //     return status;
-    // }
+            if (!table->in_use) {
+                continue;
+            }
 
-    // /* Check that the config was accepted */
-    // if ((reg_data & SJA1105_CONFIGS_MASK) == 0) {
-    //     status = SJA1105_STATIC_CONF_ERROR;
-    //     return status;
-    // }
+            SJA1105_WriteTable(dev, SJA1105_STATIC_CONF_ADDR + offset, table, true); /* Note this also accumulates the bytes written into the crc */
+            offset += SJA1105_STATIC_CONF_BLOCK_OVERHEAD + *table->size;
+        }
+    }
 
-    // /* Update the device struct */
-    // dev->static_conf_loaded = true;
+    /* Unsafe means tables are written as fast as possible with no checks */
+    else {
+
+        /* Write the fixed length tables. TODO: Use DMA to speed up and let CPU do CRC calculations */
+        status = SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR + offset, dev->tables.fixed_length_buffer + offset, (dev->tables.first_free - dev->tables.fixed_length_buffer) - offset);
+        if (status != SJA1105_OK) return status;
+        offset = dev->tables.first_free - dev->tables.fixed_length_buffer;
+
+        /* Calculate the CRC for the fixed length tables */
+        if (!dev->tables.global_crc_valid) {
+            status = dev->callbacks->callback_crc_accumulate(dev, dev->tables.fixed_length_buffer + 1, offset - 1, &crc_value);
+            if (status != SJA1105_OK) return status;
+        }
+
+        /* Write the variable length tables */
+        for (uint_fast8_t i = 0; i < SJA1105_NUM_TABLES; i++) {
+
+            table = &dev->tables.by_index[i];
+
+            if (table->in_use && (SJA1105_GET_TABLE_LENGTH_TYPE(*table->id) == SJA1105_TABLE_VARIABLE_LENGTH)) {
+                SJA1105_WriteTable(dev, SJA1105_STATIC_CONF_ADDR + offset, table, false); /* Note this also accumulates the bytes written into the crc */
+                offset += SJA1105_STATIC_CONF_BLOCK_OVERHEAD + *table->size;
+            }
+        }
+    }
+
+    /* Finish calculating the global CRC */
+    if (!dev->tables.global_crc_valid) {
+        status = dev->callbacks->callback_crc_accumulate(dev, end_block, SJA1105_STATIC_CONF_BLOCK_LAST_SIZE - 1, &crc_value);
+        if (status != SJA1105_OK) return status;
+        end_block[SJA1105_STATIC_CONF_BLOCK_LAST_SIZE - 1] = crc_value;
+        dev->tables.global_crc_valid                       = true;
+    }
+
+    /* Write the last block */
+    status = SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR + offset, end_block, SJA1105_STATIC_CONF_BLOCK_LAST_SIZE);
+    if (status != SJA1105_OK) return status;
+
+    /* Read the intial config flags register */
+    status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
+    if (status != SJA1105_OK) return status;
+
+    /* Check for global CRC errors */
+    if ((reg_data & SJA1105_CRCCHKG_MASK) != 0) {
+        status = SJA1105_CRC_ERROR;
+        dev->events.crc_errors++;
+        return status;
+    }
+
+    /* Check that the config was accepted */
+    if ((reg_data & SJA1105_CONFIGS_MASK) == 0) {
+        status = SJA1105_STATIC_CONF_ERROR;
+        return status;
+    }
 
     return status;
 }
@@ -421,8 +476,11 @@ sja1105_status_t SJA1105_SyncStaticConfig(sja1105_handle_t *dev) {
         SJA1105_FullReset(dev);
     }
 
-    /* Write the configuration */
-    status = SJA1105_WriteStaticConfig(dev);
+    /* Write the configuration and try again in safe mode if it fails */
+    status = SJA1105_WriteStaticConfig(dev, false);
+    if (status == SJA1105_CRC_ERROR) {
+        status = SJA1105_WriteStaticConfig(dev, true);
+    }
     if (status != SJA1105_OK) return status;
 
     /* Set the device to initialised */

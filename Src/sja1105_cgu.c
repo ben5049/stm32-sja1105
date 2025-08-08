@@ -71,7 +71,7 @@ sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev, bool write) {
 
     /* Add the table if it isn't there already */
     if (!dev->tables.cgu_config_parameters.in_use) {
-        SJA1105_AllocateFixedLengthTable(dev, &sja1105_cgu_block_default, SJA1105_CGU_BLOCK_SIZE);
+        SJA1105_AllocateFixedLengthTable(dev, sja1105_cgu_block_default, SJA1105_CGU_BLOCK_SIZE);
     }
 
     /* Setup PLL0 (f = 125MHz) */
@@ -318,6 +318,7 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
             status = SJA1105_PARAMETER_ERROR;
             break;
     }
+    if (status != SJA1105_OK) return status;
 
 
     /* Apply the configuration to non-sgmii ports */

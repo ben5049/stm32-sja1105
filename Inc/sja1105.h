@@ -176,8 +176,6 @@ typedef struct {
     uint32_t *first_free; /* Starts at device_id + 1. Every time a table is added it is moved to the first pointer after the table */
     uint32_t  global_crc;
     bool      global_crc_valid;
-    bool      loaded;
-    bool      written;
 } sja1105_tables_t;
 
 typedef struct {
