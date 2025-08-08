@@ -63,6 +63,20 @@ enum SJA1105_DeviceID_Enum {
 /* Auxiliary Configuration Unit */
 /* ---------------------------------------------------------------------------- */
 
+#define SJA1105_ACU_SIZE                              (21)
+#define SJA1105_ACU_BLOCK_SIZE                        (SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC + SJA1105_ACU_SIZE + SJA1105_STATIC_CONF_BLOCK_DATA_CRC)
+
+#define SJA1105_ACU_INITIAL_TS_CONFIG                 (0x00000065)
+#define SJA1105_ACU_INITIAL_CFG_PAD_JTAG              (0x02000000)
+#define SJA1105_ACU_INITIAL_CFG_PAD_SPI               (0x12040407)
+#define SJA1105_ACU_INITIAL_CFG_PAD_MISC              (0x00120612)
+#define SJA1105_ACU_INITIAL_CFG_PAD_MIIX_ID           (0x00002323)
+#define SJA1105_ACU_INITIAL_CFG_PAD_MIIX_RX           (0x02020212)
+#define SJA1105_ACU_INITIAL_CFG_PAD_MIIX_TX           (0x12121212)
+
+#define SJA1105_ACU_TABLE_PAD_MIIX_RX_INDEX(port_num) (11 + (2 * (SJA1105_NUM_PORTS - 1 - (port_num))))
+#define SJA1105_ACU_TABLE_PAD_MIIX_TX_INDEX(port_num) (12 + (2 * (SJA1105_NUM_PORTS - 1 - (port_num))))
+
 enum SJA1105_ACUReg_Enum {
     SJA1105_ACU_REG_CFG_PAD_MIIX_BASE = 0x100800,
     SJA1105_ACU_REG_CFG_PAD_MISC      = 0x100840,
@@ -174,6 +188,19 @@ static const int16_t SJA1105_TS_LUT[SJA1105_TS_LUT_SIZE] = {
 /* Clock Generation Unit */
 /* ---------------------------------------------------------------------------- */
 
+#define SJA1105_CGU_SIZE                                      (44)
+#define SJA1105_CGU_BLOCK_SIZE                                (SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC + SJA1105_CGU_SIZE + SJA1105_STATIC_CONF_BLOCK_DATA_CRC)
+
+#define SJA1105_CGU_TABLE_PLL_0_C_INDEX                       (42)
+#define SJA1105_CGU_TABLE_PLL_1_C_INDEX                       (41)
+#define SJA1105_CGU_TABLE_IDIV_X_C_INDEX(port_num)            (40 - (port_num))
+#define SJA1105_CGU_TABLE_MIIX_MII_TX_CLK_C_INDEX(port_num)   (32 - SJA1105_CGU_REG_CLK_NUM * (port_num))
+#define SJA1105_CGU_TABLE_MIIX_MII_RX_CLK_C_INDEX(port_num)   (31 - SJA1105_CGU_REG_CLK_NUM * (port_num))
+#define SJA1105_CGU_TABLE_MIIX_RMII_REF_CLK_C_INDEX(port_num) (30 - SJA1105_CGU_REG_CLK_NUM * (port_num))
+#define SJA1105_CGU_TABLE_MIIX_RGMII_TX_CLK_CINDEX(port_num)  (29 - SJA1105_CGU_REG_CLK_NUM * (port_num))
+#define SJA1105_CGU_TABLE_MIIX_EXT_TX_CLK_C_INDEX(port_num)   (28 - SJA1105_CGU_REG_CLK_NUM * (port_num))
+#define SJA1105_CGU_TABLE_MIIX_EXT_RX_CLK_C_INDEX(port_num)   (27 - SJA1105_CGU_REG_CLK_NUM * (port_num))
+
 enum SJA1105_CGUReg_Enum {
     SJA1105_CGU_REG_RFRQ           = 0x100006,
     SJA1105_CGU_REG_XO66M_0_C      = 0x100006, /* C = Control */
@@ -229,6 +256,21 @@ enum SJA1105_CGUReg_Enum {
 #define SJA1105_CGU_CLK_SRC_IDIV(port_num)   (0x11 + (port_num))
 #define SJA1105_CGU_CLK_SRC_TX_CLK(port_num) (2 * (port_num))
 #define SJA1105_CGU_CLK_SRC_RX_CLK(port_num) ((2 * (port_num)) + 1)
+
+/* ---------------------------------------------------------------------------- */
+/* Reset Generation Unit */
+/* ---------------------------------------------------------------------------- */
+
+#define SJA1105_RGU_REG_RESET_CTRL   0x100440
+#define SJA1105_RGU_REG_UNIT_DISABLE 0x1007fd
+
+#define SJA1105_RGU_SWITCH_RST       (1 << 8)
+#define SJA1105_RGU_CFG_RST          (1 << 7)
+#define SJA1105_RGU_CAR_RST          (1 << 5)
+#define SJA1105_RGU_OTP_RST          (1 << 4)
+#define SJA1105_RGU_WARM_RST         (1 << 3)
+#define SJA1105_RGU_COLD_RST         (1 << 2)
+#define SJA1105_RGU_POR_RST          (1 << 1)
 
 /* ---------------------------------------------------------------------------- */
 /* Static Configuration */

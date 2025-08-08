@@ -46,7 +46,9 @@ sja1105_status_t SJA1105_PollFlag(sja1105_handle_t *dev, uint32_t addr, uint32_t
 
 sja1105_status_t SJA1105_L2LUTInvalidateRange(sja1105_handle_t *dev, uint16_t low_i, uint16_t high_i);
 
-void SJA1105_Reset(sja1105_handle_t *dev);
+void             SJA1105_FullReset(sja1105_handle_t *dev);
+sja1105_status_t SJA1105_CfgReset(sja1105_handle_t *dev);
+
 
 #ifdef __cplusplus
 }

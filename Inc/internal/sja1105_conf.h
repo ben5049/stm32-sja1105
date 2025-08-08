@@ -40,14 +40,15 @@ void SJA1105_ResetEventCounters(sja1105_handle_t *dev);
 sja1105_status_t SJA1105_CheckPartID(sja1105_handle_t *dev);
 sja1105_status_t SJA1105_CheckDeviceID(sja1105_handle_t *dev, uint32_t device_id);
 
-sja1105_status_t SJA1105_ConfigureACU(sja1105_handle_t *dev);
-sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_num);
+sja1105_status_t SJA1105_ConfigureACU(sja1105_handle_t *dev, bool write);
+sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_num, bool write);
 
-sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev);
-sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_num);
+sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev, bool write);
+sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_num, bool write);
 
 sja1105_status_t SJA1105_LoadStaticConfig(sja1105_handle_t *dev, const uint32_t *static_conf, uint32_t static_conf_size);
 sja1105_status_t SJA1105_WriteStaticConfig(sja1105_handle_t *dev);
+sja1105_status_t SJA1105_SyncStaticConfig(sja1105_handle_t *dev);
 sja1105_status_t SJA1105_CheckRequiredTables(sja1105_handle_t *dev);
 
 sja1105_status_t SJA1105_FreeAllTableMemory(sja1105_handle_t *dev);

@@ -55,6 +55,8 @@ sja1105_status_t SJA1105_Init(
     /* Take the mutex */
     SJA1105_LOCK;
 
+    dev->initialised = false;
+
     /* Check the device hasn't already been initialised. Note this may cause an unintended error if the struct uses non-zeroed memory. */
     if (dev->initialised) status = SJA1105_ALREADY_CONFIGURED_ERROR;
     if (status != SJA1105_OK) goto end;
@@ -91,9 +93,8 @@ sja1105_status_t SJA1105_Init(
     if (status != SJA1105_OK) goto end;
 
     /* Assign the input arguments */
-    dev->config      = config;
-    dev->callbacks   = callbacks;
-    dev->initialised = false;
+    dev->config    = config;
+    dev->callbacks = callbacks;
 
     /* Reset tables (note this does not free memory) */
     SJA1105_ResetTables(dev, fixed_length_table_buffer);
@@ -120,7 +121,7 @@ sja1105_status_t SJA1105_Init(
     /* Configure the SJA1105 */
 
     /* Step 1: RESET */
-    SJA1105_Reset(dev);
+    SJA1105_FullReset(dev);
 
     /* Check the part number matches the specified variant */
     status = SJA1105_CheckPartID(dev);

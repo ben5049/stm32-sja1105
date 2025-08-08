@@ -11,6 +11,7 @@
 #include "internal/sja1105_conf.h"
 #include "internal/sja1105_tables.h"
 #include "internal/sja1105_regs.h"
+#include "internal/sja1105_io.h"
 
 
 sja1105_status_t SJA1105_FreeAllTableMemory(sja1105_handle_t *dev) {
@@ -96,7 +97,7 @@ sja1105_status_t SJA1105_AllocateFixedLengthTable(sja1105_handle_t *dev, const u
     if (status != SJA1105_OK) return status;
     status = dev->callbacks->callback_crc_accumulate(dev, block, SJA1105_STATIC_CONF_BLOCK_HEADER, &header_crc);
     if (status != SJA1105_OK) return status;
-    if (header_crc != block[SJA1105_STATIC_CONF_HEADER_CRC_OFFSET]) {
+    if ((header_crc != block[SJA1105_STATIC_CONF_HEADER_CRC_OFFSET]) && (block[SJA1105_STATIC_CONF_HEADER_CRC_OFFSET] != 0)) {
         status = SJA1105_CRC_ERROR;
         dev->events.crc_errors++;
         return status;
@@ -107,7 +108,7 @@ sja1105_status_t SJA1105_AllocateFixedLengthTable(sja1105_handle_t *dev, const u
     if (status != SJA1105_OK) return status;
     status = dev->callbacks->callback_crc_accumulate(dev, block + SJA1105_STATIC_CONF_DATA_OFFSET, size, &data_crc);
     if (status != SJA1105_OK) return status;
-    if (data_crc != block[block_size - 1]) {
+    if ((data_crc != block[block_size - 1]) && (block[block_size - 1] != 0)) {
         status = SJA1105_CRC_ERROR;
         dev->events.crc_errors++;
         return status;
@@ -123,6 +124,10 @@ sja1105_status_t SJA1105_AllocateFixedLengthTable(sja1105_handle_t *dev, const u
     /* Copy in the block and advance the free pointer */
     memcpy(dev->tables.first_free, block, block_size * sizeof(uint32_t));
     dev->tables.first_free += block_size;
+
+    /* Write the CRCs if none were provided */
+    if (block[SJA1105_STATIC_CONF_HEADER_CRC_OFFSET] == 0) *table->header_crc = header_crc;
+    if (block[block_size - 1] == 0) *table->data_crc = data_crc;
 
     /* Check the values were copied correctly */
     if (*table->id != id) status = SJA1105_MEMORY_ERROR;
@@ -162,7 +167,7 @@ sja1105_status_t SJA1105_AllocateVariableLengthTable(sja1105_handle_t *dev, cons
     if (status != SJA1105_OK) return status;
     status = dev->callbacks->callback_crc_accumulate(dev, block, SJA1105_STATIC_CONF_BLOCK_HEADER, &header_crc);
     if (status != SJA1105_OK) return status;
-    if (header_crc != block[SJA1105_STATIC_CONF_HEADER_CRC_OFFSET]) {
+    if ((header_crc != block[SJA1105_STATIC_CONF_HEADER_CRC_OFFSET]) && (block[SJA1105_STATIC_CONF_HEADER_CRC_OFFSET] != 0)) {
         status = SJA1105_CRC_ERROR;
         dev->events.crc_errors++;
         return status;
@@ -173,7 +178,7 @@ sja1105_status_t SJA1105_AllocateVariableLengthTable(sja1105_handle_t *dev, cons
     if (status != SJA1105_OK) return status;
     status = dev->callbacks->callback_crc_accumulate(dev, block + SJA1105_STATIC_CONF_DATA_OFFSET, size, &data_crc);
     if (status != SJA1105_OK) return status;
-    if (data_crc != block[block_size - 1]) {
+    if ((data_crc != block[block_size - 1]) && (block[block_size - 1] != 0)) {
         status = SJA1105_CRC_ERROR;
         dev->events.crc_errors++;
         return status;
@@ -194,9 +199,9 @@ sja1105_status_t SJA1105_AllocateVariableLengthTable(sja1105_handle_t *dev, cons
     /* Copy in the values */
     *table->id         = id;
     *table->size       = size;
-    *table->header_crc = block[SJA1105_STATIC_CONF_HEADER_CRC_OFFSET];
+    *table->header_crc = (block[SJA1105_STATIC_CONF_HEADER_CRC_OFFSET] != 0) ? block[SJA1105_STATIC_CONF_HEADER_CRC_OFFSET] : header_crc;
     memcpy(table->data, block + SJA1105_STATIC_CONF_DATA_OFFSET, size);
-    *table->data_crc = block[block_size - 1];
+    *table->data_crc = (block[block_size - 1] != 0) ? block[block_size - 1] : data_crc;
 
     /* Set the flags in the entry */
     table->in_use         = true;
@@ -289,6 +294,8 @@ sja1105_status_t SJA1105_LoadStaticConfig(sja1105_handle_t *dev, const uint32_t 
     if (status != SJA1105_OK) return status;
 
     /* TODO: Add the CGU config */
+    status = SJA1105_ConfigureACU(dev, false);
+    if (status != SJA1105_OK) return status;
 
     /* TODO: Add the ACU config */
 
@@ -299,10 +306,23 @@ sja1105_status_t SJA1105_LoadStaticConfig(sja1105_handle_t *dev, const uint32_t 
     return status;
 }
 
+
 /* Write the static config to the chip */
 sja1105_status_t SJA1105_WriteStaticConfig(sja1105_handle_t *dev) {
 
     sja1105_status_t status = SJA1105_NOT_IMPLEMENTED_ERROR;
+
+    /* Steps:
+     *
+     * 1. Check all tables to write have CRCs calculated
+     * 2. Calculate any table CRCs that are missing
+     * 3. Send ID + all fixed length tables in one block (while accumulating CRC)
+     * 4. Send all variable length tables (while accumulating CRC)
+     * 5. Send last block with global CRC
+     * 6. Check name, CRC and valid flags
+     *
+     * Optional: "safe" flag that makes it check whether individual table CRCs are valid after write
+     */
 
     // /* Write the device ID */
     // status = SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR, static_conf, SJA1105_STATIC_CONF_BLOCK_FIRST_OFFSET);
@@ -378,6 +398,35 @@ sja1105_status_t SJA1105_CheckRequiredTables(sja1105_handle_t *dev) {
     if (!dev->tables.vl_forwarding_parameters.in_use && dev->tables.vl_forwarding.in_use) status = SJA1105_MISSING_TABLE_ERROR;
 
     /* TODO: Check if VL Policing and forwarding tables are present if VL lookup is and has any critical entries */
+
+    return status;
+}
+
+
+/* Sync the states of the driver and the chip by reuploading the static config (note this flushes learned MAC addresses) */
+sja1105_status_t SJA1105_SyncStaticConfig(sja1105_handle_t *dev) {
+
+    sja1105_status_t status = SJA1105_OK;
+
+    /* Free management routes */
+    status = SJA1105_ManagementRouteFree(dev, true);
+    if (status != SJA1105_OK) return status;
+
+    /* Set the device to not initialised */
+    dev->initialised = false;
+
+    /* Purge all configuration data on the chip */
+    status = SJA1105_CfgReset(dev);
+    if (status != SJA1105_OK) {
+        SJA1105_FullReset(dev);
+    }
+
+    /* Write the configuration */
+    status = SJA1105_WriteStaticConfig(dev);
+    if (status != SJA1105_OK) return status;
+
+    /* Set the device to initialised */
+    dev->initialised = true;
 
     return status;
 }

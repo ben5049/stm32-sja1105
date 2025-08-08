@@ -123,13 +123,13 @@ typedef struct {
 } sja1105_config_t;
 
 typedef struct {
-    bool      in_use;
-    uint8_t  *id;
-    uint32_t *size; /* Number of uint32_t in data */
-    uint32_t *header_crc;
-    uint32_t *data;
-    uint32_t *data_crc;
-    bool      data_crc_valid;
+    bool      in_use;         /* Flag set when a table is allocated. Variable length tables not in use will not be written. Fixed length tables will be written regardless of this flag if they have been allocated */
+    uint8_t  *id;             /* Table block ID */
+    uint32_t *size;           /* Number of uint32_t in data */
+    uint32_t *header_crc;     /* Every time the header changes it's CRC should be changed immediately (hence no header_crc_valid) */
+    uint32_t *data;           /* Array of uint32_t */
+    uint32_t *data_crc;       /* CRC of data */
+    bool      data_crc_valid; /* When the data is changed the CRC doesn't have to be recalculated immediately (to prevent recalculation multiple times e.g. when configuring multiple ports at the same time). Instead this flag can be set and the CRC will be calulated prior to writing */
 } sja1105_table_t;
 
 typedef enum {
@@ -261,7 +261,7 @@ sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *a
 
 sja1105_status_t SJA1105_L2EntryReadByIndex(sja1105_handle_t *dev, uint16_t index, bool managment, uint32_t entry[SJA1105_L2ADDR_LU_ENTRY_SIZE]);
 sja1105_status_t SJA1105_ManagementRouteCreate(sja1105_handle_t *dev, const uint8_t dst_addr[MAC_ADDR_SIZE], uint8_t dst_ports, bool takets, bool tsreg, void *context);
-sja1105_status_t SJA1105_ManagementRouteFree(sja1105_handle_t *dev);
+sja1105_status_t SJA1105_ManagementRouteFree(sja1105_handle_t *dev, bool force);
 sja1105_status_t SJA1105_FlushTCAM(sja1105_handle_t *dev);
 
 #ifdef __cplusplus

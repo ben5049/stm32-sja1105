@@ -11,25 +11,60 @@
 #include "internal/sja1105_regs.h"
 
 
-sja1105_status_t SJA1105_ConfigureACU(sja1105_handle_t *dev) {
-    /* TODO: ADD NEW TABLE LOGIC*/
+static const uint32_t sja1105_acu_block_default[SJA1105_ACU_BLOCK_SIZE] = {
+    (uint32_t) SJA1105_BLOCK_ID_ACU << 24,
+    SJA1105_ACU_SIZE,
+    0, /* CRC left at 0 means calculate at runtime */
+    0, /* Reserved */
+    0, /* Reserved */
+    SJA1105_ACU_INITIAL_TS_CONFIG,
+    SJA1105_ACU_INITIAL_CFG_PAD_JTAG,
+    SJA1105_ACU_INITIAL_CFG_PAD_SPI,
+    SJA1105_ACU_INITIAL_CFG_PAD_MISC,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_ID,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_ID,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_ID,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_ID,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_ID,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_RX,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_TX,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_RX,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_TX,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_RX,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_TX,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_RX,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_TX,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_RX,
+    SJA1105_ACU_INITIAL_CFG_PAD_MIIX_TX,
+    0 /* CRC left at 0 means calculate at runtime */
+};
+
+
+sja1105_status_t SJA1105_ConfigureACU(sja1105_handle_t *dev, bool write) {
+
     sja1105_status_t status = SJA1105_OK;
+
+    /* Add the table if it isn't there already */
+    if (!dev->tables.acu_config_parameters.in_use) {
+        SJA1105_AllocateFixedLengthTable(dev, &sja1105_acu_block_default, SJA1105_ACU_BLOCK_SIZE);
+    }
 
     /* Configure the ACU with each port's IO pad configuration */
     for (uint_fast8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++) {
-        status = SJA1105_ConfigureACUPort(dev, port_num);
+        status = SJA1105_ConfigureACUPort(dev, port_num, write);
         if (status != SJA1105_OK) return status;
     }
 
     /* TODO: Configure MISC, SPI, and JTAG IO pads. */
 
-    /* No need to configure the temperature sensor sice that is done when the temperature sensor is read */
+    /* No need to configure the temperature sensor since that is done when the temperature sensor is read */
 
     return status;
 }
 
-sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_num) {
-    /* TODO: ADD NEW TABLE LOGIC*/
+
+sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_num, bool write) {
+
     sja1105_status_t      status = SJA1105_OK;
     const sja1105_port_t *port   = &dev->config->ports[port_num];
 
@@ -104,7 +139,17 @@ sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_nu
     reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_IH_NON_SCHMITT;
 
     /* Write the pad config */
-    SJA1105_WriteRegister(dev, SJA1105_ACU_REG_CFG_PAD_MIIX_TX(port_num), reg_data, SJA1105_ACU_PAD_CFG_SIZE);
+    if (write) {
+        SJA1105_WriteRegister(dev, SJA1105_ACU_REG_CFG_PAD_MIIX_TX(port_num), reg_data, SJA1105_ACU_PAD_CFG_SIZE);
+        if (status != SJA1105_OK) return status;
+    }
+
+    /* Update the internal copy of the table */
+    if (dev->tables.acu_config_parameters.in_use) {
+        dev->tables.acu_config_parameters.data[SJA1105_ACU_TABLE_PAD_MIIX_TX_INDEX(port_num)] = reg_data[SJA1105_ACU_PAD_CFG_TX];
+        dev->tables.acu_config_parameters.data[SJA1105_ACU_TABLE_PAD_MIIX_RX_INDEX(port_num)] = reg_data[SJA1105_ACU_PAD_CFG_RX];
+        dev->tables.acu_config_parameters.data_crc_valid                                      = false;
+    }
 
     /* TODO: Update the internal delay (ID) register (SJA1105_ACU_REG_CFG_PAD_MIIX_ID) if internal RGMII
      *       CLK delays are needed. Many PHYs also implement this and it is only needed once per TX or RX

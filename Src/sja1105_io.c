@@ -22,9 +22,6 @@ sja1105_status_t __SJA1105_ReadRegister(sja1105_handle_t *dev, uint32_t addr, ui
     if ((addr + size) & ~SJA1105_SPI_ADDR_MASK) status = SJA1105_PARAMETER_ERROR; /* End address check */
     if (status != SJA1105_OK) return status;
 
-    /* Take the mutex */
-    SJA1105_LOCK;
-
     /* Initialise counter for the number of double words remaining to receive */
     uint32_t dwords_remaining = size;
     uint32_t command_frame;
@@ -81,9 +78,9 @@ sja1105_status_t __SJA1105_ReadRegister(sja1105_handle_t *dev, uint32_t addr, ui
 
     } while (dwords_remaining > 0);
 
-/* Give the mutex and return */
+
 end:
-    SJA1105_UNLOCK;
+
     return status;
 }
 
@@ -146,9 +143,6 @@ sja1105_status_t SJA1105_WriteRegister(sja1105_handle_t *dev, uint32_t addr, con
     if ((addr + size) & ~SJA1105_SPI_ADDR_MASK) status = SJA1105_PARAMETER_ERROR; /* End address check */
     if (status != SJA1105_OK) return status;
 
-    /* Take the mutex */
-    SJA1105_LOCK;
-
     /* Initialise counter for the number of double words remaining to transmit */
     uint32_t dwords_remaining = size;
     uint32_t command_frame;
@@ -192,8 +186,6 @@ sja1105_status_t SJA1105_WriteRegister(sja1105_handle_t *dev, uint32_t addr, con
 
 end:
 
-    /* Give the mutex and return */
-    SJA1105_UNLOCK;
     return status;
 }
 
@@ -210,9 +202,6 @@ end:
 sja1105_status_t SJA1105_L2LUTInvalidateRange(sja1105_handle_t *dev, uint16_t low_i, uint16_t high_i) {
 
     sja1105_status_t status = SJA1105_OK;
-
-    /* Take the mutex */
-    SJA1105_LOCK;
 
     /* Argument checking */
     if (low_i > high_i) status = SJA1105_PARAMETER_ERROR;
@@ -261,15 +250,23 @@ sja1105_status_t SJA1105_L2LUTInvalidateRange(sja1105_handle_t *dev, uint16_t lo
 
 end:
 
-    /* Give the mutex and return */
-    SJA1105_UNLOCK;
     return status;
 }
 
 
-void SJA1105_Reset(sja1105_handle_t *dev) {
+void SJA1105_FullReset(sja1105_handle_t *dev) {
     HAL_GPIO_WritePin(dev->config->rst_port, dev->config->rst_pin, RESET);
     SJA1105_DELAY_NS(SJA1105_T_RST); /* 5us delay */
     HAL_GPIO_WritePin(dev->config->rst_port, dev->config->rst_pin, SET);
     SJA1105_DELAY_MS(1);             /* 329us minimum until SPI commands can be written. Use a 1ms non-blocking delay so the RTOS can do other work */
+}
+
+sja1105_status_t SJA1105_CfgReset(sja1105_handle_t *dev) {
+
+    sja1105_status_t status   = SJA1105_OK;
+    uint32_t         reg_data = SJA1105_RGU_CFG_RST;
+
+    status = SJA1105_WriteRegister(dev, SJA1105_RGU_REG_RESET_CTRL, &reg_data, 1);
+
+    return status;
 }

@@ -526,7 +526,7 @@ end:
 }
 
 
-sja1105_status_t SJA1105_ManagementRouteFree(sja1105_handle_t *dev) {
+sja1105_status_t SJA1105_ManagementRouteFree(sja1105_handle_t *dev, bool force) {
 
     sja1105_status_t status = SJA1105_NOT_IMPLEMENTED_ERROR;
 
@@ -550,6 +550,12 @@ sja1105_status_t SJA1105_ManagementRouteFree(sja1105_handle_t *dev) {
             /* If the entry has been used then free it */
             if (entry[SJA1105_MGMT_MGMTVALID_OFFSET] & SJA1105_MGMT_MGMTVALID_MASK) {
                 dev->events.mgmt_frames_sent++;
+                dev->management_routes.slot_taken[i] = false;
+            }
+
+            /* If force is true then free the entry anyway */
+            else if (force) {
+                dev->events.mgmt_entries_dropped++;
                 dev->management_routes.slot_taken[i] = false;
             }
         }
@@ -576,10 +582,12 @@ sja1105_status_t SJA1105_FlushTCAM(sja1105_handle_t *dev) {
     SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
+    status = SJA1105_SyncStaticConfig(dev);
+
+    /* TODO: only invalidate LUT entries if its faster than a reconfig */
     /* Invalidate all entries TODO: Start at first dynamic entry? */
     /* TODO: Upload static config again? */
-    /* TODO: only invalidate LUTs if its faster than a reconfig */
-    status = SJA1105_L2LUTInvalidateRange(dev, 0, SJA1105_L2ADDR_LU_NUM_ENTRIES - 1);
+    // status = SJA1105_L2LUTInvalidateRange(dev, 0, SJA1105_L2ADDR_LU_NUM_ENTRIES - 1);
 
     /* Give the mutex and return */
     SJA1105_UNLOCK;
