@@ -317,18 +317,13 @@ sja1105_status_t SJA1105_WriteStaticConfig(sja1105_handle_t *dev, bool safe) {
     uint32_t         offset; /* Number of words written so far */
     uint32_t         end_block[SJA1105_STATIC_CONF_BLOCK_LAST_SIZE] = {0, 0, dev->tables.global_crc};
 
-    /* Don't rely on a pre-computed CRC in safe mode */
-    if (safe) {
-        dev->tables.global_crc_valid = false;
-    }
-
     /* Calculate all missing data CRCs */
     for (uint_fast8_t table_i = 0; table_i < SJA1105_NUM_TABLES; table_i++) {
 
         table = &dev->tables.by_index[table_i];
 
-        /* Calculate the CRC */
-        if (table->in_use && !table->data_crc_valid) {
+        /* Calculate the CRC. Don't rely on a pre-computed CRCs in safe mode */
+        if (table->in_use && (!table->data_crc_valid || safe)) {
             dev->tables.global_crc_valid = false;
             status                       = dev->callbacks->callback_crc_reset(dev);
             if (status != SJA1105_OK) return status;
