@@ -81,7 +81,7 @@ sja1105_status_t SJA1105_CheckTable(sja1105_handle_t *dev, uint8_t id, const uin
     const sja1105_table_t table = {
         .id   = &id,
         .size = &size,
-        .data = table_data,
+        .data = (uint32_t *) table_data, /* Discard const :( */
     };
 
     switch (id) {
