@@ -417,6 +417,12 @@ sja1105_status_t SJA1105_GetMACFilters(sja1105_handle_t *dev, sja1105_mac_filter
     memcpy(mac_filters->mac_fltres0, start_ptr + (MAC_ADDR_SIZE * 2), MAC_ADDR_SIZE);
     memcpy(mac_filters->mac_fltres1, start_ptr + (MAC_ADDR_SIZE * 3), MAC_ADDR_SIZE);
 
+    /* Get the other trapping information */
+    mac_filters->send_meta0  = (bool) dev->tables.general_parameters.data[SJA1105_MAC_FLT_START_OFFSET_W] & SJA1105_SEND_META0;
+    mac_filters->send_meta1  = (bool) dev->tables.general_parameters.data[SJA1105_MAC_FLT_START_OFFSET_W] & SJA1105_SEND_META1;
+    mac_filters->incl_srcpt0 = (bool) dev->tables.general_parameters.data[SJA1105_MAC_FLT_START_OFFSET_W] & SJA1105_INCL_SRCPT0;
+    mac_filters->incl_srcpt1 = (bool) dev->tables.general_parameters.data[SJA1105_MAC_FLT_START_OFFSET_W] & SJA1105_INCL_SRCPT1;
+
     return status;
 }
 

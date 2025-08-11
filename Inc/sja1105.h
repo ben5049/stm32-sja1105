@@ -21,7 +21,11 @@ extern "C" {
 
 
 /* Defines */
-#define MAC_ADDR_SIZE                 (6)
+
+#ifndef MAC_ADDR_SIZE
+#define MAC_ADDR_SIZE (6)
+#endif
+
 #define SJA1105_NUM_PORTS             (5)
 #define SJA1105_NUM_TABLES            (25)
 #define SJA1105_FIXED_BUFFER_SIZE     (274) /* Size of the fixed length table buffer */
@@ -181,8 +185,12 @@ typedef struct {
 typedef struct {
     uint8_t mac_fltres0[MAC_ADDR_SIZE];
     uint8_t mac_flt0[MAC_ADDR_SIZE];
+    bool    send_meta0;
+    bool    incl_srcpt0;
     uint8_t mac_fltres1[MAC_ADDR_SIZE];
     uint8_t mac_flt1[MAC_ADDR_SIZE];
+    bool    send_meta1;
+    bool    incl_srcpt1;
 } sja1105_mac_filters_t;
 
 /* Stores information about driver events */
@@ -256,7 +264,7 @@ sja1105_status_t SJA1105_PortWake(sja1105_handle_t *dev, uint8_t port_num);
 
 sja1105_status_t SJA1105_ReadTemperatureX10(sja1105_handle_t *dev, int16_t *temp);
 sja1105_status_t SJA1105_CheckStatusRegisters(sja1105_handle_t *dev);
-sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *addr, bool *trapped);
+sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *addr, bool *trapped, bool *send_meta, bool *incl_srcpt);
 
 sja1105_status_t SJA1105_L2EntryReadByIndex(sja1105_handle_t *dev, uint16_t index, bool managment, uint32_t entry[SJA1105_L2ADDR_LU_ENTRY_SIZE]);
 sja1105_status_t SJA1105_ManagementRouteCreate(sja1105_handle_t *dev, const uint8_t dst_addr[MAC_ADDR_SIZE], uint8_t dst_ports, bool takets, bool tsreg, void *context);

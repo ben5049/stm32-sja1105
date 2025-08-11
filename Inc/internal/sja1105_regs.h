@@ -356,8 +356,13 @@ enum SJA1105_BlockID_Enum {
 
 #define SJA1105_STATIC_CONF_L2_POLICING_ENTRY_SIZE              (2)
 
-#define SJA1105_MAC_FLT_START_OFFSET_W                          (4)  /* Starts at bit 152 therefore in the 5th word */
-#define SJA1105_MAC_FLT_START_OFFSET_B                          (3)  /* Starts at bit 152 therefore offset 3 bytes from the nearest multiple of 32 bits (128 + 3 * 8 = 152) */
+#define SJA1105_MAC_FLT_START_OFFSET_W                          (4) /* Starts at bit 152 therefore in the 5th word */
+#define SJA1105_MAC_FLT_START_OFFSET_B                          (3) /* Starts at bit 152 therefore offset 3 bytes from the nearest multiple of 32 bits (128 + 3 * 8 = 152) */
+
+#define SJA1105_INCL_SRCPT1                                     (1 << 23)
+#define SJA1105_INCL_SRCPT0                                     (1 << 22)
+#define SJA1105_SEND_META1                                      (1 << 21)
+#define SJA1105_SEND_META0                                      (1 << 20)
 
 #define SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_OFFSET     (4)  /* [144:142] therefore in the 5th word */
 #define SJA1105_STATIC_CONF_GENERAL_PARAMS_HOST_PORT_SHIFT      (14) /* shifted up by 14 */

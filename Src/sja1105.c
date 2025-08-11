@@ -622,7 +622,7 @@ sja1105_status_t SJA1105_FlushTCAM(sja1105_handle_t *dev) {
 }
 
 
-sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *addr, bool *trapped) {
+sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *addr, bool *trapped, bool *send_meta, bool *incl_srcpt) {
 
     sja1105_status_t status = SJA1105_OK;
 
@@ -642,7 +642,11 @@ sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *a
             break;
         }
     }
-    if (*trapped) goto end;
+    if (*trapped) {
+        *send_meta  = filters.send_meta0;
+        *incl_srcpt = filters.incl_srcpt0;
+        goto end;
+    }
 
     /* Test against the second filter */
     *trapped = true;
@@ -651,6 +655,10 @@ sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *a
             *trapped = false;
             break;
         }
+    }
+    if (*trapped) {
+        *send_meta  = filters.send_meta1;
+        *incl_srcpt = filters.incl_srcpt1;
     }
 
 /* Give the mutex and return */
