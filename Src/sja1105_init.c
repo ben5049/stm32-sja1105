@@ -50,19 +50,20 @@ sja1105_status_t SJA1105_Init(
     uint32_t                   fixed_length_table_buffer[SJA1105_FIXED_BUFFER_SIZE],
     const uint32_t            *static_conf,
     uint32_t                   static_conf_size) {
+
     sja1105_status_t status = SJA1105_OK;
-
-    /* Take the mutex */
-    SJA1105_LOCK;
-
-    dev->initialised = false;
 
     /* Check the device hasn't already been initialised. Note this may cause an unintended error if the struct uses non-zeroed memory. */
     if (dev->initialised) status = SJA1105_ALREADY_CONFIGURED_ERROR;
     if (status != SJA1105_OK) goto end;
 
+    /* Take the mutex */
+    status = callbacks->callback_take_mutex(dev, config->timeout);
+    if (status != SJA1105_OK) return status;
+
     /* Only the SJA1105Q has been implemented. TODO: Add more */
     if (config->variant != VARIANT_SJA1105Q) status = SJA1105_NOT_IMPLEMENTED_ERROR;
+    if (status != SJA1105_OK) return status;
 
     /* Check config parameters */
     if (config->switch_id >= 8) status = SJA1105_PARAMETER_ERROR; /* 3-bit field */
