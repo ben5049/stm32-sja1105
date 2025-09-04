@@ -149,14 +149,14 @@ enum SJA1105_ACUReg_Enum {
 #define SJA1105_IPUD_PI                            (SJA1105_CLK_IPUD_PI | SJA1105_CTRL_IPUD_PI | SJA1105_D10_IPUD_PI | SJA1105_D32_IPUD_PI)
 #define SJA1105_IPUD_PD                            (SJA1105_CLK_IPUD_PD | SJA1105_CTRL_IPUD_PD | SJA1105_D10_IPUD_PD | SJA1105_D32_IPUD_PD)
 
-#define SJA1105_CLK_IH_SCHMITT                     (0 << 2)
-#define SJA1105_CLK_IH_NON_SCHMITT                 (1 << 2)
-#define SJA1105_CTRL_IH_SCHMITT                    (0 << 10)
-#define SJA1105_CTRL_IH_NON_SCHMITT                (1 << 10)
-#define SJA1105_D10_IH_SCHMITT                     (0 << 18)
-#define SJA1105_D10_IH_NON_SCHMITT                 (1 << 18)
-#define SJA1105_D32_IH_SCHMITT                     (0 << 26)
-#define SJA1105_D32_IH_NON_SCHMITT                 (1 << 26)
+#define SJA1105_CLK_IH_NON_SCHMITT                 (0 << 2)
+#define SJA1105_CLK_IH_SCHMITT                     (1 << 2)
+#define SJA1105_CTRL_IH_NON_SCHMITT                (0 << 10)
+#define SJA1105_CTRL_IH_SCHMITT                    (1 << 10)
+#define SJA1105_D10_IH_NON_SCHMITT                 (0 << 18)
+#define SJA1105_D10_IH_SCHMITT                     (1 << 18)
+#define SJA1105_D32_IH_NON_SCHMITT                 (0 << 26)
+#define SJA1105_D32_IH_SCHMITT                     (1 << 26)
 
 #define SJA1105_IH_SCHMITT                         (SJA1105_CLK_IH_SCHMITT | SJA1105_CTRL_IH_SCHMITT | SJA1105_D10_IH_SCHMITT | SJA1105_D32_IH_SCHMITT)
 #define SJA1105_IH_NON_SCHMITT                     (SJA1105_CLK_IH_NON_SCHMITT | SJA1105_CTRL_IH_NON_SCHMITT | SJA1105_D10_IH_NON_SCHMITT | SJA1105_D32_IH_NON_SCHMITT)
@@ -298,7 +298,7 @@ enum SJA1105_CGUReg_Enum {
 #define SJA1105_STATIC_CONF_BLOCK_SIZE_SHIFT   (0)
 #define SJA1105_STATIC_CONF_BLOCK_SIZE_MASK    (0xffffff)
 
-enum SJA1105_BlockID_Enum {
+typedef enum {
     SJA1105_BLOCK_ID_SCHEDULE                     = 0x00,
     SJA1105_BLOCK_ID_SCHEDULE_ENTRY_POINTS        = 0x01,
     SJA1105_BLOCK_ID_VL_LOOKUP                    = 0x02,
@@ -324,7 +324,7 @@ enum SJA1105_BlockID_Enum {
     SJA1105_BLOCK_ID_RGU                          = 0x81,
     SJA1105_BLOCK_ID_ACU                          = 0x82,
     SJA1105_BLOCK_ID_SGMII_CONF                   = 0xc8,
-};
+} sja1105_block_id_t;
 
 #define SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE                 (8)
 #define SJA1105_STATIC_CONF_MAC_CONF_BASE(port_num)             ((port_num) * SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE)

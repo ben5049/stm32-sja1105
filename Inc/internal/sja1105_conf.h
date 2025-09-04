@@ -30,8 +30,8 @@ extern "C" {
 
 #define SJA1105_UNLOCK       dev->callbacks->callback_give_mutex(dev)
 
-#define SJA1105_DELAY_NS(ns) dev->callbacks->callback_delay_ms(dev, (ns))
-#define SJA1105_DELAY_MS(ms) dev->callbacks->callback_delay_ns(dev, (ms))
+#define SJA1105_DELAY_NS(ns) dev->callbacks->callback_delay_ns(dev, (ns))
+#define SJA1105_DELAY_MS(ms) dev->callbacks->callback_delay_ms(dev, (ms))
 
 void SJA1105_ResetTables(sja1105_handle_t *dev, uint32_t fixed_length_table_buffer[SJA1105_FIXED_BUFFER_SIZE]);
 void SJA1105_ResetManagementRoutes(sja1105_handle_t *dev);
@@ -50,6 +50,7 @@ sja1105_status_t SJA1105_LoadStaticConfig(sja1105_handle_t *dev, const uint32_t 
 sja1105_status_t SJA1105_WriteStaticConfig(sja1105_handle_t *dev, bool safe);
 sja1105_status_t SJA1105_SyncStaticConfig(sja1105_handle_t *dev);
 sja1105_status_t SJA1105_CheckRequiredTables(sja1105_handle_t *dev);
+sja1105_status_t SJA1105_ReadStaticConfFlags(sja1105_handle_t *dev, uint32_t *flags);
 
 sja1105_status_t SJA1105_FreeAllTableMemory(sja1105_handle_t *dev);
 sja1105_status_t SJA1105_AllocateFixedLengthTable(sja1105_handle_t *dev, const uint32_t *block, uint8_t block_size);

@@ -40,7 +40,8 @@ sja1105_status_t SJA1105_PortGetSpeed(sja1105_handle_t *dev, uint8_t port_num, s
 
     /* For dynamic ports look at the MAC Configuration table */
     if (dev->config->ports[port_num].speed == SJA1105_SPEED_DYNAMIC) {
-        SJA1105_MACConfTableGetSpeed(&dev->tables.mac_configuration, port_num, speed);
+        status = SJA1105_MACConfTableGetSpeed(&dev->tables.mac_configuration, port_num, speed);
+        if (status != SJA1105_OK) return status;
     }
 
     /* For static ports look at the port config struct */
@@ -62,13 +63,14 @@ sja1105_status_t __SJA1105_PortSetSpeed(sja1105_handle_t *dev, uint8_t port_num,
     SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
-    const sja1105_port_t *port = &dev->config->ports[port_num];
-    sja1105_speed_t       current_speed;
+    const sja1105_port_t *port          = &dev->config->ports[port_num];
+    sja1105_speed_t       current_speed = SJA1105_SPEED_INVALID;
     bool                  revert        = false;
     sja1105_status_t      revert_status = SJA1105_OK;
 
     /* Get the current speed */
-    SJA1105_PortGetSpeed(dev, port_num, &current_speed);
+    status = SJA1105_PortGetSpeed(dev, port_num, &current_speed);
+    if (status != SJA1105_OK) goto end;
 
     /* Check the speed argument */
     if (new_speed == current_speed) { /* New speed should be different */
@@ -393,7 +395,7 @@ sja1105_status_t SJA1105_PortWake(sja1105_handle_t *dev, uint8_t port_num) {
 
 sja1105_status_t SJA1105_L2EntryReadByIndex(sja1105_handle_t *dev, uint16_t index, bool managment, uint32_t entry[SJA1105_L2ADDR_LU_ENTRY_SIZE]) {
 
-    sja1105_status_t status = SJA1105_NOT_IMPLEMENTED_ERROR;
+    sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
     SJA1105_INIT_CHECK;
@@ -405,7 +407,7 @@ sja1105_status_t SJA1105_L2EntryReadByIndex(sja1105_handle_t *dev, uint16_t inde
     if (status != SJA1105_OK) goto end;
 
     /* Initialise variables */
-    uint32_t reg_data[SJA1105_L2ADDR_LU_ENTRY_SIZE] = {0, 0, 0, 0, 0};
+    uint32_t reg_data[SJA1105_L2ADDR_LU_ENTRY_SIZE] = {0};
 
     /* Wait for VALID to be 0. */
     status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_L2_LUT_REG_0, SJA1105_DYN_CONF_L2_LUT_VALID, false);
@@ -563,7 +565,7 @@ sja1105_status_t SJA1105_ManagementRouteFree(sja1105_handle_t *dev, bool force) 
     SJA1105_LOCK;
 
     /* Initialise variables */
-    uint32_t entry[SJA1105_L2ADDR_LU_ENTRY_SIZE] = {0, 0, 0, 0, 0};
+    uint32_t entry[SJA1105_L2ADDR_LU_ENTRY_SIZE] = {0};
 
     /* Iterate through all management routes */
     for (uint_fast8_t i = 0; i < SJA1105_NUM_MGMT_SLOTS; i++) {

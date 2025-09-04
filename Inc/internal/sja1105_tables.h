@@ -48,7 +48,7 @@ extern "C" {
 extern const sja1105_table_type_t SJA1105_TABLE_TYPE_LUT[SJA1105_BLOCK_ID_SGMII_CONF + 1];
 extern const uint8_t              SJA1105_TABLE_INDEX_LUT[SJA1105_BLOCK_ID_SGMII_CONF + 1];
 
-sja1105_status_t SJA1105_CheckTable(sja1105_handle_t *dev, uint8_t id, const uint32_t *table_data, uint32_t size);
+sja1105_status_t SJA1105_CheckTable(sja1105_handle_t *dev, sja1105_block_id_t id, const uint32_t *table_data, uint32_t size);
 
 sja1105_status_t SJA1105_MACConfTableCheck(sja1105_handle_t *dev, const sja1105_table_t *table);
 sja1105_status_t SJA1105_ResetMACConfTable(sja1105_handle_t *dev, bool write);

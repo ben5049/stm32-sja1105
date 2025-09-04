@@ -74,7 +74,7 @@ const uint8_t SJA1105_TABLE_INDEX_LUT[SJA1105_BLOCK_ID_SGMII_CONF + 1] = {
 
 
 /* This function checks table data. Note it does not check CRCs */
-sja1105_status_t SJA1105_CheckTable(sja1105_handle_t *dev, uint8_t id, const uint32_t *table_data, uint32_t size) {
+sja1105_status_t SJA1105_CheckTable(sja1105_handle_t *dev, sja1105_block_id_t id, const uint32_t *table_data, uint32_t size) {
 
     sja1105_status_t status = SJA1105_OK;
 
@@ -121,9 +121,9 @@ sja1105_status_t SJA1105_MACConfTableCheck(sja1105_handle_t *dev, const sja1105_
 
     /* Check each port's speed */
     for (uint_fast8_t port_num = 0; port_num < SJA1105_NUM_PORTS; port_num++) {
-        SJA1105_MACConfTableGetSpeed(table, port_num, &speed);
-        if (speed != dev->config->ports[port_num].speed) status = SJA1105_STATIC_CONF_ERROR;
+        status = SJA1105_MACConfTableGetSpeed(table, port_num, &speed);
         if (status != SJA1105_OK) return status;
+        if (speed != dev->config->ports[port_num].speed) status = SJA1105_STATIC_CONF_ERROR;
     }
 
     return status;
@@ -298,9 +298,12 @@ sja1105_status_t SJA1105_ResetMACConfTable(sja1105_handle_t *dev, bool write) {
 
     /* Disable ingress, egress and learning */
     for (uint_fast8_t i = 0; i < SJA1105_NUM_PORTS; i++) {
-        SJA1105_MACConfTableSetIngress(&dev->tables.mac_configuration, i, false);
-        SJA1105_MACConfTableSetEgress(&dev->tables.mac_configuration, i, false);
-        SJA1105_MACConfTableSetDynLearn(&dev->tables.mac_configuration, i, false);
+        status = SJA1105_MACConfTableSetIngress(&dev->tables.mac_configuration, i, false);
+        if (status != SJA1105_OK) return status;
+        status = SJA1105_MACConfTableSetEgress(&dev->tables.mac_configuration, i, false);
+        if (status != SJA1105_OK) return status;
+        status = SJA1105_MACConfTableSetDynLearn(&dev->tables.mac_configuration, i, false);
+        if (status != SJA1105_OK) return status;
     }
 
     /* Write the configs if required */

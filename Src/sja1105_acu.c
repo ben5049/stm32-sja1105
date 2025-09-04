@@ -46,7 +46,8 @@ sja1105_status_t SJA1105_ConfigureACU(sja1105_handle_t *dev, bool write) {
 
     /* Add the table if it isn't there already */
     if (!dev->tables.acu_config_parameters.in_use) {
-        SJA1105_AllocateFixedLengthTable(dev, sja1105_acu_block_default, SJA1105_ACU_BLOCK_SIZE);
+        status = SJA1105_AllocateFixedLengthTable(dev, sja1105_acu_block_default, SJA1105_ACU_BLOCK_SIZE);
+        if (status != SJA1105_OK) return status;
     }
 
     /* Configure the ACU with each port's IO pad configuration */
@@ -116,17 +117,22 @@ sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_nu
                     break;
 
                 case SJA1105_IO_1V8:
-                default:
 
                     /* Fast speed */
                     reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_OS_HIGH;
+                    break;
+
+                default:
+                    status = SJA1105_PARAMETER_ERROR;
                     break;
             }
             break;
 
         default:
+            status = SJA1105_PARAMETER_ERROR;
             break;
     }
+    if (status != SJA1105_OK) return status;
 
     /* Disable internal TX pull downs */
     reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_IPUD_PI;
@@ -135,12 +141,12 @@ sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_nu
     reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_CLK_IH_NON_SCHMITT;
 
     /* Disable internal RX pull downs and set input hysteresis to non-Schmitt */
-    reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_IPUD_PI;
-    reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_IH_NON_SCHMITT;
+    reg_data[SJA1105_ACU_PAD_CFG_RX] |= SJA1105_IPUD_PI;
+    reg_data[SJA1105_ACU_PAD_CFG_RX] |= SJA1105_IH_NON_SCHMITT;
 
     /* Write the pad config */
     if (write) {
-        SJA1105_WriteRegister(dev, SJA1105_ACU_REG_CFG_PAD_MIIX_TX(port_num), reg_data, SJA1105_ACU_PAD_CFG_SIZE);
+        status = SJA1105_WriteRegister(dev, SJA1105_ACU_REG_CFG_PAD_MIIX_TX(port_num), reg_data, SJA1105_ACU_PAD_CFG_SIZE);
         if (status != SJA1105_OK) return status;
     }
 

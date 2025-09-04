@@ -71,7 +71,8 @@ sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev, bool write) {
 
     /* Add the table if it isn't there already */
     if (!dev->tables.cgu_config_parameters.in_use) {
-        SJA1105_AllocateFixedLengthTable(dev, sja1105_cgu_block_default, SJA1105_CGU_BLOCK_SIZE);
+        status = SJA1105_AllocateFixedLengthTable(dev, sja1105_cgu_block_default, SJA1105_CGU_BLOCK_SIZE);
+        if (status != SJA1105_OK) return status;
     }
 
     /* Setup PLL0 (f = 125MHz) */
@@ -109,13 +110,16 @@ sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev, bool write) {
 
 sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_num, bool write) {
 
-    sja1105_status_t      status = SJA1105_OK;
-    const sja1105_port_t *port   = &dev->config->ports[port_num];
-    uint32_t              clk_data[SJA1105_CGU_REG_CLK_NUM];
-    uint32_t              idiv_data;
+    sja1105_status_t      status                            = SJA1105_OK;
+    const sja1105_port_t *port                              = &dev->config->ports[port_num];
+    uint32_t              clk_data[SJA1105_CGU_REG_CLK_NUM] = {0};
+    uint32_t              idiv_data                         = 0;
 
-    /* Skip port 4 in variants that don't have one */
+    /* Skip port 4 in variants that don't have one (due to SGMII) */
     if (((dev->config->variant == VARIANT_SJA1105R) || (dev->config->variant == VARIANT_SJA1105S)) && (port_num == 4)) return status;
+
+    /* Skip clock setup for dynamic ports, they must be configured separately with SJA1105_PortSetSpeed() */
+    if (port->speed == SJA1105_SPEED_DYNAMIC) return status;
 
     switch (port->interface) {
         case SJA1105_INTERFACE_MII:

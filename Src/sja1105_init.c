@@ -86,7 +86,7 @@ sja1105_status_t SJA1105_Init(
     /* Check SPI parameters */
     if (config->spi_handle->Init.DataSize != SPI_DATASIZE_32BIT) status = SJA1105_PARAMETER_ERROR;
     if (config->spi_handle->Init.CLKPolarity != SPI_POLARITY_LOW) status = SJA1105_PARAMETER_ERROR;
-    if (config->spi_handle->Init.CLKPhase != SPI_PHASE_1EDGE) status = SJA1105_PARAMETER_ERROR;
+    if (config->spi_handle->Init.CLKPhase != SPI_PHASE_2EDGE) status = SJA1105_PARAMETER_ERROR;
     if (config->spi_handle->Init.NSS != SPI_NSS_SOFT) status = SJA1105_PARAMETER_ERROR;
     if (config->spi_handle->Init.FirstBit != SPI_FIRSTBIT_MSB) status = SJA1105_PARAMETER_ERROR;
 
@@ -164,7 +164,8 @@ sja1105_status_t SJA1105_DeInit(sja1105_handle_t *dev, bool hard, bool clear_cou
     sja1105_callback_give_mutex_t give_mutex = dev->callbacks->callback_give_mutex;
 
     /* Free table memory and reset struct */
-    SJA1105_FreeAllTableMemory(dev);
+    status = SJA1105_FreeAllTableMemory(dev);
+    if (status != SJA1105_OK) goto end;
     SJA1105_ResetTables(dev, hard ? NULL : dev->tables.fixed_length_buffer);
 
     /* A hard deinit means clearing all config structs too */
@@ -185,6 +186,7 @@ sja1105_status_t SJA1105_DeInit(sja1105_handle_t *dev, bool hard, bool clear_cou
     dev->initialised = false;
 
     /* Give the mutex and return */
+end:
     give_mutex(dev);
     return status;
 }
@@ -261,8 +263,8 @@ void SJA1105_ResetEventCounters(sja1105_handle_t *dev) {
 
 sja1105_status_t SJA1105_CheckPartID(sja1105_handle_t *dev) {
 
-    sja1105_status_t status = SJA1105_OK;
-    uint32_t         reg_data;
+    sja1105_status_t status   = SJA1105_OK;
+    uint32_t         reg_data = 0;
 
     /* Read the DEVICE_ID register */
     status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_DEVICE_ID, &reg_data, 1);

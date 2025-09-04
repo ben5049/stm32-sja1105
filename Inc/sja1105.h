@@ -59,6 +59,7 @@ typedef enum {
     SJA1105_REVERT_ERROR,           /* Catastrophic error has occured such as an error while fixing another error */
     SJA1105_NO_FREE_MGMT_ROUTES_ERROR,
     SJA1105_MEMORY_ERROR,
+    SJA1105_STATIC_CONF_FLAGS_READ_ERROR,
 } sja1105_status_t;
 
 typedef enum {
