@@ -131,17 +131,18 @@ sja1105_status_t SJA1105_Init(
     if (status != SJA1105_OK) goto end;
 
     /* Write the configuration and try again in safe mode if it fails */
-    status = SJA1105_WriteStaticConfig(dev, false);
+    status = SJA1105_WriteStaticConfig(dev, true); /* TODO: Change to false when unsafe mode is fixed */
     if (status == SJA1105_CRC_ERROR) {
         status = SJA1105_WriteStaticConfig(dev, true);
     }
     if (status != SJA1105_OK) goto end;
 
+    /* The device has been initialised */
+    dev->initialised = true;
+
     /* Check the status registers */
     status = SJA1105_CheckStatusRegisters(dev);
     if (status != SJA1105_OK) goto end;
-
-    dev->initialised = true;
 
 /* Give the mutex and return */
 end:

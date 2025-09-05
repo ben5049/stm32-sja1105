@@ -16,20 +16,32 @@
 
 sja1105_status_t SJA1105_ReadStaticConfFlags(sja1105_handle_t *dev, uint32_t *flags) {
 
-    sja1105_status_t status   = SJA1105_OK;
-    uint32_t         reg_data = 0;
+    sja1105_status_t status      = SJA1105_OK;
+    uint32_t         reg_data    = 0;
+    uint8_t          first_value = 0;
+    uint8_t          value       = 0;
+    bool             valid       = false;
 
     /* Read the initial config flags register */
-    for (uint_fast8_t i = 0; i < 32; i++) {
+    for (uint_fast8_t i = 0; (i < 32) && !valid; i++) {
         status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_REG_STATIC_CONF_FLAGS, &reg_data, 1);
         if (status != SJA1105_OK) return status;
 
-        /* Stop when the free running counter doesn't equal 0 */
-        if (reg_data & 0xf) break;
+        /* Extract the free running counter */
+        value = reg_data & 0xf;
+
+        /* Record the first non-zero value */
+        if ((first_value == 0) && value) {
+            first_value = value;
+            continue;
+        }
+
+        /* Stop when the free running counter has changed from its first recorded (non-zero) value  */
+        if ((first_value != 0) && (value != first_value)) valid = true;
     }
 
     /* If the free running counter isn't running then an error has occured */
-    if (!(reg_data & 0xf)) status = SJA1105_STATIC_CONF_FLAGS_READ_ERROR;
+    if (!valid) status = SJA1105_STATIC_CONF_FLAGS_READ_ERROR;
     if (status != SJA1105_OK) return status;
 
     /* Set the output */
@@ -335,6 +347,9 @@ sja1105_status_t SJA1105_LoadStaticConfig(sja1105_handle_t *dev, const uint32_t 
 /* Write the static config to the chip */
 sja1105_status_t SJA1105_WriteStaticConfig(sja1105_handle_t *dev, bool safe) {
 
+    /* TODO: Fix unsafe mode, currently the device rejects the config when written in unsafe mode */
+    assert(safe);
+
     sja1105_status_t status                                         = SJA1105_OK;
     sja1105_table_t *table                                          = NULL;
     uint32_t         crc_value                                      = 0;
@@ -385,10 +400,12 @@ sja1105_status_t SJA1105_WriteStaticConfig(sja1105_handle_t *dev, bool safe) {
         for (uint_fast8_t i = 0; i < SJA1105_NUM_TABLES; i++) {
 
             table = &dev->tables.by_index[i];
+            if (!table->in_use) continue;
 
-            if (!table->in_use) {
-                continue;
-            }
+#ifdef DEBUG
+            sja1105_block_id_t id = *table->id;
+            UNUSED(id);
+#endif
 
             status = SJA1105_WriteTable(dev, SJA1105_STATIC_CONF_ADDR + offset, table, true); /* Note this also accumulates the bytes written into the crc */
             if (status != SJA1105_OK) return status;
@@ -399,7 +416,7 @@ sja1105_status_t SJA1105_WriteStaticConfig(sja1105_handle_t *dev, bool safe) {
     /* Unsafe means tables are written as fast as possible with no checks */
     else {
 
-        /* Write the fixed length tables. TODO: Use DMA to speed up and let CPU do CRC calculations */
+        /* Write the fixed length tables */
         status = SJA1105_WriteRegister(dev, SJA1105_STATIC_CONF_ADDR + offset, dev->tables.fixed_length_buffer + offset, (dev->tables.first_free - dev->tables.fixed_length_buffer) - offset);
         if (status != SJA1105_OK) return status;
         offset = dev->tables.first_free - dev->tables.fixed_length_buffer;

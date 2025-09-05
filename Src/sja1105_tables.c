@@ -320,9 +320,10 @@ sja1105_status_t SJA1105_ResetMACConfTable(sja1105_handle_t *dev, bool write) {
 
 sja1105_status_t SJA1105_MACConfTableWrite(sja1105_handle_t *dev, uint8_t port_num) {
 
-    sja1105_status_t status = SJA1105_OK;
-    uint32_t         reg_data;
-    uint8_t          index = SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, 0);
+    sja1105_status_t status   = SJA1105_OK;
+    uint32_t         reg_data = 0;
+    uint8_t          index    = SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, 0);
+    bool             error    = false;
 
     /* Wait for VALID to be 0.
      *
@@ -349,14 +350,14 @@ sja1105_status_t SJA1105_MACConfTableWrite(sja1105_handle_t *dev, uint8_t port_n
     status    = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, &reg_data, 1);
     if (status != SJA1105_OK) return status;
 
-    /* Wait for VALID to be 0 then check ERRORS, TODO there is a wasted access here */
+    /* Wait for VALID to be 0 then check ERRORS, TODO: there is a wasted access here */
     status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_VALID, false);
     if (status != SJA1105_OK) return status;
-    status = SJA1105_ReadFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_ERRORS, (bool *) &reg_data);
+    status = SJA1105_ReadFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_ERRORS, &error);
     if (status != SJA1105_OK) return status;
 
     /* If ERRORS is set then the configuration is invalid and was not applied */
-    if (reg_data) status = SJA1105_DYNAMIC_RECONFIG_ERROR;
+    if (error) status = SJA1105_DYNAMIC_RECONFIG_ERROR;
     if (status != SJA1105_OK) return status;
 
     return status;
@@ -449,9 +450,10 @@ sja1105_status_t SJA1105_xMIIModeTableCheck(sja1105_handle_t *dev, const sja1105
             /* Special case: The switch is acting as a PHY, but the MAC it is connected to cannot supply REFCLK.
              *               In this case the switch port is actually configured as a MAC, but operates as a PHY.
              */
-            if ((dev->config->ports[port_num].mode == SJA1105_MODE_PHY) &&
+            if ((mode == SJA1105_MODE_MAC) &&
+                (dev->config->ports[port_num].mode == SJA1105_MODE_PHY) &&
                 (dev->config->ports[port_num].interface == SJA1105_INTERFACE_RMII) &&
-                dev->config->ports[port_num].output_rmii_refclk) status = SJA1105_OK;
+                (dev->config->ports[port_num].output_rmii_refclk)) status = SJA1105_OK;
 
             /* Otherwise its an error */
             else

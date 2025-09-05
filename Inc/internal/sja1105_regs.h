@@ -239,7 +239,7 @@ enum SJA1105_CGUReg_Enum {
 #define SJA1105_CGU_DIRECT                   (2 << 7)
 #define SJA1105_CGU_PSEL_SHIFT               (8)
 #define SJA1105_CGU_PSEL_MASK                (0x3 << SJA1105_CGU_PSEL_SHIFT)
-#define SJA1105_CGU_AUTOBLOCK                (11)
+#define SJA1105_CGU_AUTOBLOCK                (1 << 11)
 #define SJA1105_CGU_NSEL_SHIFT               (12)
 #define SJA1105_CGU_NSEL_MASK                (0x3 << SJA1105_CGU_NSEL_SHIFT)
 #define SJA1105_CGU_MSEL_SHIFT               (16)

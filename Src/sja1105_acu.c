@@ -93,6 +93,7 @@ sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_nu
 
             /* Low speed */
             reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_OS_LOW;
+            reg_data[SJA1105_ACU_PAD_CFG_RX] |= SJA1105_CLK_OS_FAST;
             break;
 
         case SJA1105_INTERFACE_RMII:
@@ -103,6 +104,7 @@ sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_nu
 
             /* Low speed */
             reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_OS_LOW;
+            reg_data[SJA1105_ACU_PAD_CFG_RX] |= SJA1105_CLK_OS_FAST;
             break;
 
         case SJA1105_INTERFACE_RGMII:
@@ -114,12 +116,14 @@ sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_nu
 
                     /* Medium speed */
                     reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_OS_MEDIUM;
+                    reg_data[SJA1105_ACU_PAD_CFG_RX] |= SJA1105_CLK_OS_HIGH;
                     break;
 
                 case SJA1105_IO_1V8:
 
                     /* Fast speed */
                     reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_OS_HIGH;
+                    reg_data[SJA1105_ACU_PAD_CFG_RX] |= SJA1105_CLK_OS_HIGH;
                     break;
 
                 default:

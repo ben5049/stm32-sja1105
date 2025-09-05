@@ -49,18 +49,18 @@ static const uint32_t sja1105_cgu_block_default[SJA1105_CGU_BLOCK_SIZE] = {
     0,
     0,
     0,
-    0, /* Reserved */
-    0, /* Reserved */
-    0, /* Reserved */
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0, /* Reserved */
-    0, /* CRC left at 0 means calculate at runtime */
+    0,          /* Reserved */
+    0,          /* Reserved */
+    0,          /* Reserved */
+    0x0a000000, /* IDIV_4_C*/
+    0x0a000000, /* IDIV_3_C*/
+    0x0a000000, /* IDIV_2_C*/
+    0x0a000000, /* IDIV_1_C*/
+    0x0a000000, /* IDIV_0_C*/
+    0x0a000083, /* PLL_1_C */
+    0x0a040040, /* PLL_0_C */
+    0,          /* Reserved */
+    0,          /* CRC left at 0 means calculate at runtime */
 };
 
 
@@ -76,7 +76,8 @@ sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev, bool write) {
     }
 
     /* Setup PLL0 (f = 125MHz) */
-    reg_data = SJA1105_CGU_P23EN; /* Enable 120 and 240 degree outputs for better EMC performance */
+    reg_data  = SJA1105_CGU_P23EN;                                       /* Enable 120 and 240 degree outputs for better EMC performance */
+    reg_data |= SJA1105_CGU_CLK_SRC_XO66M_0 << SJA1105_CGU_CLKSRC_SHIFT; /* Source must be XO66M_0 */
     if (write) {
         status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_PLL_0_C, &reg_data, 1);
         if (status != SJA1105_OK) return status;
@@ -85,6 +86,7 @@ sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev, bool write) {
 
     /* Setup PLL1 (f = 50MHz, integer mode) */
     reg_data  = 0;
+    reg_data |= SJA1105_CGU_CLK_SRC_XO66M_0 << SJA1105_CGU_CLKSRC_SHIFT;            /* Source must be XO66M_0 */
     reg_data &= ~SJA1105_CGU_PD;                                                    /* Disable power down */
     reg_data &= ~SJA1105_CGU_BYPASS;                                                /* Disable bypass */
     reg_data |= SJA1105_CGU_P23EN;                                                  /* Enable 120 and 240 degree outputs for better EMC performance */

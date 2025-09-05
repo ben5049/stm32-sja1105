@@ -120,6 +120,7 @@ sja1105_status_t SJA1105_PollFlag(sja1105_handle_t *dev, uint32_t addr, uint32_t
 }
 
 
+/* When using this function an 8-bit type must be passed in for result. E.g. casting a uint32_t* to a bool* means that this function will overwrite the bottom 8-bits but not the other 24. */
 sja1105_status_t SJA1105_ReadFlag(sja1105_handle_t *dev, uint32_t addr, uint32_t mask, bool *result) {
 
     sja1105_status_t status = SJA1105_OK;

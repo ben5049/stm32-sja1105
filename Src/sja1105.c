@@ -120,8 +120,8 @@ sja1105_status_t __SJA1105_PortSetSpeed(sja1105_handle_t *dev, uint8_t port_num,
 
 end:
 
-    /* If the configuration failed midway then try to revert it */
-    if (revert) {
+    /* If the configuration failed midway then try to revert it (do not need to revert dynamic speed since this is only possible when configuring for the first time) */
+    if (revert && (current_speed != SJA1105_SPEED_DYNAMIC)) {
         revert_status = __SJA1105_PortSetSpeed(dev, port_num, current_speed, false);
         if (revert_status != SJA1105_OK) status = SJA1105_REVERT_ERROR; /* Error while fixing an error! */
     }
