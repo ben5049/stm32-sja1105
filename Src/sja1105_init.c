@@ -137,6 +137,12 @@ sja1105_status_t SJA1105_Init(
     }
     if (status != SJA1105_OK) goto end;
 
+    /* Configure the CGU. Note this was done previously in SJA1105_LoadStaticConfig()
+     * and then loaded in SJA1105_WriteStaticConfig(), however it doesn't work when done
+     * through static tables for some reason. TODO: Find out why */
+    status = SJA1105_ConfigureCGU(dev, true);
+    if (status != SJA1105_OK) return status;
+
     /* The device has been initialised */
     dev->initialised = true;
 

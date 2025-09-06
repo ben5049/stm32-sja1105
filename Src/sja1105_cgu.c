@@ -75,20 +75,24 @@ sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev, bool write) {
         if (status != SJA1105_OK) return status;
     }
 
-    /* Setup PLL0 (f = 125MHz) */
+    /* Setup PLL0 (f = 125MHz), the only thing able to be configured is P23EN (skew clocks) */
     reg_data = ((uint32_t) SJA1105_CGU_CLK_SRC_XO66M_0) << SJA1105_CGU_CLKSRC_SHIFT; /* Source must be XO66M_0 (read only) */
     if (dev->config->skew_clocks) {
-        reg_data |= SJA1105_CGU_P23EN;                                               /* Enable 120 and 240 degree outputs for better EMC performance */
+
+        /* Enable 120 and 240 degree outputs for better EMC performance */
+        reg_data |= SJA1105_CGU_P23EN;
         if (write) {
             status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_PLL_0_C, &reg_data, 1);
             if (status != SJA1105_OK) return status;
-        }
-        SJA1105_DELAY_MS(1); /* Delay to prevent false lock from previous config */
-    }
 
-    /* Wait for PLL0 lock */
-    status = SJA1105_PollFlag(dev, SJA1105_CGU_REG_PLL_0_S, SJA1105_CGU_PLL_LOCK, true);
-    if (status != SJA1105_OK) return status;
+            /* Delay to prevent false lock from previous config */
+            SJA1105_DELAY_MS(1);
+
+            /* Wait for PLL0 lock */
+            status = SJA1105_PollFlag(dev, SJA1105_CGU_REG_PLL_0_S, SJA1105_CGU_PLL_LOCK, true);
+            if (status != SJA1105_OK) return status;
+        }
+    }
 
     /* Save the PLL0 configuration */
     if (dev->tables.cgu_config_parameters.in_use) dev->tables.cgu_config_parameters.data[SJA1105_CGU_TABLE_PLL_0_C_INDEX] = reg_data;
@@ -114,12 +118,12 @@ sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev, bool write) {
     if (write) {
         status = SJA1105_WriteRegister(dev, SJA1105_CGU_REG_PLL_1_C, &reg_data, 1);
         if (status != SJA1105_OK) return status;
-    }
 
-    /* Wait for PLL1 lock */
-    SJA1105_DELAY_MS(1); /* Delay to prevent false lock from previous config */
-    status = SJA1105_PollFlag(dev, SJA1105_CGU_REG_PLL_1_S, SJA1105_CGU_PLL_LOCK, true);
-    if (status != SJA1105_OK) return status;
+        /* Wait for PLL1 lock */
+        SJA1105_DELAY_MS(1); /* Delay to prevent false lock from previous config */
+        status = SJA1105_PollFlag(dev, SJA1105_CGU_REG_PLL_1_S, SJA1105_CGU_PLL_LOCK, true);
+        if (status != SJA1105_OK) return status;
+    }
 
     /* Save the PLL1 configuration */
     if (dev->tables.cgu_config_parameters.in_use) dev->tables.cgu_config_parameters.data[SJA1105_CGU_TABLE_PLL_1_C_INDEX] = reg_data;

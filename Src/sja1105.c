@@ -558,7 +558,7 @@ end:
 
 sja1105_status_t SJA1105_ManagementRouteFree(sja1105_handle_t *dev, bool force) {
 
-    sja1105_status_t status = SJA1105_NOT_IMPLEMENTED_ERROR;
+    sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
     SJA1105_INIT_CHECK;
