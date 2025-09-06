@@ -456,10 +456,20 @@ sja1105_status_t SJA1105_xMIIModeTableCheck(sja1105_handle_t *dev, const sja1105
                 (dev->config->ports[port_num].output_rmii_refclk)) status = SJA1105_OK;
 
             /* Otherwise its an error */
-            else
+            else {
                 status = SJA1105_STATIC_CONF_ERROR;
+                return status;
+            }
         }
-        if (status != SJA1105_OK) return status;
+
+        /* PHY Mode but outputting a clock actually means MAC mode */
+        if ((dev->config->ports[port_num].mode == SJA1105_MODE_PHY) &&
+            (dev->config->ports[port_num].output_rmii_refclk) &&
+            (mode != SJA1105_MODE_MAC)) {
+
+            status = SJA1105_STATIC_CONF_ERROR;
+            return status;
+        }
 
         /* Check the interface */
         interface = (table->data[0] & SJA1105_STATIC_CONF_XMII_MODE_INTERFACE_MASK(port_num)) >> SJA1105_STATIC_CONF_XMII_MODE_INTERFACE_SHIFT(port_num);

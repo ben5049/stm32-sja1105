@@ -221,6 +221,8 @@ enum SJA1105_CGUReg_Enum {
     SJA1105_CGU_REG_EXT_RX_CLK_0   = 0x100018,
 };
 
+#define SJA1105_CGU_PLL_LOCK                 (1)
+
 #define SJA1105_CGU_REG_IDIV_C(port_num)     (SJA1105_CGU_REG_IDIV_0_C + (port_num))
 
 #define SJA1105_CGU_REG_CLK_NUM              (6)
@@ -236,7 +238,7 @@ enum SJA1105_CGUReg_Enum {
 #define SJA1105_CGU_BYPASS                   (1 << 1)
 #define SJA1105_CGU_P23EN                    (1 << 2)
 #define SJA1105_CGU_FBSEL                    (1 << 6)
-#define SJA1105_CGU_DIRECT                   (2 << 7)
+#define SJA1105_CGU_DIRECT                   (1 << 7)
 #define SJA1105_CGU_PSEL_SHIFT               (8)
 #define SJA1105_CGU_PSEL_MASK                (0x3 << SJA1105_CGU_PSEL_SHIFT)
 #define SJA1105_CGU_AUTOBLOCK                (1 << 11)
