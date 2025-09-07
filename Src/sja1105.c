@@ -150,14 +150,14 @@ sja1105_status_t SJA1105_PortSetLearning(sja1105_handle_t *dev, uint8_t port_num
     bool             learning      = false;
 
     /* Get the current port learning status */
-    status = SJA1105_MACConfTableGetDynLearn(&dev->tables.general_parameters, port_num, &learning);
+    status = SJA1105_MACConfTableGetDynLearn(&dev->tables.mac_configuration, port_num, &learning);
     if (status != SJA1105_OK) goto end;
 
     /* New setting is different */
     if (learning != enable) {
 
         /* Update the internal MAC Configuration table */
-        status = SJA1105_MACConfTableSetDynLearn(&dev->tables.general_parameters, port_num, enable);
+        status = SJA1105_MACConfTableSetDynLearn(&dev->tables.mac_configuration, port_num, enable);
         if (status != SJA1105_OK) goto end;
 
         /* Write the internal MAC Configuration table to the device */
@@ -219,9 +219,9 @@ sja1105_status_t SJA1105_PortSetForwarding(sja1105_handle_t *dev, uint8_t port_n
     bool             egress        = false;
 
     /* Get the current port ingress and egress status */
-    status = SJA1105_MACConfTableGetIngress(&dev->tables.general_parameters, port_num, &ingress);
+    status = SJA1105_MACConfTableGetIngress(&dev->tables.mac_configuration, port_num, &ingress);
     if (status != SJA1105_OK) goto end;
-    status = SJA1105_MACConfTableGetEgress(&dev->tables.general_parameters, port_num, &egress);
+    status = SJA1105_MACConfTableGetEgress(&dev->tables.mac_configuration, port_num, &egress);
     if (status != SJA1105_OK) goto end;
 
     /* New settings are different */

@@ -130,18 +130,9 @@ sja1105_status_t SJA1105_Init(
     status = SJA1105_CheckPartID(dev);
     if (status != SJA1105_OK) goto end;
 
-    /* Write the configuration and try again in safe mode if it fails */
-    status = SJA1105_WriteStaticConfig(dev, true); /* TODO: Change to false when unsafe mode is fixed */
-    if (status == SJA1105_CRC_ERROR) {
-        status = SJA1105_WriteStaticConfig(dev, true);
-    }
+    /* Send the static config to the switch chip */
+    status = SJA1105_SyncStaticConfig(dev);
     if (status != SJA1105_OK) goto end;
-
-    /* Configure the CGU. Note this was done previously in SJA1105_LoadStaticConfig()
-     * and then loaded in SJA1105_WriteStaticConfig(), however it doesn't work when done
-     * through static tables for some reason. TODO: Find out why */
-    status = SJA1105_ConfigureCGU(dev, true);
-    if (status != SJA1105_OK) return status;
 
     /* The device has been initialised */
     dev->initialised = true;

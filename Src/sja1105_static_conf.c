@@ -503,11 +503,15 @@ sja1105_status_t SJA1105_SyncStaticConfig(sja1105_handle_t *dev) {
     sja1105_status_t status = SJA1105_OK;
 
     /* Free management routes */
-    status = SJA1105_ManagementRouteFree(dev, true);
-    if (status != SJA1105_OK) return status;
+    if (dev->initialised) {
 
-    /* Set the device to not initialised */
-    dev->initialised = false;
+        /* Cleanup */
+        status = SJA1105_ManagementRouteFree(dev, true);
+        if (status != SJA1105_OK) return status;
+
+        /* Set the device to not initialised */
+        dev->initialised = false;
+    }
 
     /* Purge all configuration data on the chip */
     status = SJA1105_CfgReset(dev);
@@ -516,13 +520,19 @@ sja1105_status_t SJA1105_SyncStaticConfig(sja1105_handle_t *dev) {
     }
 
     /* Write the configuration and try again in safe mode if it fails */
-    status = SJA1105_WriteStaticConfig(dev, false);
+    status = SJA1105_WriteStaticConfig(dev, true); /* TODO: Change to false when unsafe mode is fixed */
     if (status == SJA1105_CRC_ERROR) {
         status = SJA1105_WriteStaticConfig(dev, true);
     }
     if (status != SJA1105_OK) return status;
 
-    /* Set the device to initialised */
+    /* Configure the CGU. Note this was done previously in SJA1105_LoadStaticConfig()
+     * and then loaded in SJA1105_WriteStaticConfig(), however it doesn't work when done
+     * through static tables for some reason. TODO: Find out why */
+    status = SJA1105_ConfigureCGU(dev, true);
+    if (status != SJA1105_OK) return status;
+
+    /* Set the device to initialised again */
     dev->initialised = true;
 
     return status;
