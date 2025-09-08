@@ -228,9 +228,9 @@ sja1105_status_t SJA1105_PortSetForwarding(sja1105_handle_t *dev, uint8_t port_n
     if ((ingress != enable) || (egress != enable)) {
 
         /* Update the internal MAC Configuration table */
-        status = SJA1105_MACConfTableSetIngress(&dev->tables.general_parameters, port_num, enable);
+        status = SJA1105_MACConfTableSetIngress(&dev->tables.mac_configuration, port_num, enable);
         if (status != SJA1105_OK) goto end;
-        status = SJA1105_MACConfTableSetEgress(&dev->tables.general_parameters, port_num, enable);
+        status = SJA1105_MACConfTableSetEgress(&dev->tables.mac_configuration, port_num, enable);
         if (status != SJA1105_OK) {
             revert = true;
             goto end;
@@ -248,11 +248,11 @@ end:
 
     /* If an error occured then revert */
     if (revert) {
-        revert_status = SJA1105_MACConfTableSetIngress(&dev->tables.general_parameters, port_num, ingress);
+        revert_status = SJA1105_MACConfTableSetIngress(&dev->tables.mac_configuration, port_num, ingress);
         if (revert_status != SJA1105_OK) {
             status = SJA1105_REVERT_ERROR;
         }
-        revert_status = SJA1105_MACConfTableSetEgress(&dev->tables.general_parameters, port_num, egress);
+        revert_status = SJA1105_MACConfTableSetEgress(&dev->tables.mac_configuration, port_num, egress);
         if (revert_status != SJA1105_OK) {
             status = SJA1105_REVERT_ERROR;
         }
