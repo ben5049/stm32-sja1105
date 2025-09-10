@@ -334,7 +334,7 @@ end:
 
 
 sja1105_status_t SJA1105_CheckStatusRegisters(sja1105_handle_t *dev) {
-    /* TODO: ADD NEW TABLE LOGIC*/
+
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
@@ -353,6 +353,10 @@ sja1105_status_t SJA1105_CheckStatusRegisters(sja1105_handle_t *dev) {
         status = SJA1105_RAM_PARITY_ERROR;
         goto end;
     }
+
+    // TODO: remove
+    status = SJA1105_ReadRegister(dev, 0x446, reg_data, 1);
+    if (status != SJA1105_OK) goto end;
 
 /* Give the mutex and return */
 end:

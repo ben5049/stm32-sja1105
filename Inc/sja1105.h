@@ -34,6 +34,10 @@ extern "C" {
 #define SJA1105_L2ADDR_LU_ENTRY_SIZE  (5)
 #define SJA1105_L2ADDR_LU_NUM_ENTRIES (1024)
 
+#ifndef SJA1105_PORTS_START_ENABLED
+#define SJA1105_PORTS_START_ENABLED
+#endif
+
 /* Typedefs */
 
 typedef struct sja1105_handle_t sja1105_handle_t;

@@ -40,12 +40,12 @@ sja1105_status_t SJA1105_ReadStaticConfFlags(sja1105_handle_t *dev, uint32_t *fl
         if ((first_value != 0) && (value != first_value)) valid = true;
     }
 
+    /* Set the output */
+    *flags = reg_data & 0xfffffff0;
+
     /* If the free running counter isn't running then an error has occured */
     if (!valid) status = SJA1105_STATIC_CONF_FLAGS_READ_ERROR;
     if (status != SJA1105_OK) return status;
-
-    /* Set the output */
-    *flags = reg_data & 0xfffffff0;
 
     return status;
 }
@@ -336,7 +336,7 @@ sja1105_status_t SJA1105_LoadStaticConfig(sja1105_handle_t *dev, const uint32_t 
     status = SJA1105_ConfigureACU(dev, false);
     if (status != SJA1105_OK) return status;
 
-    /* Disable ingress, egress and learning in MAC config table */
+    /* Reset ingress, egress and learning in MAC config table based SJA1105_PORTS_START_ENABLED */
     status = SJA1105_ResetMACConfTable(dev, false);
     if (status != SJA1105_OK) return status;
 
