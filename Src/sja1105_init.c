@@ -256,6 +256,7 @@ void SJA1105_ResetEventCounters(sja1105_handle_t *dev) {
     dev->events.crc_errors           = 0;
     dev->events.mgmt_frames_sent     = 0;
     dev->events.mgmt_entries_dropped = 0;
+    dev->events.resets               = 0;
 }
 
 

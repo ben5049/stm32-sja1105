@@ -532,8 +532,9 @@ sja1105_status_t SJA1105_SyncStaticConfig(sja1105_handle_t *dev) {
     status = SJA1105_ConfigureCGU(dev, true);
     if (status != SJA1105_OK) return status;
 
-    /* Set the device to initialised again */
+    /* Set the device to initialised again and increment the static config upload count */
     dev->initialised = true;
+    dev->events.static_conf_uploads++;
 
     return status;
 }

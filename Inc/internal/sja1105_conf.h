@@ -16,12 +16,6 @@ extern "C" {
 #include "sja1105.h"
 
 
-#define SJA1105_INIT_CHECK                                            \
-    do {                                                              \
-        if (!dev->initialised) status = SJA1105_NOT_CONFIGURED_ERROR; \
-        if (status != SJA1105_OK) return status;                      \
-    } while (0)
-
 #define SJA1105_LOCK                                                             \
     do {                                                                         \
         status = dev->callbacks->callback_take_mutex(dev, dev->config->timeout); \

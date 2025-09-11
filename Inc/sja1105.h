@@ -201,6 +201,7 @@ typedef struct {
 /* Stores information about driver events */
 typedef struct {
     uint32_t static_conf_uploads;
+    uint32_t resets;
     uint32_t words_read;
     uint32_t words_written;
     uint32_t crc_errors;

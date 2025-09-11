@@ -19,7 +19,6 @@ sja1105_status_t SJA1105_PortGetState(sja1105_handle_t *dev, uint8_t port_num, b
     sja1105_status_t status = SJA1105_NOT_IMPLEMENTED_ERROR;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     /* state = true if the port is forwarding, not inhibited, has no errors etc */
@@ -35,7 +34,6 @@ sja1105_status_t SJA1105_PortGetSpeed(sja1105_handle_t *dev, uint8_t port_num, s
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     /* For dynamic ports look at the MAC Configuration table */
@@ -60,7 +58,6 @@ sja1105_status_t __SJA1105_PortSetSpeed(sja1105_handle_t *dev, uint8_t port_num,
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     const sja1105_port_t *port          = &dev->config->ports[port_num];
@@ -143,7 +140,6 @@ sja1105_status_t SJA1105_PortSetLearning(sja1105_handle_t *dev, uint8_t port_num
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     sja1105_status_t revert_status = SJA1105_OK;
@@ -183,7 +179,6 @@ sja1105_status_t SJA1105_PortGetForwarding(sja1105_handle_t *dev, uint8_t port_n
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     bool ingress;
@@ -210,7 +205,6 @@ sja1105_status_t SJA1105_PortSetForwarding(sja1105_handle_t *dev, uint8_t port_n
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     sja1105_status_t revert_status = SJA1105_OK;
@@ -269,7 +263,6 @@ sja1105_status_t SJA1105_ReadTemperatureX10(sja1105_handle_t *dev, int16_t *temp
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     /* Setup variables */
@@ -279,7 +272,7 @@ sja1105_status_t SJA1105_ReadTemperatureX10(sja1105_handle_t *dev, int16_t *temp
     uint8_t  previous_guess = 0;
     uint32_t reg_data       = 0;
 
-    /* Check the temperature sensor is enabled TODO: Check the internal ACU table instead*/
+    /* Check the temperature sensor is enabled TODO: Check the internal ACU table instead */
     status = SJA1105_ReadRegisterWithCheck(dev, SJA1105_ACU_REG_TS_CONFIG, &reg_data, 1);
     if (status != SJA1105_OK) goto end;
 
@@ -338,7 +331,6 @@ sja1105_status_t SJA1105_CheckStatusRegisters(sja1105_handle_t *dev) {
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     /* Read the status registers */
@@ -355,8 +347,9 @@ sja1105_status_t SJA1105_CheckStatusRegisters(sja1105_handle_t *dev) {
     }
 
     // TODO: remove
-    status = SJA1105_ReadRegister(dev, 0x446, reg_data, 1);
-    if (status != SJA1105_OK) goto end;
+//    uint32_t reg_data2[80];
+//    status = SJA1105_ReadRegister(dev, 0x400, reg_data2, 80);
+//    if (status != SJA1105_OK) goto end;
 
 /* Give the mutex and return */
 end:
@@ -371,7 +364,6 @@ sja1105_status_t SJA1105_PortSleep(sja1105_handle_t *dev, uint8_t port_num) {
     sja1105_status_t status = SJA1105_NOT_IMPLEMENTED_ERROR;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
 
@@ -387,7 +379,6 @@ sja1105_status_t SJA1105_PortWake(sja1105_handle_t *dev, uint8_t port_num) {
     sja1105_status_t status = SJA1105_NOT_IMPLEMENTED_ERROR;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
 
@@ -402,7 +393,6 @@ sja1105_status_t SJA1105_L2EntryReadByIndex(sja1105_handle_t *dev, uint16_t inde
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     /* Argument checking */
@@ -455,7 +445,6 @@ sja1105_status_t SJA1105_ManagementRouteCreate(sja1105_handle_t *dev, const uint
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     /* Argument checking */
@@ -565,7 +554,6 @@ sja1105_status_t SJA1105_ManagementRouteFree(sja1105_handle_t *dev, bool force) 
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     /* Initialise variables */
@@ -611,7 +599,6 @@ sja1105_status_t SJA1105_FlushTCAM(sja1105_handle_t *dev) {
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     /* Re-writing the static config flushes the TCAM */
@@ -633,7 +620,6 @@ sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *a
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the device is initialised and take the mutex */
-    SJA1105_INIT_CHECK;
     SJA1105_LOCK;
 
     /* Get the MAC filters */
