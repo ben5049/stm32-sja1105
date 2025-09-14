@@ -141,13 +141,18 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
     sja1105_status_t      status                            = SJA1105_OK;
     const sja1105_port_t *port                              = &dev->config->ports[port_num];
     uint32_t              clk_data[SJA1105_CGU_REG_CLK_NUM] = {0};
-    uint32_t              idiv_data                         = 0;
+    uint32_t              idiv_data                         = (uint32_t) SJA1105_CGU_CLK_SRC_XO66M_0 << SJA1105_CGU_CLKSRC_SHIFT;
+    sja1105_speed_t       speed                             = SJA1105_SPEED_INVALID;
 
     /* Skip port 4 in variants that don't have one (due to SGMII) */
     if (((dev->config->variant == VARIANT_SJA1105R) || (dev->config->variant == VARIANT_SJA1105S)) && (port_num == 4)) return status;
 
+    /* Get the speed of the port */
+    status = SJA1105_PortGetSpeed(dev, port_num, &speed);
+    if (status != SJA1105_OK) return status;
+
     /* Skip clock setup for dynamic ports, they must be configured separately with SJA1105_PortSetSpeed() */
-    if (port->speed == SJA1105_SPEED_DYNAMIC) return status;
+    if (speed == SJA1105_SPEED_DYNAMIC) return status;
 
     switch (port->interface) {
         case SJA1105_INTERFACE_MII:
@@ -156,7 +161,7 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
             if (port->mode == SJA1105_MODE_MAC) {
 
                 /* Disable IDIVX */
-                idiv_data = SJA1105_CGU_PD;
+                idiv_data |= SJA1105_CGU_PD;
 
                 /* Set CLKSRC of MII_TX_CLK_X to TX_CLK_X */
                 clk_data[SJA1105_CGU_MII_TX_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_TX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT; /* Implicitly sets PD to 0 */
@@ -175,13 +180,13 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
 
             /* MII PHY */
             else {
-                switch (port->speed) {
+                switch (speed) {
 
                     /* 10M MII PHY */
                     case SJA1105_SPEED_10M: {
 
                         /* Enable IDIVX and divide by 10 */
-                        idiv_data  = ((uint32_t) 9 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
+                        idiv_data |= ((uint32_t) 9 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
                         idiv_data |= SJA1105_CGU_AUTOBLOCK;
 
                         /* Set CLKSRC of MII_TX_CLK_X to IDIVX */
@@ -226,7 +231,7 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
             if (port->mode == SJA1105_MODE_MAC) {
 
                 /* Disable IDIVX */
-                idiv_data = SJA1105_CGU_PD;
+                idiv_data |= SJA1105_CGU_PD;
 
                 /* Set CLKSRC of RMII_REF_CLK_X to TX_CLK_X */
                 clk_data[SJA1105_CGU_RMII_REF_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_TX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
@@ -247,7 +252,7 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
             else {
 
                 /* Disable IDIVX */
-                idiv_data = SJA1105_CGU_PD;
+                idiv_data |= SJA1105_CGU_PD;
 
                 /* Set CLKSRC of RMII_REF_CLK_X to TX_CLK_X */
                 clk_data[SJA1105_CGU_RMII_REF_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_TX_CLK(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
@@ -272,13 +277,13 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
         case SJA1105_INTERFACE_RGMII:
 
             /* RGMII */
-            switch (port->speed) {
+            switch (speed) {
 
                 /* 10M RGMII MAC */
                 case SJA1105_SPEED_10M: {
 
                     /* Enable IDIVX and divide by 10 */
-                    idiv_data  = ((uint32_t) 9 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
+                    idiv_data |= ((uint32_t) 9 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
                     idiv_data |= SJA1105_CGU_AUTOBLOCK;
 
                     /* Set CLKSRC of RGMII_TXC_X to IDIVX */
@@ -299,7 +304,7 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
                 case SJA1105_SPEED_100M: {
 
                     /* Enable IDIVX and divide by 1 */
-                    idiv_data  = ((uint32_t) 0 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
+                    idiv_data |= ((uint32_t) 0 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
                     idiv_data |= SJA1105_CGU_AUTOBLOCK;
 
                     /* Set CLKSRC of RGMII_TXC_X to IDIVX */
@@ -320,7 +325,7 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
                 case SJA1105_SPEED_1G: {
 
                     /* Disable IDIVX */
-                    idiv_data = SJA1105_CGU_PD;
+                    idiv_data |= SJA1105_CGU_PD;
 
                     /* Set CLKSRC of RGMII_TXC_X to PLL0 */
                     clk_data[SJA1105_CGU_RGMII_TX_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_PLL0(dev->config->skew_clocks ? port_num : 0) << SJA1105_CGU_CLKSRC_SHIFT;
