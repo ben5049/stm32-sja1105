@@ -24,6 +24,8 @@ extern "C" {
 
 #ifndef MAC_ADDR_SIZE
 #define MAC_ADDR_SIZE (6)
+#elif (MAC_ADDR_SIZE) != 6
+#error "MAC_ADDR_SIZE must be 6 bytes long"
 #endif
 
 #define SJA1105_NUM_PORTS             (5)
@@ -37,6 +39,9 @@ extern "C" {
 #ifndef SJA1105_PORTS_START_ENABLED
 #define SJA1105_PORTS_START_ENABLED
 #endif
+
+#define SJA1105_SPEED_MBPS_TO_ENUM(mbps) (((mbps) == 10) ? SJA1105_SPEED_10M : (((mbps) == 100) ? SJA1105_SPEED_100M : (((mbps) == 1000) ? SJA1105_SPEED_1G : SJA1105_SPEED_INVALID)))
+
 
 /* Typedefs */
 
