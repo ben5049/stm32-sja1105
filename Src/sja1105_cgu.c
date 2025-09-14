@@ -103,7 +103,6 @@ sja1105_status_t SJA1105_ConfigureCGU(sja1105_handle_t *dev, bool write) {
     reg_data &= ~SJA1105_CGU_BYPASS;                                                  /* Disable bypass */
     if (dev->config->skew_clocks) reg_data |= SJA1105_CGU_P23EN;                      /* Enable 120 and 240 degree outputs for better EMC performance */
     reg_data |= SJA1105_CGU_FBSEL;                                                    /* Enable PLL feedback */
-    reg_data |= SJA1105_CGU_AUTOBLOCK;                                                /* Enable autoblock to prevent glitches */
     reg_data |= ((uint32_t) 0x1 << SJA1105_CGU_PSEL_SHIFT) & SJA1105_CGU_PSEL_MASK;   /* PSEL = 1 */
     reg_data |= ((uint32_t) 0x1 << SJA1105_CGU_MSEL_SHIFT) & SJA1105_CGU_MSEL_MASK;   /* MSEL = 1 */
     reg_data |= ((uint32_t) 0x0 << SJA1105_CGU_NSEL_SHIFT) & SJA1105_CGU_NSEL_MASK;   /* NSEL = 0 */
@@ -187,7 +186,6 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
 
                         /* Enable IDIVX and divide by 10 */
                         idiv_data |= ((uint32_t) 9 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
-                        idiv_data |= SJA1105_CGU_AUTOBLOCK;
 
                         /* Set CLKSRC of MII_TX_CLK_X to IDIVX */
                         clk_data[SJA1105_CGU_MII_TX_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_IDIV(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
@@ -284,7 +282,6 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
 
                     /* Enable IDIVX and divide by 10 */
                     idiv_data |= ((uint32_t) 9 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
-                    idiv_data |= SJA1105_CGU_AUTOBLOCK;
 
                     /* Set CLKSRC of RGMII_TXC_X to IDIVX */
                     clk_data[SJA1105_CGU_RGMII_TX_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_IDIV(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
@@ -305,7 +302,6 @@ sja1105_status_t SJA1105_ConfigureCGUPort(sja1105_handle_t *dev, uint8_t port_nu
 
                     /* Enable IDIVX and divide by 1 */
                     idiv_data |= ((uint32_t) 0 << SJA1105_CGU_IDIV_SHIFT) & SJA1105_CGU_IDIV_MASK;
-                    idiv_data |= SJA1105_CGU_AUTOBLOCK;
 
                     /* Set CLKSRC of RGMII_TXC_X to IDIVX */
                     clk_data[SJA1105_CGU_RGMII_TX_CLK]  = (uint32_t) SJA1105_CGU_CLK_SRC_IDIV(port_num) << SJA1105_CGU_CLKSRC_SHIFT;
