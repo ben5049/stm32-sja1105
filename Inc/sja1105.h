@@ -258,7 +258,7 @@ struct sja1105_handle_t {
 /* Functions */
 
 /* Initialisation */
-sja1105_status_t SJA1105_PortConfigure(sja1105_config_t *config, uint8_t port_num, sja1105_interface_t interface, sja1105_mode_t mode, bool output_rmii_refclk, sja1105_speed_t speed, sja1105_io_voltage_t voltage);
+sja1105_status_t SJA1105_PortConfigure(sja1105_config_t *config, const sja1105_port_t *port_config);
 sja1105_status_t SJA1105_Init(sja1105_handle_t *dev, const sja1105_config_t *config, const sja1105_callbacks_t *callbacks, uint32_t fixed_length_table_buffer[SJA1105_FIXED_BUFFER_SIZE], const uint32_t *static_conf, uint32_t static_conf_size);
 sja1105_status_t SJA1105_DeInit(sja1105_handle_t *dev, bool hard, bool clear_counters);
 sja1105_status_t SJA1105_ReInit(sja1105_handle_t *dev, const uint32_t *static_conf, uint32_t static_conf_size);

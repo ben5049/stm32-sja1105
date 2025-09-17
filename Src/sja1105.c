@@ -346,10 +346,14 @@ sja1105_status_t SJA1105_CheckStatusRegisters(sja1105_handle_t *dev) {
         goto end;
     }
 
-    // TODO: remove
-//    uint32_t reg_data2[80];
-//    status = SJA1105_ReadRegister(dev, 0x400, reg_data2, 80);
-//    if (status != SJA1105_OK) goto end;
+    // TODO: check properly
+    uint32_t reg_data2[120];
+    status = SJA1105_ReadRegister(dev, 0x400, reg_data2, (0x0f + 0x01) * 5);
+    if (status != SJA1105_OK) goto end;
+    status = SJA1105_ReadRegister(dev, 0x600, reg_data2, (0x0b + 0x01) * 5);
+    if (status != SJA1105_OK) goto end;
+    status = SJA1105_ReadRegister(dev, 0x1400, reg_data2, (0x16 + 0x01) * 5);
+    if (status != SJA1105_OK) goto end;
 
 /* Give the mutex and return */
 end:

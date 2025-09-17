@@ -15,30 +15,30 @@
 #include "internal/sja1105_tables.h"
 
 
-sja1105_status_t SJA1105_PortConfigure(sja1105_config_t *config, uint8_t port_num, sja1105_interface_t interface, sja1105_mode_t mode, bool output_rmii_refclk, sja1105_speed_t speed, sja1105_io_voltage_t voltage) {
+sja1105_status_t SJA1105_PortConfigure(sja1105_config_t *config, const sja1105_port_t *port_config) {
 
     sja1105_status_t status = SJA1105_OK;
 
     /* Check the parameters */
-    if (port_num >= SJA1105_NUM_PORTS) status = SJA1105_PARAMETER_ERROR;
-    if (interface >= SJA1105_INTERFACE_INVALID) status = SJA1105_PARAMETER_ERROR;
-    if (mode >= SJA1105_MODE_INVALID) status = SJA1105_PARAMETER_ERROR;
-    if (speed >= SJA1105_SPEED_INVALID) status = SJA1105_PARAMETER_ERROR;
-    if (voltage >= SJA1105_IO_V_INVALID) status = SJA1105_PARAMETER_ERROR;
-    if ((interface == SJA1105_INTERFACE_MII) && (speed == SJA1105_SPEED_1G)) status = SJA1105_PARAMETER_ERROR;  /* MII Interface doesn't support 1G speeds */
-    if ((interface == SJA1105_INTERFACE_RMII) && (speed == SJA1105_SPEED_1G)) status = SJA1105_PARAMETER_ERROR; /* RMII Interface doesn't support 1G speeds */
-    if ((voltage == SJA1105_IO_1V8) && (interface == SJA1105_INTERFACE_RMII)) status = SJA1105_PARAMETER_ERROR; /* 1V8 RMII not supported */
-    if (config->ports[port_num].configured == true) status = SJA1105_ALREADY_CONFIGURED_ERROR;                  /* Note this may cause an unintended error if the struct uses non-zeroed memory. */
+    if (port_config->port_num >= SJA1105_NUM_PORTS) status = SJA1105_PARAMETER_ERROR;
+    if (port_config->interface >= SJA1105_INTERFACE_INVALID) status = SJA1105_PARAMETER_ERROR;
+    if (port_config->mode >= SJA1105_MODE_INVALID) status = SJA1105_PARAMETER_ERROR;
+    if (port_config->speed >= SJA1105_SPEED_INVALID) status = SJA1105_PARAMETER_ERROR;
+    if (port_config->voltage >= SJA1105_IO_V_INVALID) status = SJA1105_PARAMETER_ERROR;
+    if ((port_config->interface == SJA1105_INTERFACE_MII) && (port_config->speed == SJA1105_SPEED_1G)) status = SJA1105_PARAMETER_ERROR;  /* MII Interface doesn't support 1G speeds */
+    if ((port_config->interface == SJA1105_INTERFACE_RMII) && (port_config->speed == SJA1105_SPEED_1G)) status = SJA1105_PARAMETER_ERROR; /* RMII Interface doesn't support 1G speeds */
+    if ((port_config->voltage == SJA1105_IO_1V8) && (port_config->interface == SJA1105_INTERFACE_RMII)) status = SJA1105_PARAMETER_ERROR; /* 1V8 RMII not supported */
+    if (config->ports[port_config->port_num].configured == true) status = SJA1105_ALREADY_CONFIGURED_ERROR;                               /* Note this may cause an unintended error if the struct uses non-zeroed memory. */
     if (status != SJA1105_OK) return status;
 
     /* Assign the parameters */
-    config->ports[port_num].port_num           = port_num;
-    config->ports[port_num].interface          = interface;
-    config->ports[port_num].mode               = mode;
-    config->ports[port_num].output_rmii_refclk = output_rmii_refclk;
-    config->ports[port_num].speed              = speed;
-    config->ports[port_num].voltage            = voltage;
-    config->ports[port_num].configured         = true;
+    config->ports[port_config->port_num].port_num           = port_config->port_num;
+    config->ports[port_config->port_num].interface          = port_config->interface;
+    config->ports[port_config->port_num].mode               = port_config->mode;
+    config->ports[port_config->port_num].output_rmii_refclk = port_config->output_rmii_refclk;
+    config->ports[port_config->port_num].speed              = port_config->speed;
+    config->ports[port_config->port_num].voltage            = port_config->voltage;
+    config->ports[port_config->port_num].configured         = true;
 
     return status;
 }
