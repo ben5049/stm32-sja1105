@@ -69,6 +69,7 @@ typedef enum {
     SJA1105_NO_FREE_MGMT_ROUTES_ERROR,
     SJA1105_MEMORY_ERROR,
     SJA1105_STATIC_CONF_FLAGS_READ_ERROR,
+    SJA1105_INVALID_VALUE_ERROR,
 } sja1105_status_t;
 
 typedef enum {
@@ -116,8 +117,9 @@ typedef struct {
     sja1105_speed_t      speed;
     sja1105_interface_t  interface;
     sja1105_mode_t       mode;
-    bool                 output_rmii_refclk; /* Only used when interface = SJA1105_INTERFACE_RMII and mode = SJA1105_MODE_PHY */
     sja1105_io_voltage_t voltage;
+    bool                 output_rmii_refclk; /* Only used when interface = SJA1105_INTERFACE_RMII and mode = SJA1105_MODE_PHY */
+    bool                 rx_error_unused;    /* Only used when interface is MII or RMII. Controls whether or not the RX_ERR input is pulled down */
     bool                 configured;
 } sja1105_port_t;
 
@@ -210,8 +212,10 @@ typedef struct {
     uint32_t words_read;
     uint32_t words_written;
     uint32_t crc_errors;
+    uint32_t spi_errors;
     uint32_t mgmt_frames_sent;
     uint32_t mgmt_entries_dropped;
+    uint32_t frames_dropped[SJA1105_NUM_PORTS];
 } sja1105_event_counters_t;
 
 /* Stores information about management routes */
@@ -263,7 +267,7 @@ sja1105_status_t SJA1105_Init(sja1105_handle_t *dev, const sja1105_config_t *con
 sja1105_status_t SJA1105_DeInit(sja1105_handle_t *dev, bool hard, bool clear_counters);
 sja1105_status_t SJA1105_ReInit(sja1105_handle_t *dev, const uint32_t *static_conf, uint32_t static_conf_size);
 
-/* User Functions */
+/* Dynamic reconfiguration */
 sja1105_status_t SJA1105_PortGetState(sja1105_handle_t *dev, uint8_t port_num, bool *state);
 sja1105_status_t SJA1105_PortGetSpeed(sja1105_handle_t *dev, uint8_t port_num, sja1105_speed_t *speed);
 sja1105_status_t SJA1105_PortSetSpeed(sja1105_handle_t *dev, uint8_t port_num, sja1105_speed_t speed);
@@ -273,14 +277,18 @@ sja1105_status_t SJA1105_PortSetForwarding(sja1105_handle_t *dev, uint8_t port_n
 sja1105_status_t SJA1105_PortSleep(sja1105_handle_t *dev, uint8_t port_num);
 sja1105_status_t SJA1105_PortWake(sja1105_handle_t *dev, uint8_t port_num);
 
+/* Maintenance */
 sja1105_status_t SJA1105_ReadTemperatureX10(sja1105_handle_t *dev, int16_t *temp);
 sja1105_status_t SJA1105_CheckStatusRegisters(sja1105_handle_t *dev);
 sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *addr, bool *trapped, bool *send_meta, bool *incl_srcpt);
+sja1105_status_t SJA1105_ReadAllTables(sja1105_handle_t *dev);
 
+/* Utilities */
 sja1105_status_t SJA1105_L2EntryReadByIndex(sja1105_handle_t *dev, uint16_t index, bool managment, uint32_t entry[SJA1105_L2ADDR_LU_ENTRY_SIZE]);
 sja1105_status_t SJA1105_ManagementRouteCreate(sja1105_handle_t *dev, const uint8_t dst_addr[MAC_ADDR_SIZE], uint8_t dst_ports, bool takets, bool tsreg, void *context);
 sja1105_status_t SJA1105_ManagementRouteFree(sja1105_handle_t *dev, bool force);
 sja1105_status_t SJA1105_FlushTCAM(sja1105_handle_t *dev);
+
 
 #ifdef __cplusplus
 }

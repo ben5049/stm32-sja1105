@@ -25,7 +25,7 @@ const sja1105_table_type_t SJA1105_TABLE_TYPE_LUT[SJA1105_BLOCK_ID_SGMII_CONF + 
     [SJA1105_BLOCK_ID_L2_ADDR_LOOKUP]               = SJA1105_TABLE_VARIABLE_LENGTH,
     [SJA1105_BLOCK_ID_L2_POLICING]                  = SJA1105_TABLE_VARIABLE_LENGTH,
     [SJA1105_BLOCK_ID_VLAN_LOOKUP]                  = SJA1105_TABLE_VARIABLE_LENGTH,
-    [SJA1105_BLOCK_ID_L2_FORWARDING]                = SJA1105_TABLE_VARIABLE_LENGTH,
+    [SJA1105_BLOCK_ID_L2_FORWARDING]                = SJA1105_TABLE_FIXED_LENGTH,
     [SJA1105_BLOCK_ID_MAC_CONF]                     = SJA1105_TABLE_FIXED_LENGTH,
     [SJA1105_BLOCK_ID_SCHEDULE_PARAMS]              = SJA1105_TABLE_FIXED_LENGTH,
     [SJA1105_BLOCK_ID_SCHEDULE_ENTRY_POINTS_PARAMS] = SJA1105_TABLE_FIXED_LENGTH,
@@ -340,11 +340,11 @@ sja1105_status_t SJA1105_MACConfTableWrite(sja1105_handle_t *dev, uint8_t port_n
      * Note: The VALID bit should be write only, but the documentation mentions "On read [of ERRORS] it has meaning at times when VALID is found reset".
      *       How can VALID be found reset if it cannot be read? Write only bits return 0 on read so there is no harm in polling until it is 0.
      */
-    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_VALID, false);
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_VALID, false);
     if (status != SJA1105_OK) return status;
 
     /* Parameter and bounds checking */
-    assert(SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE == (SJA1105_DYN_CONF_MAC_CONF_REG_8 - SJA1105_DYN_CONF_MAC_CONF_REG_1 + 1));
+    _Static_assert(SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE == (SJA1105_DYN_CONF_MAC_CONF_REG_8 - SJA1105_DYN_CONF_MAC_CONF_REG_1 + 1));
     if ((index + SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE) > *dev->tables.mac_configuration.size) status = SJA1105_PARAMETER_ERROR;
     if (status != SJA1105_OK) return status;
 
@@ -354,16 +354,16 @@ sja1105_status_t SJA1105_MACConfTableWrite(sja1105_handle_t *dev, uint8_t port_n
 
     /* Apply the table */
     reg_data  = 0;
-    reg_data |= SJA1105_DYN_CONF_MAC_CONF_VALID;
-    reg_data |= SJA1105_DYN_CONF_MAC_CONF_RDWRSET; /* Operation is a write */
+    reg_data |= SJA1105_DYN_CONF_VALID;
+    reg_data |= SJA1105_DYN_CONF_RDWRSET; /* Operation is a write */
     reg_data |= ((uint32_t) port_num << SJA1105_DYN_CONF_MAC_CONF_PORTID_SHIFT) & SJA1105_DYN_CONF_MAC_CONF_PORTID_MASK;
     status    = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, &reg_data, 1);
     if (status != SJA1105_OK) return status;
 
     /* Wait for VALID to be 0 then check ERRORS, TODO: there is a wasted access here */
-    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_VALID, false);
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_VALID, false);
     if (status != SJA1105_OK) return status;
-    status = SJA1105_ReadFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_ERRORS, &error);
+    status = SJA1105_ReadFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_ERRORS, &error);
     if (status != SJA1105_OK) return status;
 
     /* If ERRORS is set then the configuration is invalid and was not applied */
@@ -385,23 +385,24 @@ sja1105_status_t SJA1105_MACConfTableRead(sja1105_handle_t *dev, uint8_t port_nu
      * Note: The VALID bit should be write only, but the documentation mentions "On read [of ERRORS] it has meaning at times when VALID is found reset".
      *       How can VALID be found reset if it cannot be read? Write only bits return 0 on read so there is no harm in polling until it is 0.
      */
-    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_VALID, false);
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_VALID, false);
     if (status != SJA1105_OK) return status;
 
     /* Parameter and bounds checking */
-    assert(SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE == (SJA1105_DYN_CONF_MAC_CONF_REG_8 - SJA1105_DYN_CONF_MAC_CONF_REG_1 + 1));
+    _Static_assert(SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE == (SJA1105_DYN_CONF_MAC_CONF_REG_8 - SJA1105_DYN_CONF_MAC_CONF_REG_1 + 1));
     if ((index + SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE) > *dev->tables.mac_configuration.size) status = SJA1105_PARAMETER_ERROR;
     if (status != SJA1105_OK) return status;
 
     /* Setup for a read */
     reg_data  = 0;
-    reg_data &= ~SJA1105_DYN_CONF_MAC_CONF_RDWRSET; /* Operation is a read */
+    reg_data |= SJA1105_DYN_CONF_VALID;
+    reg_data &= ~SJA1105_DYN_CONF_RDWRSET; /* Operation is a read */
     reg_data |= ((uint32_t) port_num << SJA1105_DYN_CONF_MAC_CONF_PORTID_SHIFT) & SJA1105_DYN_CONF_MAC_CONF_PORTID_MASK;
     status    = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, &reg_data, 1);
     if (status != SJA1105_OK) return status;
 
     /* Wait for VALID to be 0 */
-    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_VALID, false);
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_VALID, false);
     if (status != SJA1105_OK) return status;
 
     /* Read the table */
@@ -530,6 +531,42 @@ sja1105_status_t SJA1105_xMIIModeTableCheck(sja1105_handle_t *dev, const sja1105
             return status;
         }
     }
+
+    return status;
+}
+
+
+sja1105_status_t SJA1105_L2ForwardingTableRead(sja1105_handle_t *dev, uint8_t index) {
+
+    sja1105_status_t status   = SJA1105_OK;
+    uint32_t         reg_data = 0;
+    uint8_t          offset   = index * SJA1105_STATIC_CONF_L2_FORWARDING_ENTRY_SIZE;
+
+    /* Wait for VALID to be 0 */
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_L2_FORWARDING_REG_0, SJA1105_DYN_CONF_VALID, false);
+    if (status != SJA1105_OK) return status;
+
+    /* Parameter checking */
+    _Static_assert(SJA1105_STATIC_CONF_L2_FORWARDING_ENTRY_SIZE == (SJA1105_DYN_CONF_L2_FORWARDING_REG_2 - SJA1105_DYN_CONF_L2_FORWARDING_REG_1 + 1));
+    if (index >= SJA1105_STATIC_CONF_L2_FORWARDING_NUM_ENTRIES) status = SJA1105_PARAMETER_ERROR;
+    if (offset >= SJA1105_STATIC_CONF_L2_FORWARDING_ENTRY_SIZE * SJA1105_STATIC_CONF_L2_FORWARDING_NUM_ENTRIES) status = SJA1105_PARAMETER_ERROR;
+    if (status != SJA1105_OK) return status;
+
+    /* Setup for a read */
+    reg_data  = 0;
+    reg_data |= SJA1105_DYN_CONF_VALID;
+    reg_data &= ~SJA1105_DYN_CONF_RDWRSET; /* Operation is a read */
+    reg_data |= ((uint32_t) index << SJA1105_DYN_CONF_L2_FORWARDING_INDEX_SHIFT) & SJA1105_DYN_CONF_L2_FORWARDING_INDEX_MASK;
+    status    = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_L2_FORWARDING_REG_0, &reg_data, 1);
+    if (status != SJA1105_OK) return status;
+
+    /* Wait for VALID to be 0 */
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_L2_FORWARDING_REG_0, SJA1105_DYN_CONF_VALID, false);
+    if (status != SJA1105_OK) return status;
+
+    /* Read the table */
+    status = SJA1105_ReadRegister(dev, SJA1105_DYN_CONF_L2_FORWARDING_REG_1, dev->tables.l2_forwarding.data + offset, SJA1105_STATIC_CONF_L2_FORWARDING_ENTRY_SIZE);
+    if (status != SJA1105_OK) return status;
 
     return status;
 }

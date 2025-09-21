@@ -94,6 +94,11 @@ sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_nu
             /* Low speed */
             reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_OS_LOW;
             reg_data[SJA1105_ACU_PAD_CFG_RX] |= SJA1105_CLK_OS_FAST;
+
+            /* Pull down RX_ERR if unused */
+            if (port->rx_error_unused) {
+                reg_data[SJA1105_ACU_PAD_CFG_RX] |= SJA1105_CTRL_IPUD_PD; /* Note the default 0x2 is ORed in later but 0x3 here overrules it */
+            }
             break;
 
         case SJA1105_INTERFACE_RMII:
@@ -105,6 +110,11 @@ sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_nu
             /* Low speed (but fast REF_CLK) */
             reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_CLK_OS_FAST | SJA1105_CTRL_OS_LOW | SJA1105_D10_OS_LOW | SJA1105_D32_OS_LOW;
             reg_data[SJA1105_ACU_PAD_CFG_RX] |= SJA1105_CLK_OS_FAST;
+
+            /* Pull down RX_ERR if unused */
+            if (port->rx_error_unused) {
+                reg_data[SJA1105_ACU_PAD_CFG_RX] |= SJA1105_CTRL_IPUD_PD; /* Note the default 0x2 is ORed in later but 0x3 here overrules it */
+            }
             break;
 
         case SJA1105_INTERFACE_RGMII:

@@ -329,19 +329,52 @@ end:
 sja1105_status_t SJA1105_CheckStatusRegisters(sja1105_handle_t *dev) {
 
     sja1105_status_t status = SJA1105_OK;
+    uint32_t         status_registers[SJA1105_REGULAR_CHECK_SIZE];
+    uint32_t         reg_data;
 
     /* Check the device is initialised and take the mutex */
     SJA1105_LOCK;
 
     /* Read the status registers */
-    uint32_t reg_data[SJA1105_REGULAR_CHECK_SIZE];
-    status = SJA1105_ReadRegister(dev, SJA1105_REGULAR_CHECK_ADDR, reg_data, SJA1105_REGULAR_CHECK_SIZE);
+    status = SJA1105_ReadRegister(dev, SJA1105_REGULAR_CHECK_ADDR, status_registers, SJA1105_REGULAR_CHECK_SIZE);
     if (status != SJA1105_OK) goto end;
+
+    /* Check the virtual link status register */
+    reg_data = status_registers[SJA1105_REG_VL_PART_STATUS - SJA1105_REGULAR_CHECK_ADDR];
+    if (reg_data & (SJA1105_VLPARTS | SJA1105_VLROUTES)) {
+        uint32_t vlind    = (reg_data & SJA1105_VLPARIND_MASK) >> SJA1105_VLPARIND_SHIFT;
+        uint32_t vlparind = (reg_data & SJA1105_VLIND_SHIFT) >> SJA1105_VLIND_SHIFT;
+
+        /* TODO: remove. virtual links haven't been implemented so this is an error */
+        UNUSED(vlind);
+        UNUSED(vlparind);
+        dev->events.spi_errors++;
+        return status;
+    }
+
 
     /* TODO: Check other registers */
 
+
+    /* Check for dropped frames due to forwarding or no free memory */
+    reg_data = status_registers[SJA1105_REG_GENERAL_STATUS_9 - SJA1105_REGULAR_CHECK_ADDR];
+    if (reg_data & (SJA1105_FWDS | SJA1105_PARTS)) {
+
+        /* Extract the port number */
+        uint8_t port = (reg_data & SJA1105_FWDS_PARTS_PORT_MASK) >> SJA1105_FWDS_PARTS_PORT_SHIFT;
+        if (port >= SJA1105_NUM_PORTS) {
+            status = SJA1105_INVALID_VALUE_ERROR;
+            goto end;
+        }
+
+        /* Increment the dropped frame counter */
+        dev->events.frames_dropped[port]++;
+
+        // TODO: Look at counter registers (0x400) to figure out the exact error
+    }
+
     /* Check for RAM parity errors */
-    if (reg_data[SJA1105_REG_GENERAL_STATUS_10 - SJA1105_REGULAR_CHECK_ADDR] || reg_data[SJA1105_REG_GENERAL_STATUS_11 - SJA1105_REGULAR_CHECK_ADDR]) {
+    if (status_registers[SJA1105_REG_GENERAL_STATUS_10 - SJA1105_REGULAR_CHECK_ADDR] || status_registers[SJA1105_REG_GENERAL_STATUS_11 - SJA1105_REGULAR_CHECK_ADDR]) {
         status = SJA1105_RAM_PARITY_ERROR;
         goto end;
     }
@@ -660,6 +693,35 @@ sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *a
     }
 
 /* Give the mutex and return */
+end:
+    SJA1105_UNLOCK;
+    return status;
+}
+
+
+/* Read current table data from the SJA1105 into the device struct. Can be used to ensure shadow tables are the same */
+sja1105_status_t SJA1105_ReadAllTables(sja1105_handle_t *dev) {
+
+    sja1105_status_t status = SJA1105_NOT_IMPLEMENTED_ERROR;
+
+    /* Check the device is initialised and take the mutex */
+    SJA1105_LOCK;
+
+    /* Read all the MAC config table entries */
+    for (uint_fast8_t i = 0; i < SJA1105_NUM_PORTS; i++) {
+        status = SJA1105_MACConfTableRead(dev, i);
+        if (status != SJA1105_OK) goto end;
+    }
+
+    /* Read all the L2 forwarding table entries */
+    for (uint_fast8_t i = 0; i < SJA1105_STATIC_CONF_L2_FORWARDING_NUM_ENTRIES; i++) {
+        status = SJA1105_L2ForwardingTableRead(dev, i);
+        if (status != SJA1105_OK) goto end;
+    }
+
+    // TODO: Add more tables
+
+    /* Give the mutex and return */
 end:
     SJA1105_UNLOCK;
     return status;

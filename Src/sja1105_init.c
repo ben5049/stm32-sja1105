@@ -31,14 +31,34 @@ sja1105_status_t SJA1105_PortConfigure(sja1105_config_t *config, const sja1105_p
     if (config->ports[port_config->port_num].configured == true) status = SJA1105_ALREADY_CONFIGURED_ERROR;                               /* Note this may cause an unintended error if the struct uses non-zeroed memory. */
     if (status != SJA1105_OK) return status;
 
-    /* Assign the parameters */
-    config->ports[port_config->port_num].port_num           = port_config->port_num;
-    config->ports[port_config->port_num].interface          = port_config->interface;
-    config->ports[port_config->port_num].mode               = port_config->mode;
-    config->ports[port_config->port_num].output_rmii_refclk = port_config->output_rmii_refclk;
-    config->ports[port_config->port_num].speed              = port_config->speed;
-    config->ports[port_config->port_num].voltage            = port_config->voltage;
-    config->ports[port_config->port_num].configured         = true;
+    /* Assign the generic parameters */
+    config->ports[port_config->port_num].port_num  = port_config->port_num;
+    config->ports[port_config->port_num].interface = port_config->interface;
+    config->ports[port_config->port_num].mode      = port_config->mode;
+    config->ports[port_config->port_num].speed     = port_config->speed;
+    config->ports[port_config->port_num].voltage   = port_config->voltage;
+
+    /* Assign interface specific parameters */
+    switch (config->ports[port_config->port_num].interface) {
+
+        case SJA1105_INTERFACE_MII:
+            config->ports[port_config->port_num].output_rmii_refclk = false;
+            config->ports[port_config->port_num].rx_error_unused    = port_config->rx_error_unused;
+            break;
+
+        case SJA1105_INTERFACE_RMII:
+            config->ports[port_config->port_num].output_rmii_refclk = port_config->output_rmii_refclk;
+            config->ports[port_config->port_num].rx_error_unused    = port_config->rx_error_unused;
+            break;
+
+        default:
+            config->ports[port_config->port_num].output_rmii_refclk = false;
+            config->ports[port_config->port_num].rx_error_unused    = false;
+            break;
+    }
+
+    /* Mark the port as configured */
+    config->ports[port_config->port_num].configured = true;
 
     return status;
 }
