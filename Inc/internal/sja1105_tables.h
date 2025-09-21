@@ -53,6 +53,7 @@ sja1105_status_t SJA1105_CheckTable(sja1105_handle_t *dev, sja1105_block_id_t id
 sja1105_status_t SJA1105_MACConfTableCheck(sja1105_handle_t *dev, const sja1105_table_t *table);
 sja1105_status_t SJA1105_ResetMACConfTable(sja1105_handle_t *dev, bool write);
 sja1105_status_t SJA1105_MACConfTableWrite(sja1105_handle_t *dev, uint8_t port_num);
+sja1105_status_t SJA1105_MACConfTableRead(sja1105_handle_t *dev, uint8_t port_num);
 sja1105_status_t SJA1105_MACConfTableGetSpeed(const sja1105_table_t *table, uint8_t port_num, sja1105_speed_t *speed);
 sja1105_status_t SJA1105_MACConfTableSetSpeed(sja1105_table_t *table, uint8_t port_num, sja1105_speed_t speed);
 sja1105_status_t SJA1105_MACConfTableGetIngress(const sja1105_table_t *table, uint8_t port_num, bool *ingress);

@@ -161,7 +161,7 @@ sja1105_status_t SJA1105_PortSetLearning(sja1105_handle_t *dev, uint8_t port_num
 
         /* If an error occured revert the table */
         if (status != SJA1105_OK) {
-            revert_status = SJA1105_MACConfTableSetDynLearn(&dev->tables.general_parameters, port_num, learning);
+            revert_status = SJA1105_MACConfTableSetDynLearn(&dev->tables.mac_configuration, port_num, learning);
             if (revert_status != SJA1105_OK) status = SJA1105_REVERT_ERROR;
             goto end;
         }
@@ -185,9 +185,9 @@ sja1105_status_t SJA1105_PortGetForwarding(sja1105_handle_t *dev, uint8_t port_n
     bool egress;
 
     /* Get the current port ingress and egress status */
-    status = SJA1105_MACConfTableGetIngress(&dev->tables.general_parameters, port_num, &ingress);
+    status = SJA1105_MACConfTableGetIngress(&dev->tables.mac_configuration, port_num, &ingress);
     if (status != SJA1105_OK) goto end;
-    status = SJA1105_MACConfTableGetEgress(&dev->tables.general_parameters, port_num, &egress);
+    status = SJA1105_MACConfTableGetEgress(&dev->tables.mac_configuration, port_num, &egress);
     if (status != SJA1105_OK) goto end;
 
     /* Get the result */
@@ -348,14 +348,16 @@ sja1105_status_t SJA1105_CheckStatusRegisters(sja1105_handle_t *dev) {
 
     // TODO: check properly
     uint32_t reg_data2[120];
+    status = SJA1105_ReadRegister(dev, 0x200, reg_data2, (0x01 + 0x01) * 5);
+    if (status != SJA1105_OK) goto end;
     status = SJA1105_ReadRegister(dev, 0x400, reg_data2, (0x0f + 0x01) * 5);
     if (status != SJA1105_OK) goto end;
-    status = SJA1105_ReadRegister(dev, 0x600, reg_data2, (0x0b + 0x01) * 5);
+    status = SJA1105_ReadRegister(dev, 0x600, reg_data2, (0x0b + 0x05) * 5);
     if (status != SJA1105_OK) goto end;
     status = SJA1105_ReadRegister(dev, 0x1400, reg_data2, (0x16 + 0x01) * 5);
     if (status != SJA1105_OK) goto end;
 
-/* Give the mutex and return */
+    /* Give the mutex and return */
 end:
     SJA1105_UNLOCK;
     return status;

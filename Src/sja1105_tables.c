@@ -374,6 +374,44 @@ sja1105_status_t SJA1105_MACConfTableWrite(sja1105_handle_t *dev, uint8_t port_n
 }
 
 
+sja1105_status_t SJA1105_MACConfTableRead(sja1105_handle_t *dev, uint8_t port_num) {
+
+    sja1105_status_t status   = SJA1105_OK;
+    uint32_t         reg_data = 0;
+    uint8_t          index    = SJA1105_STATIC_CONF_MAC_CONF_WORD(port_num, 0);
+
+    /* Wait for VALID to be 0.
+     *
+     * Note: The VALID bit should be write only, but the documentation mentions "On read [of ERRORS] it has meaning at times when VALID is found reset".
+     *       How can VALID be found reset if it cannot be read? Write only bits return 0 on read so there is no harm in polling until it is 0.
+     */
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_VALID, false);
+    if (status != SJA1105_OK) return status;
+
+    /* Parameter and bounds checking */
+    assert(SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE == (SJA1105_DYN_CONF_MAC_CONF_REG_8 - SJA1105_DYN_CONF_MAC_CONF_REG_1 + 1));
+    if ((index + SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE) > *dev->tables.mac_configuration.size) status = SJA1105_PARAMETER_ERROR;
+    if (status != SJA1105_OK) return status;
+
+    /* Setup for a read */
+    reg_data  = 0;
+    reg_data &= ~SJA1105_DYN_CONF_MAC_CONF_RDWRSET; /* Operation is a read */
+    reg_data |= ((uint32_t) port_num << SJA1105_DYN_CONF_MAC_CONF_PORTID_SHIFT) & SJA1105_DYN_CONF_MAC_CONF_PORTID_MASK;
+    status    = SJA1105_WriteRegister(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, &reg_data, 1);
+    if (status != SJA1105_OK) return status;
+
+    /* Wait for VALID to be 0 */
+    status = SJA1105_PollFlag(dev, SJA1105_DYN_CONF_MAC_CONF_REG_0, SJA1105_DYN_CONF_MAC_CONF_VALID, false);
+    if (status != SJA1105_OK) return status;
+
+    /* Read the table */
+    status = SJA1105_ReadRegister(dev, SJA1105_DYN_CONF_MAC_CONF_REG_1, dev->tables.mac_configuration.data + index, SJA1105_STATIC_CONF_MAC_CONF_ENTRY_SIZE);
+    if (status != SJA1105_OK) return status;
+
+    return status;
+}
+
+
 sja1105_status_t SJA1105_GeneralParamsTableCheck(sja1105_handle_t *dev, const sja1105_table_t *table) {
 
     sja1105_status_t status = SJA1105_OK;

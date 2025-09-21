@@ -102,8 +102,8 @@ sja1105_status_t SJA1105_ConfigureACUPort(sja1105_handle_t *dev, uint8_t port_nu
             if (port->voltage == SJA1105_IO_1V8) status = SJA1105_PARAMETER_ERROR;
             if (status != SJA1105_OK) return status;
 
-            /* Low speed */
-            reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_OS_LOW;
+            /* Low speed (but fast REF_CLK) */
+            reg_data[SJA1105_ACU_PAD_CFG_TX] |= SJA1105_CLK_OS_FAST | SJA1105_CTRL_OS_LOW | SJA1105_D10_OS_LOW | SJA1105_D32_OS_LOW;
             reg_data[SJA1105_ACU_PAD_CFG_RX] |= SJA1105_CLK_OS_FAST;
             break;
 
