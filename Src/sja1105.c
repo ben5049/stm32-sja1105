@@ -181,8 +181,8 @@ sja1105_status_t SJA1105_PortGetForwarding(sja1105_handle_t *dev, uint8_t port_n
     /* Check the device is initialised and take the mutex */
     SJA1105_LOCK;
 
-    bool ingress;
-    bool egress;
+    bool ingress = false;
+    bool egress  = false;
 
     /* Get the current port ingress and egress status */
     status = SJA1105_MACConfTableGetIngress(&dev->tables.mac_configuration, port_num, &ingress);
@@ -191,7 +191,11 @@ sja1105_status_t SJA1105_PortGetForwarding(sja1105_handle_t *dev, uint8_t port_n
     if (status != SJA1105_OK) goto end;
 
     /* Get the result */
-    if (ingress && egress) *forwarding = true;
+    if (ingress && egress) {
+        *forwarding = true;
+    } else {
+        *forwarding = false;
+    }
 
     /* Give the mutex and return */
 end:
@@ -616,8 +620,8 @@ sja1105_status_t SJA1105_ManagementRouteFree(sja1105_handle_t *dev, bool force) 
 
             /* If force is true then free the entry anyway */
             else if (force) {
-                dev->events.mgmt_entries_dropped++;
                 dev->management_routes.slot_taken[i] = false;
+                dev->events.mgmt_entries_dropped++;
             }
         }
     }
