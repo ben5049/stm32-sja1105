@@ -43,6 +43,7 @@ sja1105_status_t __SJA1105_ReadRegister(sja1105_handle_t *dev, uint32_t addr, ui
         /* Send command frame */
         if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) &command_frame, 1, dev->config->timeout) != HAL_OK) {
             status = SJA1105_SPI_ERROR;
+            dev->events.spi_errors++;
             goto end;
         }
         dev->events.words_written++;
@@ -55,17 +56,22 @@ sja1105_status_t __SJA1105_ReadRegister(sja1105_handle_t *dev, uint32_t addr, ui
         if ((size == 1) && integrity_check) {
             if (HAL_SPI_TransmitReceive(dev->config->spi_handle, (uint8_t *) &dummy_payload, (uint8_t *) data, 1, dev->config->timeout) != HAL_OK) {
                 status = SJA1105_SPI_ERROR;
+                dev->events.spi_errors++;
                 goto end;
             }
             if (data[0] == dummy_payload) {
                 status = SJA1105_SPI_ERROR;
+                dev->events.spi_errors++;
                 goto end;
             }
         } else {
+            __disable_irq(); // TODO: This absolutely needs to be removed
             if (HAL_SPI_Receive(dev->config->spi_handle, (uint8_t *) &data[size - dwords_remaining], block_size, dev->config->timeout) != HAL_OK) {
                 status = SJA1105_SPI_ERROR;
+                dev->events.spi_errors++;
                 goto end;
             }
+            __enable_irq(); // TODO: This absolutely needs to be removed
         }
         dev->events.words_read += block_size;
 
@@ -164,6 +170,7 @@ sja1105_status_t SJA1105_WriteRegister(sja1105_handle_t *dev, uint32_t addr, con
         /* Send command frame */
         if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) &command_frame, 1, dev->config->timeout) != HAL_OK) {
             status = SJA1105_SPI_ERROR;
+            dev->events.spi_errors++;
             goto end;
         }
         dev->events.words_written++;
@@ -172,6 +179,7 @@ sja1105_status_t SJA1105_WriteRegister(sja1105_handle_t *dev, uint32_t addr, con
         block_size = CONSTRAIN(dwords_remaining, 0, SJA1105_SPI_MAX_TX_PAYLOAD_SIZE);
         if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) &data[size - dwords_remaining], block_size, dev->config->timeout) != HAL_OK) {
             status = SJA1105_SPI_ERROR;
+            dev->events.spi_errors++;
             goto end;
         }
         dev->events.words_written += block_size;
@@ -225,6 +233,7 @@ sja1105_status_t SJA1105_WriteTable(sja1105_handle_t *dev, uint32_t addr, sja110
     /* Send command frame */
     if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) &command_frame, 1, dev->config->timeout) != HAL_OK) {
         status = SJA1105_SPI_ERROR;
+        dev->events.spi_errors++;
         goto end;
     }
     dev->events.words_written++;
@@ -232,6 +241,7 @@ sja1105_status_t SJA1105_WriteTable(sja1105_handle_t *dev, uint32_t addr, sja110
     /* Send the header */
     if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) header, SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC, dev->config->timeout) != HAL_OK) {
         status = SJA1105_SPI_ERROR;
+        dev->events.spi_errors++;
         goto end;
     }
     dev->events.words_written += SJA1105_STATIC_CONF_BLOCK_HEADER + SJA1105_STATIC_CONF_BLOCK_HEADER_CRC;
@@ -239,6 +249,7 @@ sja1105_status_t SJA1105_WriteTable(sja1105_handle_t *dev, uint32_t addr, sja110
     /* Send the data */
     if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) table->data, *table->size, dev->config->timeout) != HAL_OK) {
         status = SJA1105_SPI_ERROR;
+        dev->events.spi_errors++;
         goto end;
     }
     dev->events.words_written += *table->size;
@@ -246,6 +257,7 @@ sja1105_status_t SJA1105_WriteTable(sja1105_handle_t *dev, uint32_t addr, sja110
     /* Send the data CRC */
     if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) table->data_crc, 1, dev->config->timeout) != HAL_OK) {
         status = SJA1105_SPI_ERROR;
+        dev->events.spi_errors++;
         goto end;
     }
     dev->events.words_written++;
@@ -338,6 +350,7 @@ sja1105_status_t SJA1105_L2LUTInvalidateRange(sja1105_handle_t *dev, uint16_t lo
         /* Write the invalidate command */
         if (HAL_SPI_Transmit(dev->config->spi_handle, (uint8_t *) reg_data, size, dev->config->timeout) != HAL_OK) {
             status = SJA1105_SPI_ERROR;
+            dev->events.spi_errors++;
             goto end;
         }
         dev->events.words_written += size;

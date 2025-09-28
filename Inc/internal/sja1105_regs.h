@@ -22,20 +22,25 @@ extern "C" {
 /* ---------------------------------------------------------------------------- */
 
 enum SJA1105_GeneralReg_Enum {
-    SJA1105_REG_DEVICE_ID         = 0x00000000,
-    SJA1105_REG_STATIC_CONF_FLAGS = 0x00000001,
-    SJA1105_REG_VL_PART_STATUS    = 0x00000002,
-    SJA1105_REG_GENERAL_STATUS_1  = 0x00000003,
-    SJA1105_REG_GENERAL_STATUS_2  = 0x00000004,
-    SJA1105_REG_GENERAL_STATUS_3  = 0x00000005,
-    SJA1105_REG_GENERAL_STATUS_4  = 0x00000006,
-    SJA1105_REG_GENERAL_STATUS_5  = 0x00000007,
-    SJA1105_REG_GENERAL_STATUS_6  = 0x00000008,
-    SJA1105_REG_GENERAL_STATUS_7  = 0x00000009,
-    SJA1105_REG_GENERAL_STATUS_8  = 0x0000000a,
-    SJA1105_REG_GENERAL_STATUS_9  = 0x0000000b,
-    SJA1105_REG_GENERAL_STATUS_10 = 0x0000000c, /* RAM Parity error register (lower) */
-    SJA1105_REG_GENERAL_STATUS_11 = 0x0000000d, /* RAM Parity error register (upper) */
+    SJA1105_REG_DEVICE_ID              = 0x00000000,
+    SJA1105_REG_STATIC_CONF_FLAGS      = 0x00000001,
+    SJA1105_REG_VL_PART_STATUS         = 0x00000002,
+    SJA1105_REG_GENERAL_STATUS_1       = 0x00000003,
+    SJA1105_REG_GENERAL_STATUS_2       = 0x00000004,
+    SJA1105_REG_GENERAL_STATUS_3       = 0x00000005,
+    SJA1105_REG_GENERAL_STATUS_4       = 0x00000006,
+    SJA1105_REG_GENERAL_STATUS_5       = 0x00000007,
+    SJA1105_REG_GENERAL_STATUS_6       = 0x00000008,
+    SJA1105_REG_GENERAL_STATUS_7       = 0x00000009,
+    SJA1105_REG_GENERAL_STATUS_8       = 0x0000000a,
+    SJA1105_REG_GENERAL_STATUS_9       = 0x0000000b,
+    SJA1105_REG_GENERAL_STATUS_10      = 0x0000000c, /* RAM Parity error register (lower) */
+    SJA1105_REG_GENERAL_STATUS_11      = 0x0000000d, /* RAM Parity error register (upper) */
+    SJA1105_REG_HIGH_LEVEL_STATS_PORT0 = 0x00000400,
+    SJA1105_REG_HIGH_LEVEL_STATS_PORT1 = 0x00000410,
+    SJA1105_REG_HIGH_LEVEL_STATS_PORT2 = 0x00000420,
+    SJA1105_REG_HIGH_LEVEL_STATS_PORT3 = 0x00000430,
+    SJA1105_REG_HIGH_LEVEL_STATS_PORT4 = 0x00000440,
 };
 
 enum SJA1105_DeviceID_Enum {
@@ -44,32 +49,40 @@ enum SJA1105_DeviceID_Enum {
     SJA1105QS_DEVICE_ID = 0xae00030e,
 };
 
-#define SJA1105_CONFIGS_SHIFT         (31)
-#define SJA1105_CONFIGS_MASK          (0x1 << SJA1105_CONFIGS_SHIFT)
-#define SJA1105_CRCCHKL_SHIFT         (30)                           /* Local CRC check */
-#define SJA1105_CRCCHKL_MASK          (0x1 << SJA1105_CRCCHKL_SHIFT) /* Local CRC check */
-#define SJA1105_IDS_SHIFT             (29)
-#define SJA1105_IDS_MASK              (0x1 << SJA1105_IDS_SHIFT)
-#define SJA1105_CRCCHKG_SHIFT         (28)                           /* Global CRC check */
-#define SJA1105_CRCCHKG_MASK          (0x1 << SJA1105_CRCCHKG_SHIFT) /* Global CRC check */
+#define SJA1105_CONFIGS_SHIFT                      (31)
+#define SJA1105_CONFIGS_MASK                       (0x1 << SJA1105_CONFIGS_SHIFT)
+#define SJA1105_CRCCHKL_SHIFT                      (30)                           /* Local CRC check */
+#define SJA1105_CRCCHKL_MASK                       (0x1 << SJA1105_CRCCHKL_SHIFT) /* Local CRC check */
+#define SJA1105_IDS_SHIFT                          (29)
+#define SJA1105_IDS_MASK                           (0x1 << SJA1105_IDS_SHIFT)
+#define SJA1105_CRCCHKG_SHIFT                      (28)                           /* Global CRC check */
+#define SJA1105_CRCCHKG_MASK                       (0x1 << SJA1105_CRCCHKG_SHIFT) /* Global CRC check */
 
-#define SJA1105_REGULAR_CHECK_ADDR    (SJA1105_REG_VL_PART_STATUS)
-#define SJA1105_REGULAR_CHECK_SIZE    (SJA1105_REG_GENERAL_STATUS_11 - SJA1105_REGULAR_CHECK_ADDR + 1)
+#define SJA1105_REGULAR_CHECK_ADDR                 (SJA1105_REG_VL_PART_STATUS)
+#define SJA1105_REGULAR_CHECK_SIZE                 (SJA1105_REG_GENERAL_STATUS_11 - SJA1105_REGULAR_CHECK_ADDR + 1)
 
-#define SJA1105_L2BUSYS_SHIFT         (0)
-#define SJA1105_L2BUSYS_MASK          (0x1 << SJA1105_L2BUSYS_SHIFT)
+#define SJA1105_L2BUSYS_SHIFT                      (0)
+#define SJA1105_L2BUSYS_MASK                       (0x1 << SJA1105_L2BUSYS_SHIFT)
 
-#define SJA1105_VLPARTS               (1 << 0)
-#define SJA1105_VLROUTES              (1 << 1)
-#define SJA1105_VLPARIND_SHIFT        (8)
-#define SJA1105_VLPARIND_MASK         (0xff << SJA1105_VLPARIND_SHIFT)
-#define SJA1105_VLIND_SHIFT           (16)
-#define SJA1105_VLIND_MASK            (0xffff << SJA1105_VLIND_SHIFT)
+#define SJA1105_VLPARTS                            (1 << 0)
+#define SJA1105_VLROUTES                           (1 << 1)
+#define SJA1105_VLPARIND_SHIFT                     (8)
+#define SJA1105_VLPARIND_MASK                      (0xff << SJA1105_VLPARIND_SHIFT)
+#define SJA1105_VLIND_SHIFT                        (16)
+#define SJA1105_VLIND_MASK                         (0xffff << SJA1105_VLIND_SHIFT)
 
-#define SJA1105_PARTS                 (1 << 0)
-#define SJA1105_FWDS                  (1 << 1)
-#define SJA1105_FWDS_PARTS_PORT_SHIFT (8)
-#define SJA1105_FWDS_PARTS_PORT_MASK  (0xff << SJA1105_FWDS_PARTS_PORT_SHIFT)
+#define SJA1105_PARTS                              (1 << 0)
+#define SJA1105_FWDS                               (1 << 1)
+#define SJA1105_FWDS_PARTS_PORT_SHIFT              (8)
+#define SJA1105_FWDS_PARTS_PORT_MASK               (0xff << SJA1105_FWDS_PARTS_PORT_SHIFT)
+
+#define SJA1105_HIGH_LEVEL_STATS_SIZE              (0x10)
+#define SJA1105_HIGH_LEVEL_STATS_PORT_OFFSET(port) ((port) * SJA1105_HIGH_LEVEL_STATS_SIZE)
+
+#define SJA1105_HIGH_LEVEL_STATS_N_TXBYTE_L        (0x0)
+#define SJA1105_HIGH_LEVEL_STATS_N_TXBYTE_H        (0x1)
+#define SJA1105_HIGH_LEVEL_STATS_N_RXBYTE_L        (0x4)
+#define SJA1105_HIGH_LEVEL_STATS_N_RXBYTE_H        (0x5)
 
 /* ---------------------------------------------------------------------------- */
 /* Auxiliary Configuration Unit */

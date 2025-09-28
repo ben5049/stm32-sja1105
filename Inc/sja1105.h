@@ -258,6 +258,12 @@ struct sja1105_handle_t {
     atomic_bool                initialised;
 };
 
+/* Stores informations from device status registers */
+typedef struct {
+    uint64_t tx_bytes[SJA1105_NUM_PORTS];
+    uint64_t rx_bytes[SJA1105_NUM_PORTS];
+} sja1105_statistics_t;
+
 
 /* Functions */
 
@@ -282,6 +288,7 @@ sja1105_status_t SJA1105_ReadTemperatureX10(sja1105_handle_t *dev, int16_t *temp
 sja1105_status_t SJA1105_CheckStatusRegisters(sja1105_handle_t *dev);
 sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *addr, bool *trapped, bool *send_meta, bool *incl_srcpt);
 sja1105_status_t SJA1105_ReadAllTables(sja1105_handle_t *dev);
+sja1105_status_t SJA1105_ReadStatistics(sja1105_handle_t *dev, sja1105_statistics_t *stats);
 
 /* Utilities */
 sja1105_status_t SJA1105_L2EntryReadByIndex(sja1105_handle_t *dev, uint16_t index, bool managment, uint32_t entry[SJA1105_L2ADDR_LU_ENTRY_SIZE]);

@@ -271,12 +271,14 @@ void SJA1105_ResetManagementRoutes(sja1105_handle_t *dev) {
 /* Reset event counters */
 void SJA1105_ResetEventCounters(sja1105_handle_t *dev) {
     dev->events.static_conf_uploads  = 0;
+    dev->events.resets               = 0;
     dev->events.words_read           = 0;
     dev->events.words_written        = 0;
     dev->events.crc_errors           = 0;
+    dev->events.spi_errors           = 0;
     dev->events.mgmt_frames_sent     = 0;
     dev->events.mgmt_entries_dropped = 0;
-    dev->events.resets               = 0;
+    for (uint_fast8_t i = 0; i < SJA1105_NUM_PORTS; i++) dev->events.frames_dropped[i] = 0;
 }
 
 
