@@ -284,7 +284,7 @@ sja1105_status_t SJA1105_PortSleep(sja1105_handle_t *dev, uint8_t port_num);
 sja1105_status_t SJA1105_PortWake(sja1105_handle_t *dev, uint8_t port_num);
 
 /* Maintenance */
-sja1105_status_t SJA1105_ReadTemperatureX10(sja1105_handle_t *dev, int16_t *temp);
+sja1105_status_t SJA1105_ReadTemperature(sja1105_handle_t *dev, float *temp);
 sja1105_status_t SJA1105_CheckStatusRegisters(sja1105_handle_t *dev);
 sja1105_status_t SJA1105_MACAddrTrapTest(sja1105_handle_t *dev, const uint8_t *addr, bool *trapped, bool *send_meta, bool *incl_srcpt);
 sja1105_status_t SJA1105_ReadAllTables(sja1105_handle_t *dev);

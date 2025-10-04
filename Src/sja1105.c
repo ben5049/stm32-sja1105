@@ -330,6 +330,14 @@ end:
 }
 
 
+sja1105_status_t SJA1105_ReadTemperature(sja1105_handle_t *dev, float *temp) {
+    int16_t          temperatureX10;
+    sja1105_status_t status = SJA1105_ReadTemperatureX10(dev, &temperatureX10);
+    *temp                   = (float) temperatureX10 / 10.0;
+    return status;
+}
+
+
 sja1105_status_t SJA1105_CheckStatusRegisters(sja1105_handle_t *dev) {
 
     sja1105_status_t status = SJA1105_OK;
