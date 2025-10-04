@@ -262,6 +262,7 @@ struct sja1105_handle_t {
 typedef struct {
     uint64_t tx_bytes[SJA1105_NUM_PORTS];
     uint64_t rx_bytes[SJA1105_NUM_PORTS];
+    uint32_t dropped_frames[SJA1105_NUM_PORTS];
 } sja1105_statistics_t;
 
 

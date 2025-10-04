@@ -83,6 +83,7 @@ enum SJA1105_DeviceID_Enum {
 #define SJA1105_HIGH_LEVEL_STATS_N_TXBYTE_H        (0x1)
 #define SJA1105_HIGH_LEVEL_STATS_N_RXBYTE_L        (0x4)
 #define SJA1105_HIGH_LEVEL_STATS_N_RXBYTE_H        (0x5)
+#define SJA1105_HIGH_LEVEL_STATS_N_POLERR          (0x8)
 
 /* ---------------------------------------------------------------------------- */
 /* Auxiliary Configuration Unit */

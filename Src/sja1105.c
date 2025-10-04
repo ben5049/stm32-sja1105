@@ -411,11 +411,19 @@ sja1105_status_t SJA1105_ReadStatistics(sja1105_handle_t *dev, sja1105_statistic
     if (status != SJA1105_OK) goto end;
 
     /* Store the relevent statistics in the output */
-    for (uint_fast8_t i = 0; i < SJA1105_NUM_PORTS; i++) {
-        stats->tx_bytes[i]  = reg_data[SJA1105_HIGH_LEVEL_STATS_PORT_OFFSET(i) + SJA1105_HIGH_LEVEL_STATS_N_TXBYTE_L];
-        stats->tx_bytes[i] |= (uint64_t) reg_data[SJA1105_HIGH_LEVEL_STATS_PORT_OFFSET(i) + SJA1105_HIGH_LEVEL_STATS_N_TXBYTE_H] << 32;
-        stats->rx_bytes[i]  = reg_data[SJA1105_HIGH_LEVEL_STATS_PORT_OFFSET(i) + SJA1105_HIGH_LEVEL_STATS_N_RXBYTE_L];
-        stats->rx_bytes[i] |= (uint64_t) reg_data[SJA1105_HIGH_LEVEL_STATS_PORT_OFFSET(i) + SJA1105_HIGH_LEVEL_STATS_N_RXBYTE_H] << 32;
+    for (uint_fast8_t port = 0; port < SJA1105_NUM_PORTS; port++) {
+
+        /* Get the byte counters */
+        stats->tx_bytes[port]  = reg_data[SJA1105_HIGH_LEVEL_STATS_PORT_OFFSET(port) + SJA1105_HIGH_LEVEL_STATS_N_TXBYTE_L];
+        stats->tx_bytes[port] |= (uint64_t) reg_data[SJA1105_HIGH_LEVEL_STATS_PORT_OFFSET(port) + SJA1105_HIGH_LEVEL_STATS_N_TXBYTE_H] << 32;
+        stats->rx_bytes[port]  = reg_data[SJA1105_HIGH_LEVEL_STATS_PORT_OFFSET(port) + SJA1105_HIGH_LEVEL_STATS_N_RXBYTE_L];
+        stats->rx_bytes[port] |= (uint64_t) reg_data[SJA1105_HIGH_LEVEL_STATS_PORT_OFFSET(port) + SJA1105_HIGH_LEVEL_STATS_N_RXBYTE_H] << 32;
+
+        /* Sum the dropped frame counter registers */
+        stats->dropped_frames[port] = 0;
+        for (uint_fast8_t err_reg = SJA1105_HIGH_LEVEL_STATS_N_POLERR; err_reg < SJA1105_HIGH_LEVEL_STATS_SIZE; err_reg++) {
+            stats->dropped_frames[port] += reg_data[SJA1105_HIGH_LEVEL_STATS_PORT_OFFSET(port) + err_reg];
+        }
     }
 
     // status = SJA1105_ReadRegister(dev, 0x200, reg_data2, (0x01 + 0x01) * 5);
